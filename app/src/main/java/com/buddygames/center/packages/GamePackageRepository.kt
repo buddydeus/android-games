@@ -52,6 +52,7 @@ class GamePackageRepository(private val filesDir: File) {
         sourceDir.copyRecursively(staging, overwrite = true)
         destination.deleteRecursively()
         check(staging.renameTo(destination)) { "Failed to install ${candidate.manifest.gameId}" }
+        destination.resolve("plugin.apk").setReadOnly()
         return packageFromDir(destination)
     }
 

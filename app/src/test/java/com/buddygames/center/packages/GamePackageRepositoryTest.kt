@@ -1,6 +1,7 @@
 package com.buddygames.center.packages
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -26,6 +27,7 @@ class GamePackageRepositoryTest {
         assertEquals("gomoku", installed.manifest.gameId)
         assertTrue(installed.rootDir.path.endsWith("Games/gomoku"))
         assertTrue(installed.pluginApk.exists())
+        assertFalse(installed.pluginApk.canWrite())
         assertTrue(installed.assetsDir.isDirectory)
     }
 
