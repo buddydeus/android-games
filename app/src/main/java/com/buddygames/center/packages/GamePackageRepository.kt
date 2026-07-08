@@ -18,23 +18,6 @@ class GamePackageRepository(private val filesDir: File) {
             .orEmpty()
     }
 
-    fun ensureBuiltInPackagesInstalled(packages: List<BuiltInPackageDefinition>) {
-        packages.forEach { definition ->
-            val existing = runCatching { packageFromDir(gamesDir.resolve(definition.manifest.gameId)) }.getOrNull()
-            if (existing != null && existing.manifest.versionCode > definition.manifest.versionCode) {
-                return@forEach
-            }
-            val source = filesDir.resolve(".builtin/${definition.manifest.gameId}")
-            source.deleteRecursively()
-            source.mkdirs()
-            source.resolve("manifest.json").writeText(definition.manifestJson)
-            source.resolve("plugin.apk").writeText("built-in:${definition.manifest.gameId}")
-            source.resolve("assets").mkdirs()
-            source.resolve("assets/icon.txt").writeText(definition.manifest.displayName)
-            installFromDirectory(source)
-        }
-    }
-
     fun installFromZip(zipFile: File): GamePackage {
         val target = filesDir.resolve(".installing/${System.currentTimeMillis()}")
         target.deleteRecursively()
@@ -83,11 +66,6 @@ class GamePackageRepository(private val filesDir: File) {
         return GamePackage(manifest, dir, pluginApk, assetsDir)
     }
 }
-
-data class BuiltInPackageDefinition(
-    val manifest: GameManifest,
-    val manifestJson: String
-)
 
 object GameManifestJson {
     fun parse(json: String): GameManifest {

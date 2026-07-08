@@ -40,7 +40,6 @@ import com.buddygames.api.GamePackage
 import com.buddygames.api.GamePlugin
 import com.buddygames.center.loader.DexGamePluginLoader
 import com.buddygames.center.packages.GamePackageRepository
-import com.buddygames.center.registry.BuiltInGameRegistry
 import java.io.File
 
 @Composable
@@ -51,7 +50,7 @@ fun GameCenterApp() {
     var packages by remember {
         mutableStateOf(
             run {
-                repository.ensureBuiltInPackagesInstalled(BuiltInGameRegistry.packageDefinitions())
+                installBundledGames(androidContext, repository)
                 repository.discoverInstalledGames()
             }
         )
@@ -88,8 +87,7 @@ fun GameCenterApp() {
                     onImport = { launcher.launch(arrayOf("application/zip", "application/octet-stream")) },
                     onOpen = { gamePackage ->
                         runCatching {
-                            BuiltInGameRegistry.pluginFor(gamePackage.manifest.gameId)
-                                ?: pluginLoader.load(gamePackage)
+                            pluginLoader.load(gamePackage)
                         }.onSuccess { plugin ->
                             activePackage = gamePackage
                             activePlugin = plugin
@@ -121,6 +119,19 @@ fun GameCenterApp() {
                 }
             }
         }
+    }
+}
+
+private fun installBundledGames(androidContext: android.content.Context, repository: GamePackageRepository) {
+    val assetManager = androidContext.assets
+    val packageNames = assetManager.list("builtin-games").orEmpty().filter { it.endsWith(".zip") }
+    packageNames.forEach { name ->
+        val tempZip = File(androidContext.cacheDir, "builtin-$name")
+        assetManager.open("builtin-games/$name").use { input ->
+            tempZip.outputStream().use { output -> input.copyTo(output) }
+        }
+        runCatching { repository.installFromZip(tempZip) }
+            .onFailure { android.util.Log.w("GameCenter", "Skipping bundled game $name: ${it.message}") }
     }
 }
 

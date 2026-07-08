@@ -5,6 +5,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 class GamePackageRepositoryTest {
     @get:Rule
@@ -49,6 +51,30 @@ class GamePackageRepositoryTest {
         assertEquals("1.0.1-dev", repository.discoverInstalledGames().single().manifest.versionName)
     }
 
+    @Test
+    fun installsFromZipIntoIndependentGameDirectory() {
+        val repository = GamePackageRepository(temp.newFolder("files"))
+        val zip = temp.newFile("gomoku.zip")
+        ZipOutputStream(zip.outputStream()).use { output ->
+            output.putNextEntry(ZipEntry("manifest.json"))
+            output.write(gomokuManifest(versionCode = 3, versionName = "3.0.0").toByteArray())
+            output.closeEntry()
+            output.putNextEntry(ZipEntry("plugin.apk"))
+            output.write("real-dex-apk".toByteArray())
+            output.closeEntry()
+            output.putNextEntry(ZipEntry("assets/icon.txt"))
+            output.write("五".toByteArray())
+            output.closeEntry()
+        }
+
+        val installed = repository.installFromZip(zip)
+
+        assertEquals("gomoku", installed.manifest.gameId)
+        assertEquals("real-dex-apk", installed.pluginApk.readText())
+        assertEquals("五", installed.assetsDir.resolve("icon.txt").readText())
+        assertTrue(installed.rootDir.path.endsWith("Games/gomoku"))
+    }
+
     private fun packageDir(name: String, versionCode: Int, versionName: String = "$versionCode.0.0") =
         temp.newFolder(name).also {
             it.resolve("manifest.json").writeText(gomokuManifest(versionCode, versionName))
@@ -70,4 +96,3 @@ class GamePackageRepositoryTest {
         }
     """.trimIndent()
 }
-
