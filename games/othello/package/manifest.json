@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "gameId": "othello",
+  "displayName": "黑白棋",
+  "versionCode": 1,
+  "versionName": "1.0.0",
+  "entryClass": "com.buddygames.othello.OthelloPlugin",
+  "minShellApi": 1,
+  "orientation": "landscape",
+  "icon": "assets/icon.txt"
+}
+
