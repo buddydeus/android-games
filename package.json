@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "test": "./gradlew test",
+    "build": "npm run build:apk && npm run build:game",
+    "build:apk": "./gradlew :app:assembleDebug",
+    "build:game": "npm run build:game:gomoku && npm run build:game:othello && npm run build:game:xiangqi",
+    "build:game:gomoku": "./gradlew packageGomokuGame",
+    "build:game:othello": "./gradlew packageOthelloGame",
+    "build:game:xiangqi": "./gradlew packageXiangqiGame",
+    "verify": "./gradlew test packageGomokuGame packageOthelloGame packageXiangqiGame :app:assembleDebug",
+    "start": "bash scripts/start-android-debug.sh"
+  }
+}
