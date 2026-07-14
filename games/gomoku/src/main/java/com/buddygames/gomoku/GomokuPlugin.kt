@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +47,11 @@ private val GomokuDarkWood = Color(0xFF745936)
 private val GomokuInk = Color(0xFF2D3438)
 private val GomokuIvory = Color(0xFFFFFC)
 private val GomokuVermilion = Color(0xFF9B2F2F)
+
+internal fun gomokuIntersectionFraction(index: Int): Float {
+    require(index in 0 until GomokuState.SIZE)
+    return index.toFloat() / (GomokuState.SIZE - 1)
+}
 
 class GomokuPlugin : GamePlugin {
     override fun getManifest(): GameManifest = manifest
@@ -222,31 +228,61 @@ private fun GomokuBoard(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
-        val cellSize = (maxWidth / 15f).coerceIn(20.dp, 34.dp)
-        Column(
+        val lineSpan = minOf(maxWidth - 28.dp, maxHeight - 28.dp)
+            .coerceIn(280.dp, 620.dp)
+        val step = lineSpan / (GomokuState.SIZE - 1).toFloat()
+        val surfaceSize = lineSpan + step
+        Box(
             modifier = Modifier
+                .size(surfaceSize + 28.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(GomokuDarkWood)
                 .border(2.dp, Color(0xFF594329), RoundedCornerShape(16.dp))
                 .padding(14.dp)
         ) {
-            repeat(GomokuState.SIZE) { row ->
-                Row {
+            Box(Modifier.size(surfaceSize).background(GomokuWood)) {
+                repeat(GomokuState.SIZE) { row ->
+                    Box(
+                        modifier = Modifier
+                            .width(lineSpan)
+                            .height(1.dp)
+                            .offset(
+                                x = step / 2,
+                                y = step / 2 + lineSpan * gomokuIntersectionFraction(row)
+                            )
+                            .background(GomokuDarkWood.copy(alpha = 0.82f))
+                    )
+                }
+                repeat(GomokuState.SIZE) { col ->
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(lineSpan)
+                            .offset(
+                                x = step / 2 + lineSpan * gomokuIntersectionFraction(col),
+                                y = step / 2
+                            )
+                            .background(GomokuDarkWood.copy(alpha = 0.82f))
+                    )
+                }
+                repeat(GomokuState.SIZE) { row ->
                     repeat(GomokuState.SIZE) { col ->
                         val stone = state.cell(row, col)
                         Box(
                             modifier = Modifier
-                                .size(cellSize)
-                                .border(0.7.dp, GomokuDarkWood.copy(alpha = 0.8f))
-                                .background(GomokuWood)
+                                .size(step)
+                                .offset(
+                                    x = lineSpan * gomokuIntersectionFraction(col),
+                                    y = lineSpan * gomokuIntersectionFraction(row)
+                                )
                                 .clickable { onPlay(row, col) },
                             contentAlignment = Alignment.Center
                         ) {
                             when (stone) {
-                                Stone.BLACK -> Box(Modifier.size(cellSize * 0.72f).background(GomokuInk, CircleShape))
+                                Stone.BLACK -> Box(Modifier.size(step * 0.72f).background(GomokuInk, CircleShape))
                                 Stone.WHITE -> Box(
                                     Modifier
-                                        .size(cellSize * 0.72f)
+                                        .size(step * 0.72f)
                                         .background(Color.White, CircleShape)
                                         .border(1.dp, Color(0xFFC7C3B9), CircleShape)
                                 )

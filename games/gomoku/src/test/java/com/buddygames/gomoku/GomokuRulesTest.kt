@@ -6,6 +6,13 @@ import org.junit.Test
 
 class GomokuRulesTest {
     @Test
+    fun intersectionFractionAnchorsFirstCenterAndLastGomokuLines() {
+        assertEquals(0f, gomokuIntersectionFraction(0), 0f)
+        assertEquals(0.5f, gomokuIntersectionFraction(7), 0f)
+        assertEquals(1f, gomokuIntersectionFraction(14), 0f)
+    }
+
+    @Test
     fun detectsHorizontalWin() {
         val state = GomokuState.empty()
             .place(7, 3, Stone.BLACK)
@@ -50,4 +57,3 @@ class GomokuRulesTest {
         assertNull(GomokuRules.winner(state))
     }
 }
-
