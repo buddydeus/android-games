@@ -162,4 +162,3 @@ Both games: the board retains the information rail and the exit action returns t
 Run: unzip -l build/game-packages/gomoku.zip && unzip -l build/game-packages/xiangqi.zip
 
 Expected: both archives contain manifest.json, plugin.apk, and assets.
-

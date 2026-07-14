@@ -38,4 +38,3 @@ Render Gomoku stones and Xiangqi pieces on board-line intersections rather than 
 - Targeted Gomoku and Xiangqi unit tests pass and their package zips build.
 - npm run verify passes.
 - Emulator screenshots confirm the first move in Gomoku lands at a line crossing and an Xiangqi piece remains centered on its file/rank intersection before and after a legal move.
-
