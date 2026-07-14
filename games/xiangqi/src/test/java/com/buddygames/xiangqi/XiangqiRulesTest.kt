@@ -7,6 +7,15 @@ import org.junit.Test
 
 class XiangqiRulesTest {
     @Test
+    fun intersectionFractionsAnchorXiangqiFilesAndRanks() {
+        assertEquals(0f, xiangqiFileFraction(0), 0f)
+        assertEquals(0.5f, xiangqiFileFraction(4), 0f)
+        assertEquals(1f, xiangqiFileFraction(8), 0f)
+        assertEquals(0f, xiangqiRankFraction(0), 0f)
+        assertEquals(1f, xiangqiRankFraction(9), 0f)
+    }
+
+    @Test
     fun horseCannotMoveWhenLegIsBlocked() {
         val state = XiangqiState.empty()
             .put(9, 1, XiangqiPiece(Side.RED, PieceType.HORSE))

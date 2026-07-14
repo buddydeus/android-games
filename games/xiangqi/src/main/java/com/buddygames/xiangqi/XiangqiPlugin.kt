@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,6 +48,16 @@ private val XiangqiInk = Color(0xFF2B2722)
 private val XiangqiIvory = Color(0xFFFFFC)
 private val XiangqiVermilion = Color(0xFF9B2F2F)
 private val XiangqiGold = Color(0xFFB88438)
+
+internal fun xiangqiFileFraction(column: Int): Float {
+    require(column in 0 until XiangqiState.COLS)
+    return column.toFloat() / (XiangqiState.COLS - 1)
+}
+
+internal fun xiangqiRankFraction(row: Int): Float {
+    require(row in 0 until XiangqiState.ROWS)
+    return row.toFloat() / (XiangqiState.ROWS - 1)
+}
 
 class XiangqiPlugin : GamePlugin {
     override fun getManifest(): GameManifest = manifest
@@ -239,24 +250,67 @@ private fun XiangqiBoard(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
-        val cellSize = (maxWidth / 9f).coerceIn(34.dp, 64.dp)
-        Column(
+        val lineWidth = minOf(
+            (maxWidth - 28.dp) * 8f / 9f,
+            (maxHeight - 28.dp) * 0.8f,
+            620.dp
+        ).coerceAtLeast(288.dp)
+        val stepX = lineWidth / (XiangqiState.COLS - 1).toFloat()
+        val lineHeight = stepX * (XiangqiState.ROWS - 1)
+        val stepY = lineHeight / (XiangqiState.ROWS - 1).toFloat()
+        val surfaceWidth = lineWidth + stepX
+        val surfaceHeight = lineHeight + stepY
+        Box(
             modifier = Modifier
+                .width(surfaceWidth + 28.dp)
+                .height(surfaceHeight + 28.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(XiangqiWood)
                 .border(2.dp, Color(0xFF594329), RoundedCornerShape(16.dp))
                 .padding(14.dp)
         ) {
-            repeat(XiangqiState.ROWS) { row ->
-                Row {
+            Box(
+                modifier = Modifier
+                    .width(surfaceWidth)
+                    .height(surfaceHeight)
+                    .background(XiangqiBoard)
+            ) {
+                repeat(XiangqiState.ROWS) { row ->
+                    Box(
+                        modifier = Modifier
+                            .width(lineWidth)
+                            .height(1.dp)
+                            .offset(
+                                x = stepX / 2,
+                                y = stepY / 2 + lineHeight * xiangqiRankFraction(row)
+                            )
+                            .background(XiangqiWood.copy(alpha = 0.86f))
+                    )
+                }
+                repeat(XiangqiState.COLS) { col ->
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(lineHeight)
+                            .offset(
+                                x = stepX / 2 + lineWidth * xiangqiFileFraction(col),
+                                y = stepY / 2
+                            )
+                            .background(XiangqiWood.copy(alpha = 0.86f))
+                    )
+                }
+                repeat(XiangqiState.ROWS) { row ->
                     repeat(XiangqiState.COLS) { col ->
                         val piece = state.piece(row, col)
                         val isSelected = selected == row to col
                         Box(
                             modifier = Modifier
-                                .size(cellSize)
-                                .border(0.8.dp, XiangqiWood.copy(alpha = 0.86f))
-                                .background(if (isSelected) Color(0xFFEBCB7A) else XiangqiBoard)
+                                .size(stepX, stepY)
+                                .offset(
+                                    x = lineWidth * xiangqiFileFraction(col),
+                                    y = lineHeight * xiangqiRankFraction(row)
+                                )
+                                .background(if (isSelected) Color(0x55EBCB7A) else Color.Transparent)
                                 .clickable { onTap(row, col) },
                             contentAlignment = Alignment.Center
                         ) {
@@ -278,7 +332,7 @@ private fun XiangqiBoard(
                             if (piece != null) {
                                 Box(
                                     modifier = Modifier
-                                        .size(cellSize * 0.78f)
+                                        .size(stepX * 0.78f)
                                         .background(XiangqiIvory, CircleShape)
                                         .border(2.dp, XiangqiGold, CircleShape),
                                     contentAlignment = Alignment.Center
