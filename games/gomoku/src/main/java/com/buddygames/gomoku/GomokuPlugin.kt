@@ -1,5 +1,7 @@
 package com.buddygames.gomoku
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,6 +35,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,12 +45,13 @@ import com.buddygames.api.GameContext
 import com.buddygames.api.GameManifest
 import com.buddygames.api.GameMode
 import com.buddygames.api.GamePlugin
+import java.io.File
 
 private val GomokuPaper = Color(0xFFF0E6D2)
 private val GomokuWood = Color(0xFFBC9561)
 private val GomokuDarkWood = Color(0xFF745936)
 private val GomokuInk = Color(0xFF2D3438)
-private val GomokuIvory = Color(0xFFFFFC)
+private val GomokuIvory = Color(0xFFFFFFFC)
 private val GomokuVermilion = Color(0xFF9B2F2F)
 
 internal fun gomokuIntersectionFraction(index: Int): Float {
@@ -53,12 +59,19 @@ internal fun gomokuIntersectionFraction(index: Int): Float {
     return index.toFloat() / (GomokuState.SIZE - 1)
 }
 
+internal fun gomokuBoardSide(availableWidth: Float, availableHeight: Float): Float =
+    minOf(availableWidth, availableHeight).coerceIn(280f, 680f)
+
 class GomokuPlugin : GamePlugin {
     override fun getManifest(): GameManifest = manifest
 
     @Composable
     override fun MainScreen(context: GameContext) {
+        val texture = remember(context.gamePackage.assetsDir) {
+            loadGomokuTexture(context.gamePackage.assetsDir.resolve("textures/gomoku-shelf.png"))
+        }
         GomokuMenu(
+            texture = texture,
             onSingle = { context.startGame(GameMode.SINGLE_PLAYER) },
             onTwo = { context.startGame(GameMode.TWO_PLAYERS) },
             onExit = context::exitGame
@@ -67,6 +80,9 @@ class GomokuPlugin : GamePlugin {
 
     @Composable
     override fun GameScreen(context: GameContext, mode: GameMode) {
+        val texture = remember(context.gamePackage.assetsDir) {
+            loadGomokuTexture(context.gamePackage.assetsDir.resolve("textures/gomoku-shelf.png"))
+        }
         var state by remember { mutableStateOf(GomokuState.empty()) }
         var turn by remember { mutableStateOf(Stone.BLACK) }
         var winner by remember { mutableStateOf<Stone?>(null) }
@@ -90,7 +106,8 @@ class GomokuPlugin : GamePlugin {
                 state = state,
                 status = statusText(winner, turn, mode),
                 onPlay = ::play,
-                onExit = context::exitGame
+                onExit = context::exitGame,
+                texture = texture
             )
         }
     }
@@ -117,210 +134,6 @@ class GomokuPlugin : GamePlugin {
     }
 }
 
-@Composable
-private fun GomokuMenu(onSingle: () -> Unit, onTwo: () -> Unit, onExit: () -> Unit) {
-    Surface(Modifier.fillMaxSize(), color = GomokuPaper) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(48.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            GomokuMark(92.dp)
-            Spacer(Modifier.height(20.dp))
-            Text(
-                "五子棋",
-                color = GomokuInk,
-                style = MaterialTheme.typography.displayMedium,
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(30.dp))
-            GomokuMenuButton("单人模式", GomokuInk, Color.White, onSingle)
-            Spacer(Modifier.height(12.dp))
-            GomokuMenuButton("双人对战", GomokuIvory, GomokuInk, onTwo, outlined = true)
-            Spacer(Modifier.height(12.dp))
-            GomokuMenuButton("退出游戏", Color(0xFFF1DDDD), GomokuVermilion, onExit, outlined = true)
-        }
-    }
-}
-
-@Composable
-private fun GomokuMark(size: androidx.compose.ui.unit.Dp) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(RoundedCornerShape(18.dp))
-            .background(GomokuWood)
-            .border(7.dp, GomokuDarkWood, RoundedCornerShape(18.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(24.dp).background(GomokuInk, CircleShape))
-            Box(
-                Modifier
-                    .size(24.dp)
-                    .background(Color.White, CircleShape)
-                    .border(1.dp, Color(0xFFC7C3B9), CircleShape)
-            )
-        }
-    }
-}
-
-@Composable
-private fun GomokuMenuButton(
-    label: String,
-    container: Color,
-    content: Color,
-    onClick: () -> Unit,
-    outlined: Boolean = false
-) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .width(260.dp)
-            .height(52.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = content),
-        border = if (outlined) androidx.compose.foundation.BorderStroke(1.dp, content.copy(alpha = 0.28f)) else null
-    ) {
-        Text(label, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun GomokuGameLayout(
-    state: GomokuState,
-    status: String,
-    onPlay: (Int, Int) -> Unit,
-    onExit: () -> Unit
-) {
-    BoxWithConstraints(Modifier.fillMaxSize().padding(32.dp)) {
-        if (maxWidth >= 900.dp) {
-            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                GomokuBoard(
-                    state = state,
-                    onPlay = onPlay,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(Modifier.width(32.dp))
-                GomokuInfoRail(status, onExit, Modifier.width(220.dp).fillMaxHeight())
-            }
-        } else {
-            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(22.dp)) {
-                GomokuBoard(
-                    state = state,
-                    onPlay = onPlay,
-                    modifier = Modifier.weight(1f)
-                )
-                GomokuInfoRail(status, onExit, Modifier.fillMaxWidth())
-            }
-        }
-    }
-}
-
-@Composable
-private fun GomokuBoard(
-    state: GomokuState,
-    onPlay: (Int, Int) -> Unit,
-    modifier: Modifier
-) {
-    BoxWithConstraints(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
-        val lineSpan = minOf(maxWidth - 28.dp, maxHeight - 28.dp)
-            .coerceIn(280.dp, 620.dp)
-        val step = lineSpan / (GomokuState.SIZE - 1).toFloat()
-        val surfaceSize = lineSpan + step
-        Box(
-            modifier = Modifier
-                .size(surfaceSize + 28.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(GomokuDarkWood)
-                .border(2.dp, Color(0xFF594329), RoundedCornerShape(16.dp))
-                .padding(14.dp)
-        ) {
-            Box(Modifier.size(surfaceSize).background(GomokuWood)) {
-                repeat(GomokuState.SIZE) { row ->
-                    Box(
-                        modifier = Modifier
-                            .width(lineSpan)
-                            .height(1.dp)
-                            .offset(
-                                x = step / 2,
-                                y = step / 2 + lineSpan * gomokuIntersectionFraction(row)
-                            )
-                            .background(GomokuDarkWood.copy(alpha = 0.82f))
-                    )
-                }
-                repeat(GomokuState.SIZE) { col ->
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(lineSpan)
-                            .offset(
-                                x = step / 2 + lineSpan * gomokuIntersectionFraction(col),
-                                y = step / 2
-                            )
-                            .background(GomokuDarkWood.copy(alpha = 0.82f))
-                    )
-                }
-                repeat(GomokuState.SIZE) { row ->
-                    repeat(GomokuState.SIZE) { col ->
-                        val stone = state.cell(row, col)
-                        Box(
-                            modifier = Modifier
-                                .size(step)
-                                .offset(
-                                    x = lineSpan * gomokuIntersectionFraction(col),
-                                    y = lineSpan * gomokuIntersectionFraction(row)
-                                )
-                                .clickable { onPlay(row, col) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            when (stone) {
-                                Stone.BLACK -> Box(Modifier.size(step * 0.72f).background(GomokuInk, CircleShape))
-                                Stone.WHITE -> Box(
-                                    Modifier
-                                        .size(step * 0.72f)
-                                        .background(Color.White, CircleShape)
-                                        .border(1.dp, Color(0xFFC7C3B9), CircleShape)
-                                )
-                                null -> Unit
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun GomokuInfoRail(status: String, onExit: () -> Unit, modifier: Modifier) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(GomokuIvory)
-            .border(1.dp, Color(0xFFD4C5A8), RoundedCornerShape(14.dp))
-            .padding(20.dp),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("历史比分", color = GomokuDarkWood, style = MaterialTheme.typography.labelLarge)
-            Text("0 : 0", color = GomokuInk, style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Serif)
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("当前回合", color = GomokuDarkWood, style = MaterialTheme.typography.labelLarge)
-            Text(status, color = GomokuInk, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        }
-        Button(
-            onClick = onExit,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1DDDD), contentColor = GomokuVermilion)
-        ) {
-            Text("退出游戏", fontWeight = FontWeight.Bold)
-        }
-    }
-}
+private fun loadGomokuTexture(file: File): ImageBitmap? = runCatching {
+    requireNotNull(BitmapFactory.decodeFile(file.absolutePath)).asImageBitmap()
+}.getOrNull()

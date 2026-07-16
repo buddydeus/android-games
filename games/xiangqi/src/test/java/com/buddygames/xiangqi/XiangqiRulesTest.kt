@@ -7,6 +7,28 @@ import org.junit.Test
 
 class XiangqiRulesTest {
     @Test
+    fun boardFrameMatchesReferenceAspectWithinBounds() {
+        val compact = xiangqiBoardSize(240f, 500f)
+        val typical = xiangqiBoardSize(900f, 600f)
+        val maximum = xiangqiBoardSize(1200f, 900f)
+
+        assertEquals(370.8f, compact.width, 0.001f)
+        assertEquals(360f, compact.height, 0.001f)
+        assertEquals(618f, typical.width, 0.001f)
+        assertEquals(600f, typical.height, 0.001f)
+        assertEquals(844.6f, maximum.width, 0.001f)
+        assertEquals(820f, maximum.height, 0.001f)
+    }
+
+    @Test
+    fun displayLabelsMatchReferencePieces() {
+        assertEquals("車", XiangqiPiece(Side.RED, PieceType.ROOK).displayLabel())
+        assertEquals("馬", XiangqiPiece(Side.BLACK, PieceType.HORSE).displayLabel())
+        assertEquals("帥", XiangqiPiece(Side.RED, PieceType.GENERAL).displayLabel())
+        assertEquals("將", XiangqiPiece(Side.BLACK, PieceType.GENERAL).displayLabel())
+    }
+
+    @Test
     fun intersectionFractionsAnchorXiangqiFilesAndRanks() {
         assertEquals(0f, xiangqiFileFraction(0), 0f)
         assertEquals(0.5f, xiangqiFileFraction(4), 0f)

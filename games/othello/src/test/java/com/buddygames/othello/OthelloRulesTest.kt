@@ -6,6 +6,13 @@ import org.junit.Test
 
 class OthelloRulesTest {
     @Test
+    fun boardSideUsesAvailableSpaceWithinReferenceBounds() {
+        assertEquals(288f, othelloBoardSide(240f, 500f), 0.001f)
+        assertEquals(560f, othelloBoardSide(720f, 560f), 0.001f)
+        assertEquals(672f, othelloBoardSide(900f, 800f), 0.001f)
+    }
+
+    @Test
     fun initialBoardHasFourLegalBlackMoves() {
         val moves = OthelloRules.legalMoves(OthelloState.initial(), Disc.BLACK)
 
@@ -42,4 +49,3 @@ class OthelloRulesTest {
         assertTrue(OthelloRules.isGameOver(full))
     }
 }
-

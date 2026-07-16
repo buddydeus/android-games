@@ -1,7 +1,9 @@
 package com.buddygames.center.ui
 
+import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,6 +41,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -53,17 +59,18 @@ import com.buddygames.center.loader.DexGamePluginLoader
 import com.buddygames.center.packages.GamePackageRepository
 import java.io.File
 
-private val PaperBackground = Color(0xFFF6F7F1)
-private val IvorySurface = Color(0xFFFFFC)
-private val Ink = Color(0xFF1F2A2D)
-private val MutedInk = Color(0xFF68736D)
-private val PrimaryBlue = Color(0xFF274C77)
-private val Border = Color(0xFFDFE3D8)
-private val Success = Color(0xFF315C46)
-private val SuccessSoft = Color(0xFFDFEADE)
+private val MineralCanvas = Color(0xFFDCE2E2)
+private val RaisedSurface = Color(0xFFF8FAF8)
+private val InsetSurface = Color(0xFFB8C3C4)
+private val Ink = Color(0xFF1D2B2F)
+private val MutedInk = Color(0xFF5D6E72)
+private val PrimaryTeal = Color(0xFF164C5B)
+private val Border = Color(0xFFB4C0C1)
+private val Success = Color(0xFF2E715E)
+private val SuccessSoft = Color(0xFFE0EEE7)
 private val Warning = Color(0xFF9C5B22)
 private val WarningSoft = Color(0xFFF4EADB)
-private val Error = Color(0xFF9B2F2F)
+private val Error = Color(0xFFA43B32)
 private val ErrorSoft = Color(0xFFF1DDDD)
 
 @Composable
@@ -105,13 +112,13 @@ fun GameCenterApp() {
 
     MaterialTheme(
         colorScheme = lightColorScheme(
-            primary = PrimaryBlue,
-            surface = IvorySurface,
-            background = PaperBackground,
+            primary = PrimaryTeal,
+            surface = RaisedSurface,
+            background = MineralCanvas,
             onSurface = Ink
         )
     ) {
-        Surface(Modifier.fillMaxSize(), color = PaperBackground) {
+        Surface(Modifier.fillMaxSize(), color = MineralCanvas) {
             val currentPackage = activePackage
             val currentPlugin = activePlugin
             if (currentPackage == null || currentPlugin == null) {
@@ -175,13 +182,21 @@ private fun GameCenterHome(
     onImport: () -> Unit,
     onOpen: (GamePackage) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PaperBackground)
-    ) {
-        HomeTopBar(onImport)
-        Column(Modifier.fillMaxSize().padding(28.dp)) {
+    val context = LocalContext.current
+    val mineralTexture = remember { loadAppTexture(context, "textures/mineral-slate.png") }
+    Box(modifier = Modifier.fillMaxSize().background(MineralCanvas)) {
+        if (mineralTexture != null) {
+            Image(
+                bitmap = mineralTexture,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                alpha = 0.32f
+            )
+        }
+        Column(Modifier.fillMaxSize()) {
+            HomeTopBar(onImport)
+            Column(Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 28.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -189,13 +204,13 @@ private fun GameCenterHome(
             ) {
                 Column {
                     Text(
-                        "已安装游戏",
+                        "本地收藏",
                         color = MutedInk,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "本地棋类",
+                        "本地棋局",
                         color = Ink,
                         style = MaterialTheme.typography.headlineLarge,
                         fontFamily = FontFamily.Serif,
@@ -212,7 +227,7 @@ private fun GameCenterHome(
                 Spacer(Modifier.height(18.dp))
                 ImportMessageBar(message)
             }
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(20.dp))
             if (packages.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Button(
@@ -227,14 +242,15 @@ private fun GameCenterHome(
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 260.dp),
                     contentPadding = PaddingValues(bottom = 28.dp),
-                    horizontalArrangement = Arrangement.spacedBy(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     items(packages, key = { it.manifest.gameId }) { gamePackage ->
                         GameTile(gamePackage, onClick = { onOpen(gamePackage) })
                     }
                 }
             }
+        }
         }
     }
 }
@@ -245,7 +261,7 @@ private fun HomeTopBar(onImport: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .height(88.dp)
-            .background(IvorySurface)
+            .background(RaisedSurface)
             .border(1.dp, Border),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -257,12 +273,12 @@ private fun HomeTopBar(onImport: () -> Unit) {
             Box(
                 modifier = Modifier
                     .size(52.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(PaperBackground)
-                    .border(1.dp, PrimaryBlue, RoundedCornerShape(14.dp)),
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(RaisedSurface)
+                    .border(2.dp, PrimaryTeal, RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text("棋", color = PrimaryBlue, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold)
+                Text("棋局", color = PrimaryTeal, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.width(14.dp))
             Text(
@@ -272,6 +288,8 @@ private fun HomeTopBar(onImport: () -> Unit) {
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold
             )
+            Spacer(Modifier.width(18.dp))
+            InstalledInlay()
         }
         Button(
             onClick = onImport,
@@ -279,10 +297,23 @@ private fun HomeTopBar(onImport: () -> Unit) {
                 .padding(end = 28.dp)
                 .height(48.dp)
                 .semantics { contentDescription = "导入游戏包" },
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal)
         ) {
             Text("导入游戏包")
+        }
+    }
+}
+
+@Composable
+private fun InstalledInlay() {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        repeat(3) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(PrimaryTeal.copy(alpha = 0.7f), CircleShape)
+            )
         }
     }
 }
@@ -318,45 +349,42 @@ private fun ImportMessageBar(message: String) {
 @Composable
 private fun GameTile(gamePackage: GamePackage, onClick: () -> Unit) {
     val presentation = homeGamePresentation(gamePackage.manifest.gameId)
+    val texture = remember(gamePackage.assetsDir, presentation.shelfTexture) {
+        presentation.shelfTexture.takeIf { it.isNotEmpty() }
+            ?.let { loadPackageTexture(gamePackage.assetsDir.resolve(it)) }
+    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(210.dp)
+            .height(274.dp)
             .semantics { contentDescription = "启动 ${gamePackage.manifest.displayName}" }
             .clickable(role = Role.Button, onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = IvorySurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = RaisedSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(20.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier.fillMaxSize().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            ShelfBoardSurface(texture, presentation)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(54.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(presentation.accent),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        presentation.symbol,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
                 Text(
-                    "● 可启动",
+                    gamePackage.manifest.displayName,
+                    color = Ink,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "可启动",
                     color = Success,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(99.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .background(SuccessSoft)
                         .padding(horizontal = 10.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelMedium,
@@ -368,21 +396,11 @@ private fun GameTile(gamePackage: GamePackage, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
-                Column {
-                    Text(
-                        gamePackage.manifest.displayName,
-                        color = Ink,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "v${gamePackage.manifest.versionName} · ${presentation.boardSize}",
-                        color = MutedInk,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                Text(
+                    "v${gamePackage.manifest.versionName} · ${presentation.boardSize}",
+                    color = MutedInk,
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 Text(
                     presentation.packageLabel,
                     color = MutedInk,
@@ -392,6 +410,55 @@ private fun GameTile(gamePackage: GamePackage, onClick: () -> Unit) {
         }
     }
 }
+
+@Composable
+private fun ShelfBoardSurface(texture: ImageBitmap?, presentation: HomeGamePresentation) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(152.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(InsetSurface)
+            .border(1.dp, Border, RoundedCornerShape(6.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (texture != null) {
+            Image(
+                bitmap = texture,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                alpha = 0.92f
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape)
+                .background(presentation.accent.copy(alpha = 0.9f))
+                .border(2.dp, RaisedSurface.copy(alpha = 0.8f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                presentation.symbol,
+                color = Color.White,
+                style = MaterialTheme.typography.headlineMedium,
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+private fun loadAppTexture(context: android.content.Context, path: String): ImageBitmap? = runCatching {
+    context.assets.open(path).use { input ->
+        requireNotNull(BitmapFactory.decodeStream(input)).asImageBitmap()
+    }
+}.getOrNull()
+
+private fun loadPackageTexture(file: File): ImageBitmap? = runCatching {
+    requireNotNull(BitmapFactory.decodeFile(file.absolutePath)).asImageBitmap()
+}.getOrNull()
 
 private class ShellGameContext(
     override val gamePackage: GamePackage,

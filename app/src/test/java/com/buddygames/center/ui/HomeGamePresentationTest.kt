@@ -11,4 +11,11 @@ class HomeGamePresentationTest {
         assertEquals("9 x 10", homeGamePresentation("xiangqi").boardSize)
         assertEquals("本地游戏", homeGamePresentation("sudoku").boardSize)
     }
+
+    @Test
+    fun builtInGamesUseDistinctShelfBoardTextures() {
+        assertEquals("textures/gomoku-shelf.png", homeGamePresentation("gomoku").shelfTexture)
+        assertEquals("textures/othello-shelf.png", homeGamePresentation("othello").shelfTexture)
+        assertEquals("textures/xiangqi-shelf.png", homeGamePresentation("xiangqi").shelfTexture)
+    }
 }

@@ -6,6 +6,13 @@ import org.junit.Test
 
 class GomokuRulesTest {
     @Test
+    fun boardSideUsesAvailableSpaceWithinReferenceBounds() {
+        assertEquals(280f, gomokuBoardSide(240f, 500f), 0.001f)
+        assertEquals(540f, gomokuBoardSide(720f, 540f), 0.001f)
+        assertEquals(680f, gomokuBoardSide(900f, 800f), 0.001f)
+    }
+
+    @Test
     fun intersectionFractionAnchorsFirstCenterAndLastGomokuLines() {
         assertEquals(0f, gomokuIntersectionFraction(0), 0f)
         assertEquals(0.5f, gomokuIntersectionFraction(7), 0f)
