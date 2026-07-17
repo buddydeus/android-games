@@ -93,7 +93,7 @@ object XiangqiRules {
             PieceType.HORSE -> horseLegal(state, move, dr, dc)
             PieceType.ELEPHANT -> elephantLegal(state, move, piece.side, dr, dc)
             PieceType.ADVISOR -> kotlin.math.abs(dr) == 1 && kotlin.math.abs(dc) == 1 && inPalace(move.toRow, move.toCol, piece.side)
-            PieceType.GENERAL -> kotlin.math.abs(dr) + kotlin.math.abs(dc) == 1 && inPalace(move.toRow, move.toCol, piece.side)
+            PieceType.GENERAL -> generalLegal(state, move, piece.side, dr, dc)
             PieceType.SOLDIER -> soldierLegal(move, piece.side, dr, dc)
         }
     }
@@ -124,6 +124,18 @@ object XiangqiRules {
         val mover = state.piece(move.fromRow, move.fromCol)?.side ?: return null
         val captured = state.piece(move.toRow, move.toCol)
         return if (captured?.type == PieceType.GENERAL) mover else null
+    }
+
+    fun isInCheck(state: XiangqiState, side: Side): Boolean {
+        val general = state.board.flatMapIndexed { row, cells ->
+            cells.mapIndexedNotNull { col, piece ->
+                if (piece == XiangqiPiece(side, PieceType.GENERAL)) row to col else null
+            }
+        }.firstOrNull() ?: return false
+
+        return legalMoves(state, side.other()).any { move ->
+            move.toRow == general.first && move.toCol == general.second
+        }
     }
 
     private fun screensBetween(state: XiangqiState, move: XiangqiMove): Int {
@@ -159,6 +171,22 @@ object XiangqiRules {
     private fun inPalace(row: Int, col: Int, side: Side): Boolean {
         val rows = if (side == Side.RED) 7..9 else 0..2
         return row in rows && col in 3..5
+    }
+
+    private fun generalLegal(
+        state: XiangqiState,
+        move: XiangqiMove,
+        side: Side,
+        dr: Int,
+        dc: Int
+    ): Boolean {
+        val target = state.piece(move.toRow, move.toCol)
+        val capturesOpposingGeneral = target?.side == side.other() &&
+            target.type == PieceType.GENERAL &&
+            dc == 0 &&
+            screensBetween(state, move) == 0
+        return capturesOpposingGeneral ||
+            (kotlin.math.abs(dr) + kotlin.math.abs(dc) == 1 && inPalace(move.toRow, move.toCol, side))
     }
 
     private fun soldierLegal(move: XiangqiMove, side: Side, dr: Int, dc: Int): Boolean {

@@ -1,10 +1,42 @@
 package com.buddygames.othello
 
+import com.buddygames.api.GameMode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OthelloRulesTest {
+    @Test
+    fun menuUsesUnifiedGameModeLabels() {
+        assertEquals(listOf("单人模式", "双人对战", "退出游戏"), othelloMenuLabels())
+    }
+
+    @Test
+    fun legalMoveHintsOnlyShowInSinglePlayerMode() {
+        assertTrue(showOthelloLegalMoveHints(GameMode.SINGLE_PLAYER))
+        assertFalse(showOthelloLegalMoveHints(GameMode.TWO_PLAYERS))
+    }
+
+    @Test
+    fun scoreRecordsWinnersAndIgnoresDraw() {
+        val score = OthelloScore()
+            .record(Disc.BLACK)
+            .record(null)
+            .record(Disc.WHITE)
+
+        assertEquals(OthelloScore(black = 1, white = 1), score)
+        assertEquals("1 : 1", score.displayText)
+    }
+
+    @Test
+    fun newRoundRestoresInitialBoardAndBlackTurn() {
+        val round = newOthelloRound()
+
+        assertEquals(Disc.BLACK, round.turn)
+        assertEquals(OthelloState.initial(), round.state)
+    }
+
     @Test
     fun boardSideUsesAvailableSpaceWithinReferenceBounds() {
         assertEquals(288f, othelloBoardSide(240f, 500f), 0.001f)

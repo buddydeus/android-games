@@ -57,6 +57,8 @@ private val OthelloVermilion = Color(0xFF9B2F2F)
 internal fun othelloBoardSide(availableWidth: Float, availableHeight: Float): Float =
     minOf(availableWidth, availableHeight).coerceIn(288f, 672f)
 
+internal fun showOthelloLegalMoveHints(mode: GameMode): Boolean = mode == GameMode.SINGLE_PLAYER
+
 class OthelloPlugin : GamePlugin {
     override fun getManifest(): GameManifest = manifest
 
@@ -78,8 +80,10 @@ class OthelloPlugin : GamePlugin {
         val texture = remember(context.gamePackage.assetsDir) {
             loadOthelloTexture(context.gamePackage.assetsDir.resolve("textures/othello-shelf.png"))
         }
-        var state by remember { mutableStateOf(OthelloState.initial()) }
-        var turn by remember { mutableStateOf(Disc.BLACK) }
+        val initialRound = remember { newOthelloRound() }
+        var state by remember { mutableStateOf(initialRound.state) }
+        var turn by remember { mutableStateOf(initialRound.turn) }
+        var score by remember { mutableStateOf(OthelloScore()) }
 
         fun advanceAfterMove(nextState: OthelloState, nextTurn: Disc): Pair<OthelloState, Disc> {
             if (mode == GameMode.SINGLE_PLAYER && nextTurn == Disc.WHITE && !OthelloRules.isGameOver(nextState)) {
@@ -99,14 +103,28 @@ class OthelloPlugin : GamePlugin {
             val advanced = advanceAfterMove(nextState, turn.other())
             state = advanced.first
             turn = advanced.second
+            if (OthelloRules.isGameOver(state)) {
+                score = score.record(OthelloRules.winner(state))
+            }
         }
 
+        fun restart() {
+            val round = newOthelloRound()
+            state = round.state
+            turn = round.turn
+        }
+
+        val gameOver = OthelloRules.isGameOver(state)
         Surface(Modifier.fillMaxSize(), color = OthelloPaper) {
             OthelloGameLayout(
                 state = state,
                 turn = turn,
                 status = statusText(state, turn, mode),
+                score = score.displayText,
+                gameOver = gameOver,
+                showLegalMoveHints = showOthelloLegalMoveHints(mode),
                 onPlay = ::play,
+                onRestart = ::restart,
                 onExit = context::exitGame,
                 texture = texture
             )

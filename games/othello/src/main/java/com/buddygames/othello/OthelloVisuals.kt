@@ -77,6 +77,7 @@ internal fun OthelloMenu(texture: ImageBitmap?, onSingle: () -> Unit, onTwo: () 
 
 @Composable
 private fun OthelloMenuPanel(onSingle: () -> Unit, onTwo: () -> Unit, onExit: () -> Unit, modifier: Modifier) {
+    val labels = othelloMenuLabels()
     MaterialPanel(modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("黑白棋", color = Ink, fontFamily = FontFamily.Serif, fontSize = 44.sp, fontWeight = FontWeight.Bold)
@@ -84,19 +85,25 @@ private fun OthelloMenuPanel(onSingle: () -> Unit, onTwo: () -> Unit, onExit: ()
             Text("八路 · 反转棋", color = Green, fontSize = 15.sp)
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            MenuButton("开始单人对局", Teal, Color.White, onSingle)
-            MenuButton("开始双人对局", Ivory, Ink, onTwo, outlined = true)
-            MenuButton("退出游戏", Color.Transparent, Vermilion, onExit, outlined = true)
+            MenuButton(labels[0], Teal, Color.White, onSingle)
+            MenuButton(labels[1], Ivory, Ink, onTwo, outlined = true)
+            MenuButton(labels[2], Color.Transparent, Vermilion, onExit, outlined = true)
         }
     }
 }
+
+internal fun othelloMenuLabels(): List<String> = listOf("单人模式", "双人对战", "退出游戏")
 
 @Composable
 internal fun OthelloGameLayout(
     state: OthelloState,
     turn: Disc,
     status: String,
+    score: String,
+    gameOver: Boolean,
+    showLegalMoveHints: Boolean,
     onPlay: (Int, Int) -> Unit,
+    onRestart: () -> Unit,
     onExit: () -> Unit,
     texture: ImageBitmap?
 ) {
@@ -104,14 +111,28 @@ internal fun OthelloGameLayout(
         BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
             if (maxWidth >= 900.dp) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                    OthelloBoard(state, turn, onPlay, Modifier.weight(1f), texture)
+                    OthelloBoard(
+                        state,
+                        turn,
+                        onPlay,
+                        Modifier.weight(1f),
+                        texture,
+                        showLegalMoveHints = showLegalMoveHints
+                    )
                     Spacer(Modifier.width(34.dp))
-                    OthelloInfoRail(state, status, onExit, Modifier.width(300.dp).fillMaxHeight(0.88f))
+                    OthelloInfoRail(state, score, status, gameOver, onRestart, onExit, Modifier.width(300.dp).fillMaxHeight(0.88f))
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    OthelloBoard(state, turn, onPlay, Modifier.weight(1f), texture)
-                    OthelloInfoRail(state, status, onExit, Modifier.fillMaxWidth())
+                    OthelloBoard(
+                        state,
+                        turn,
+                        onPlay,
+                        Modifier.weight(1f),
+                        texture,
+                        showLegalMoveHints = showLegalMoveHints
+                    )
+                    OthelloInfoRail(state, score, status, gameOver, onRestart, onExit, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -125,10 +146,11 @@ private fun OthelloBoard(
     onPlay: (Int, Int) -> Unit,
     modifier: Modifier,
     texture: ImageBitmap?,
-    interactive: Boolean = true
+    interactive: Boolean = true,
+    showLegalMoveHints: Boolean = true
 ) {
-    val legalMoves = remember(state, turn, interactive) {
-        if (interactive) OthelloRules.legalMoves(state, turn).toSet() else emptySet()
+    val legalMoves = remember(state, turn, interactive, showLegalMoveHints) {
+        if (interactive && showLegalMoveHints) OthelloRules.legalMoves(state, turn).toSet() else emptySet()
     }
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val boardSide = othelloBoardSide(maxWidth.value - 8f, maxHeight.value - 8f).dp
@@ -225,12 +247,20 @@ private fun LegalMoveHint(size: Dp) {
 }
 
 @Composable
-private fun OthelloInfoRail(state: OthelloState, status: String, onExit: () -> Unit, modifier: Modifier) {
+private fun OthelloInfoRail(
+    state: OthelloState,
+    score: String,
+    status: String,
+    gameOver: Boolean,
+    onRestart: () -> Unit,
+    onExit: () -> Unit,
+    modifier: Modifier
+) {
     MaterialPanel(modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("历史比分", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(14.dp))
-            Text("0 : 0", color = Ink, fontSize = 48.sp, fontWeight = FontWeight.Light)
+            Text(score, color = Ink, fontSize = 48.sp, fontWeight = FontWeight.Light)
         }
         HorizontalDivider(color = Color(0xFFB9C0BD))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -238,12 +268,15 @@ private fun OthelloInfoRail(state: OthelloState, status: String, onExit: () -> U
             DiscCount(Disc.WHITE, state.count(Disc.WHITE))
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("当前回合", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            Text(if (gameOver) "对局结果" else "当前回合", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(12.dp))
             Text(status, color = Vermilion, fontSize = 19.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         }
         HorizontalDivider(color = Color(0xFFB9C0BD))
-        MenuButton("退出游戏", Color.Transparent, Ink, onExit, outlined = true)
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (gameOver) MenuButton("重新开始", Teal, Color.White, onRestart)
+            MenuButton("退出游戏", Color.Transparent, Ink, onExit, outlined = true)
+        }
     }
 }
 

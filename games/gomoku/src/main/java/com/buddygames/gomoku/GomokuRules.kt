@@ -51,6 +51,7 @@ object GomokuRules {
     fun robotMove(state: GomokuState, robot: Stone): GomokuMove {
         immediateWinningMove(state, robot)?.let { return it }
         immediateWinningMove(state, robot.other())?.let { return it }
+        openFourCreatingMove(state, robot.other())?.let { return it }
         return state.legalMoves()
             .sortedWith(compareByDescending<GomokuMove> { neighborCount(state, it) }
                 .thenBy { it.row }
@@ -59,9 +60,45 @@ object GomokuRules {
     }
 
     private fun immediateWinningMove(state: GomokuState, stone: Stone): GomokuMove? {
+        return immediateWinningMoves(state, stone).firstOrNull()
+    }
+
+    private fun immediateWinningMoves(state: GomokuState, stone: Stone): List<GomokuMove> {
+        return state.legalMoves().filter { move -> isWinningPlacement(state, move, stone) }
+    }
+
+    private fun openFourCreatingMove(state: GomokuState, opponent: Stone): GomokuMove? {
         return state.legalMoves().firstOrNull { move ->
-            winner(state.place(move.row, move.col, stone)) == stone
+            val threatened = state.place(move.row, move.col, opponent)
+            immediateWinningMoves(threatened, opponent).size >= 2
         }
+    }
+
+    private fun isWinningPlacement(state: GomokuState, move: GomokuMove, stone: Stone): Boolean {
+        return directions.any { (dr, dc) ->
+            1 +
+                stonesFrom(state, move.row, move.col, dr, dc, stone) +
+                stonesFrom(state, move.row, move.col, -dr, -dc, stone) >= 5
+        }
+    }
+
+    private fun stonesFrom(
+        state: GomokuState,
+        row: Int,
+        col: Int,
+        dr: Int,
+        dc: Int,
+        stone: Stone
+    ): Int {
+        var count = 0
+        var nextRow = row + dr
+        var nextCol = col + dc
+        while (state.cell(nextRow, nextCol) == stone) {
+            count++
+            nextRow += dr
+            nextCol += dc
+        }
+        return count
     }
 
     private fun hasFive(state: GomokuState, row: Int, col: Int, dr: Int, dc: Int, stone: Stone): Boolean {
@@ -77,4 +114,3 @@ object GomokuRules {
         return count
     }
 }
-

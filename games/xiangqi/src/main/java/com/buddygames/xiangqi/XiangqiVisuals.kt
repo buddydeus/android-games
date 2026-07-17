@@ -91,6 +91,7 @@ private fun XiangqiMenuPanel(
     onExit: () -> Unit,
     modifier: Modifier
 ) {
+    val labels = xiangqiMenuLabels()
     MaterialPanel(modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("象棋", color = Ink, fontFamily = FontFamily.Serif, fontSize = 44.sp, fontWeight = FontWeight.Bold)
@@ -98,19 +99,26 @@ private fun XiangqiMenuPanel(
             Text("楚河 · 漢界", color = Cinnabar, fontSize = 15.sp)
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            MenuButton("开始单人对局", Cinnabar, Color.White, onSingle)
-            MenuButton("开始双人对局", Ivory, Ink, onTwo, outlined = true)
-            MenuButton("退出游戏", Color.Transparent, Cinnabar, onExit, outlined = true)
+            MenuButton(labels[0], Cinnabar, Color.White, onSingle)
+            MenuButton(labels[1], Ivory, Ink, onTwo, outlined = true)
+            MenuButton(labels[2], Color.Transparent, Cinnabar, onExit, outlined = true)
         }
     }
 }
+
+internal fun xiangqiMenuLabels(): List<String> = listOf("单人模式", "双人对战", "退出游戏")
 
 @Composable
 internal fun XiangqiGameLayout(
     state: XiangqiState,
     selected: Pair<Int, Int>?,
     status: String,
+    turn: Side,
+    score: String,
+    gameOver: Boolean,
+    inCheck: Boolean,
     onTap: (Int, Int) -> Unit,
+    onRestart: () -> Unit,
     onExit: () -> Unit,
     texture: ImageBitmap?
 ) {
@@ -120,12 +128,21 @@ internal fun XiangqiGameLayout(
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     XiangqiBoard(state, selected, onTap, Modifier.weight(1f), texture)
                     Spacer(Modifier.width(34.dp))
-                    XiangqiInfoRail(status, onExit, Modifier.width(300.dp).fillMaxHeight(0.88f))
+                    XiangqiInfoRail(
+                        score,
+                        status,
+                        turn,
+                        gameOver,
+                        inCheck,
+                        onRestart,
+                        onExit,
+                        Modifier.width(300.dp).fillMaxHeight(0.88f)
+                    )
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     XiangqiBoard(state, selected, onTap, Modifier.weight(1f), texture)
-                    XiangqiInfoRail(status, onExit, Modifier.fillMaxWidth())
+                    XiangqiInfoRail(score, status, turn, gameOver, inCheck, onRestart, onExit, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -302,21 +319,65 @@ private fun XiangqiPieceView(piece: XiangqiPiece, diameter: Dp) {
 }
 
 @Composable
-private fun XiangqiInfoRail(status: String, onExit: () -> Unit, modifier: Modifier) {
+private fun XiangqiInfoRail(
+    score: String,
+    status: String,
+    turn: Side,
+    gameOver: Boolean,
+    inCheck: Boolean,
+    onRestart: () -> Unit,
+    onExit: () -> Unit,
+    modifier: Modifier
+) {
     MaterialPanel(modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("历史比分", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(14.dp))
-            Text("0 : 0", color = Ink, fontSize = 48.sp, fontWeight = FontWeight.Light)
+            Text(score, color = Ink, fontSize = 48.sp, fontWeight = FontWeight.Light)
         }
         HorizontalDivider(color = Color(0xFFB9C0BD))
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("当前回合", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(14.dp))
-            Text(status, color = Cinnabar, fontSize = 19.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            if (gameOver) {
+                Text("对局结果", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                Text(status, color = Cinnabar, fontSize = 19.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("当前回合：", color = Ink, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+                    val sideColor = if (turn == Side.RED) Cinnabar else LacquerBlack
+                    Text(
+                        if (turn == Side.RED) "红方" else "黑方",
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(sideColor.copy(alpha = 0.10f))
+                            .border(1.dp, sideColor.copy(alpha = 0.38f), RoundedCornerShape(5.dp))
+                            .padding(horizontal = 9.dp, vertical = 4.dp),
+                        color = sideColor,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                if (inCheck) {
+                    Text(
+                        "将军",
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Cinnabar)
+                            .padding(horizontal = 18.dp, vertical = 7.dp),
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
         HorizontalDivider(color = Color(0xFFB9C0BD))
-        ExitButton(onExit)
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (gameOver) MenuButton("重新开始", Cinnabar, Color.White, onRestart)
+            ExitButton(onExit)
+        }
     }
 }
 

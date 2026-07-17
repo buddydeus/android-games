@@ -99,6 +99,7 @@ private fun GomokuMenuPanel(
     onExit: () -> Unit,
     modifier: Modifier
 ) {
+    val labels = gomokuMenuLabels()
     MaterialPanel(modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("五子棋", color = Ink, fontFamily = FontFamily.Serif, fontSize = 44.sp, fontWeight = FontWeight.Bold)
@@ -106,18 +107,23 @@ private fun GomokuMenuPanel(
             Text("十五路 · 连珠", color = Walnut, fontSize = 15.sp)
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            MenuButton("开始单人对局", Teal, Color.White, onSingle)
-            MenuButton("开始双人对局", Ivory, Ink, onTwo, outlined = true)
-            MenuButton("退出游戏", Color.Transparent, Vermilion, onExit, outlined = true)
+            MenuButton(labels[0], Teal, Color.White, onSingle)
+            MenuButton(labels[1], Ivory, Ink, onTwo, outlined = true)
+            MenuButton(labels[2], Color.Transparent, Vermilion, onExit, outlined = true)
         }
     }
 }
+
+internal fun gomokuMenuLabels(): List<String> = listOf("单人模式", "双人对战", "退出游戏")
 
 @Composable
 internal fun GomokuGameLayout(
     state: GomokuState,
     status: String,
+    score: String,
+    gameOver: Boolean,
     onPlay: (Int, Int) -> Unit,
+    onRestart: () -> Unit,
     onExit: () -> Unit,
     texture: ImageBitmap?
 ) {
@@ -127,12 +133,12 @@ internal fun GomokuGameLayout(
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     GomokuBoard(state, onPlay, Modifier.weight(1f), texture)
                     Spacer(Modifier.width(34.dp))
-                    GomokuInfoRail(status, onExit, Modifier.width(300.dp).fillMaxHeight(0.88f))
+                    GomokuInfoRail(score, status, gameOver, onRestart, onExit, Modifier.width(300.dp).fillMaxHeight(0.88f))
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     GomokuBoard(state, onPlay, Modifier.weight(1f), texture)
-                    GomokuInfoRail(status, onExit, Modifier.fillMaxWidth())
+                    GomokuInfoRail(score, status, gameOver, onRestart, onExit, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -236,21 +242,31 @@ private fun GomokuStone(stone: Stone, diameter: Dp) {
 }
 
 @Composable
-private fun GomokuInfoRail(status: String, onExit: () -> Unit, modifier: Modifier) {
+private fun GomokuInfoRail(
+    score: String,
+    status: String,
+    gameOver: Boolean,
+    onRestart: () -> Unit,
+    onExit: () -> Unit,
+    modifier: Modifier
+) {
     MaterialPanel(modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("历史比分", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(14.dp))
-            Text("0 : 0", color = Ink, fontSize = 48.sp, fontWeight = FontWeight.Light)
+            Text(score, color = Ink, fontSize = 48.sp, fontWeight = FontWeight.Light)
         }
         HorizontalDivider(color = Color(0xFFB9C0BD))
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("当前回合", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            Text(if (gameOver) "对局结果" else "当前回合", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(14.dp))
             Text(status, color = Vermilion, fontSize = 19.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         }
         HorizontalDivider(color = Color(0xFFB9C0BD))
-        MenuButton("退出游戏", Color.Transparent, Ink, onExit, outlined = true)
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (gameOver) MenuButton("重新开始", Teal, Color.White, onRestart)
+            MenuButton("退出游戏", Color.Transparent, Ink, onExit, outlined = true)
+        }
     }
 }
 

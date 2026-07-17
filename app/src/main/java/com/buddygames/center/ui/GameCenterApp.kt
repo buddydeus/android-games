@@ -1,16 +1,26 @@
 package com.buddygames.center.ui
 
+import android.animation.ValueAnimator
 import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,16 +29,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
@@ -40,17 +46,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.buddygames.api.GameContext
 import com.buddygames.api.GameMode
 import com.buddygames.api.GamePackage
@@ -59,16 +72,18 @@ import com.buddygames.center.loader.DexGamePluginLoader
 import com.buddygames.center.packages.GamePackageRepository
 import java.io.File
 
-private val MineralCanvas = Color(0xFFDCE2E2)
-private val RaisedSurface = Color(0xFFF8FAF8)
-private val InsetSurface = Color(0xFFB8C3C4)
-private val Ink = Color(0xFF1D2B2F)
-private val MutedInk = Color(0xFF5D6E72)
-private val PrimaryTeal = Color(0xFF164C5B)
-private val Border = Color(0xFFB4C0C1)
+private val MineralCanvas = Color(0xFFDDE5E3)
+private val ButtonTop = Color(0xFFFCFDFB)
+private val ButtonBottom = Color(0xFFF0F4F1)
+private val PressedSurface = Color(0xFFD8E3E0)
+private val Ink = Color(0xFF17282C)
+private val MutedInk = Color(0xFF56686C)
+private val PrimaryTeal = Color(0xFF185864)
+private val Border = Color(0xFFAEBDB9)
+private val FocusRing = Color(0xFF08758A)
 private val Success = Color(0xFF2E715E)
 private val SuccessSoft = Color(0xFFE0EEE7)
-private val Warning = Color(0xFF9C5B22)
+private val Warning = Color(0xFF98551F)
 private val WarningSoft = Color(0xFFF4EADB)
 private val Error = Color(0xFFA43B32)
 private val ErrorSoft = Color(0xFFF1DDDD)
@@ -113,7 +128,7 @@ fun GameCenterApp() {
     MaterialTheme(
         colorScheme = lightColorScheme(
             primary = PrimaryTeal,
-            surface = RaisedSurface,
+            surface = ButtonTop,
             background = MineralCanvas,
             onSurface = Ink
         )
@@ -162,6 +177,7 @@ fun GameCenterApp() {
         }
     }
 }
+
 private fun installBundledGames(androidContext: android.content.Context, repository: GamePackageRepository) {
     val assetManager = androidContext.assets
     val packageNames = assetManager.list("builtin-games").orEmpty().filter { it.endsWith(".zip") }
@@ -184,137 +200,345 @@ private fun GameCenterHome(
 ) {
     val context = LocalContext.current
     val mineralTexture = remember { loadAppTexture(context, "textures/mineral-slate.png") }
-    Box(modifier = Modifier.fillMaxSize().background(MineralCanvas)) {
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MineralCanvas)
+    ) {
+        val layout = remember(maxWidth, maxHeight) {
+            homeGameLayout(
+                widthDp = maxWidth.value,
+                heightDp = maxHeight.value
+            )
+        }
+        val sortedPackages = remember(packages) {
+            packages.sortedWith(
+                compareBy<GamePackage>(
+                    { homeGamePresentation(it.manifest.gameId).order },
+                    { it.manifest.displayName }
+                )
+            )
+        }
+        val compact = layout.mode == HomeGameLayoutMode.CompactColumn
+
         if (mineralTexture != null) {
             Image(
                 bitmap = mineralTexture,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
-                alpha = 0.32f
+                alpha = 0.06f
             )
         }
+
         Column(Modifier.fillMaxSize()) {
-            HomeTopBar(onImport)
-            Column(Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 28.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
+            HomeTopBar(onImport = onImport, compact = compact)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        start = layout.horizontalPaddingDp.dp,
+                        end = layout.horizontalPaddingDp.dp,
+                        bottom = 32.dp
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column {
-                    Text(
-                        "本地收藏",
-                        color = MutedInk,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "本地棋局",
-                        color = Ink,
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Spacer(Modifier.height(if (compact) 36.dp else 72.dp))
                 Text(
-                    "${packages.size} 个本地游戏",
-                    color = MutedInk,
-                    style = MaterialTheme.typography.labelMedium
+                    text = "选择游戏",
+                    modifier = if (compact) Modifier.fillMaxWidth() else Modifier,
+                    color = Ink,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
-            }
-            if (message != null) {
-                Spacer(Modifier.height(18.dp))
-                ImportMessageBar(message)
-            }
-            Spacer(Modifier.height(20.dp))
-            if (packages.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Button(
-                        onClick = onImport,
-                        modifier = Modifier.height(48.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("导入第一个游戏包")
-                    }
+                if (message != null) {
+                    Spacer(Modifier.height(20.dp))
+                    ImportMessageBar(message)
                 }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 260.dp),
-                    contentPadding = PaddingValues(bottom = 28.dp),
-                    horizontalArrangement = Arrangement.spacedBy(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    items(packages, key = { it.manifest.gameId }) { gamePackage ->
-                        GameTile(gamePackage, onClick = { onOpen(gamePackage) })
-                    }
+                Spacer(Modifier.height(if (compact) 32.dp else 48.dp))
+
+                if (sortedPackages.isEmpty()) {
+                    EmptyGameState(onImport)
+                } else if (compact) {
+                    CompactGameButtons(
+                        packages = sortedPackages,
+                        layout = layout,
+                        onOpen = onOpen
+                    )
+                } else {
+                    SquareGameButtons(
+                        packages = sortedPackages,
+                        layout = layout,
+                        onOpen = onOpen
+                    )
                 }
             }
-        }
         }
     }
 }
 
 @Composable
-private fun HomeTopBar(onImport: () -> Unit) {
+private fun HomeTopBar(
+    onImport: () -> Unit,
+    compact: Boolean
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(88.dp)
-            .background(RaisedSurface)
-            .border(1.dp, Border),
+            .shadow(2.dp)
+            .background(ButtonTop)
+            .border(1.dp, Border)
+            .padding(horizontal = if (compact) 24.dp else 32.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 28.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(RaisedSurface)
-                    .border(2.dp, PrimaryTeal, RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
+        Text(
+            text = "游戏中心",
+            color = Ink,
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold
+        )
+        ImportButton(
+            label = if (compact) "导入" else "导入游戏包",
+            onClick = onImport
+        )
+    }
+}
+
+@Composable
+private fun SquareGameButtons(
+    packages: List<GamePackage>,
+    layout: HomeGameLayout,
+    onOpen: (GamePackage) -> Unit
+) {
+    val buttonSize = requireNotNull(layout.buttonSizeDp).dp
+    Column(verticalArrangement = Arrangement.spacedBy(layout.gapDp.dp)) {
+        packages.chunked(3).forEach { rowPackages ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    layout.gapDp.dp,
+                    Alignment.CenterHorizontally
+                )
             ) {
-                Text("棋局", color = PrimaryTeal, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold)
+                rowPackages.forEach { gamePackage ->
+                    GameSelectionButton(
+                        gamePackage = gamePackage,
+                        logoSizeDp = layout.logoSizeDp,
+                        horizontalContent = false,
+                        modifier = Modifier.size(buttonSize),
+                        onClick = { onOpen(gamePackage) }
+                    )
+                }
             }
-            Spacer(Modifier.width(14.dp))
-            Text(
-                "游戏中心",
-                color = Ink,
-                style = MaterialTheme.typography.headlineMedium,
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.width(18.dp))
-            InstalledInlay()
-        }
-        Button(
-            onClick = onImport,
-            modifier = Modifier
-                .padding(end = 28.dp)
-                .height(48.dp)
-                .semantics { contentDescription = "导入游戏包" },
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal)
-        ) {
-            Text("导入游戏包")
         }
     }
 }
 
 @Composable
-private fun InstalledInlay() {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        repeat(3) {
-            Box(
+private fun CompactGameButtons(
+    packages: List<GamePackage>,
+    layout: HomeGameLayout,
+    onOpen: (GamePackage) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(layout.gapDp.dp)
+    ) {
+        packages.forEach { gamePackage ->
+            GameSelectionButton(
+                gamePackage = gamePackage,
+                logoSizeDp = layout.logoSizeDp,
+                horizontalContent = true,
                 modifier = Modifier
-                    .size(8.dp)
-                    .background(PrimaryTeal.copy(alpha = 0.7f), CircleShape)
+                    .fillMaxWidth()
+                    .height(layout.buttonHeightDp.dp),
+                onClick = { onOpen(gamePackage) }
             )
         }
+    }
+}
+
+@Composable
+private fun GameSelectionButton(
+    gamePackage: GamePackage,
+    logoSizeDp: Int,
+    horizontalContent: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val presentation = homeGamePresentation(gamePackage.manifest.gameId)
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val focused by interactionSource.collectIsFocusedAsState()
+    val animationsEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
+    val duration = if (pressed) 140 else 180
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && animationsEnabled) 0.985f else 1f,
+        animationSpec = if (animationsEnabled) tween(duration) else snap(),
+        label = "game-button-scale"
+    )
+    val topColor by animateColorAsState(
+        targetValue = if (pressed) PressedSurface else ButtonTop,
+        animationSpec = if (animationsEnabled) tween(duration) else snap(),
+        label = "game-button-top"
+    )
+    val bottomColor by animateColorAsState(
+        targetValue = if (pressed) PressedSurface else ButtonBottom,
+        animationSpec = if (animationsEnabled) tween(duration) else snap(),
+        label = "game-button-bottom"
+    )
+    val ambientElevation by animateDpAsState(
+        targetValue = if (pressed) 2.dp else 12.dp,
+        animationSpec = if (animationsEnabled) tween(duration) else snap(),
+        label = "game-button-ambient-elevation"
+    )
+    val contactElevation by animateDpAsState(
+        targetValue = if (pressed) 1.dp else 3.dp,
+        animationSpec = if (animationsEnabled) tween(duration) else snap(),
+        label = "game-button-contact-elevation"
+    )
+    val shape = RoundedCornerShape(20.dp)
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(ambientElevation, shape, clip = false)
+            .then(
+                if (focused) {
+                    Modifier.border(3.dp, FocusRing, shape)
+                } else {
+                    Modifier
+                }
+            )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .shadow(contactElevation, shape, clip = false)
+                .clip(shape)
+                .background(Brush.verticalGradient(listOf(topColor, bottomColor)))
+                .border(1.dp, Border, shape)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "打开 ${gamePackage.manifest.displayName}"
+                }
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    role = Role.Button,
+                    onClick = onClick
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(1.dp)
+                    .border(1.dp, Color.White.copy(alpha = 0.66f), shape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (horizontalContent) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HomeGameLogoMark(
+                            logo = presentation.logo,
+                            fallbackSymbol = gamePackage.manifest.displayName,
+                            logoSizeDp = logoSizeDp,
+                            modifier = Modifier.size(logoSizeDp.dp)
+                        )
+                        Spacer(Modifier.width(32.dp))
+                        Text(
+                            text = gamePackage.manifest.displayName,
+                            modifier = Modifier.weight(1f),
+                            color = Ink,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        HomeGameLogoMark(
+                            logo = presentation.logo,
+                            fallbackSymbol = gamePackage.manifest.displayName,
+                            logoSizeDp = logoSizeDp,
+                            modifier = Modifier.size(logoSizeDp.dp)
+                        )
+                        Spacer(Modifier.height(22.dp))
+                        Text(
+                            text = gamePackage.manifest.displayName,
+                            modifier = Modifier.fillMaxWidth(),
+                            color = Ink,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyGameState(onImport: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "还没有游戏。导入本地游戏包开始。",
+            color = MutedInk,
+            fontSize = 16.sp
+        )
+        Spacer(Modifier.height(16.dp))
+        ImportButton(label = "导入游戏包", onClick = onImport)
+    }
+}
+
+@Composable
+private fun ImportButton(
+    label: String,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val focused by interactionSource.collectIsFocusedAsState()
+
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .height(48.dp)
+            .semantics { contentDescription = "导入游戏包" },
+        interactionSource = interactionSource,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(
+            width = if (focused) 3.dp else 2.dp,
+            color = if (focused) FocusRing else PrimaryTeal
+        ),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryTeal)
+    ) {
+        Text(
+            text = label,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
@@ -339,125 +563,20 @@ private fun ImportMessageBar(message: String) {
             .clip(RoundedCornerShape(12.dp))
             .background(container)
             .padding(horizontal = 16.dp, vertical = 14.dp)
-            .semantics { contentDescription = message },
+            .semantics {
+                contentDescription = message
+                liveRegion = LiveRegionMode.Polite
+            },
         color = foreground,
-        style = MaterialTheme.typography.bodyLarge,
+        fontSize = 16.sp,
         fontWeight = FontWeight.Medium
     )
-}
-
-@Composable
-private fun GameTile(gamePackage: GamePackage, onClick: () -> Unit) {
-    val presentation = homeGamePresentation(gamePackage.manifest.gameId)
-    val texture = remember(gamePackage.assetsDir, presentation.shelfTexture) {
-        presentation.shelfTexture.takeIf { it.isNotEmpty() }
-            ?.let { loadPackageTexture(gamePackage.assetsDir.resolve(it)) }
-    }
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(274.dp)
-            .semantics { contentDescription = "启动 ${gamePackage.manifest.displayName}" }
-            .clickable(role = Role.Button, onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = RaisedSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ShelfBoardSurface(texture, presentation)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    gamePackage.manifest.displayName,
-                    color = Ink,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "可启动",
-                    color = Success,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(SuccessSoft)
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Text(
-                    "v${gamePackage.manifest.versionName} · ${presentation.boardSize}",
-                    color = MutedInk,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    presentation.packageLabel,
-                    color = MutedInk,
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShelfBoardSurface(texture: ImageBitmap?, presentation: HomeGamePresentation) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(152.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(InsetSurface)
-            .border(1.dp, Border, RoundedCornerShape(6.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        if (texture != null) {
-            Image(
-                bitmap = texture,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                alpha = 0.92f
-            )
-        }
-        Box(
-            modifier = Modifier
-                .size(72.dp)
-                .clip(CircleShape)
-                .background(presentation.accent.copy(alpha = 0.9f))
-                .border(2.dp, RaisedSurface.copy(alpha = 0.8f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                presentation.symbol,
-                color = Color.White,
-                style = MaterialTheme.typography.headlineMedium,
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
 }
 
 private fun loadAppTexture(context: android.content.Context, path: String): ImageBitmap? = runCatching {
     context.assets.open(path).use { input ->
         requireNotNull(BitmapFactory.decodeStream(input)).asImageBitmap()
     }
-}.getOrNull()
-
-private fun loadPackageTexture(file: File): ImageBitmap? = runCatching {
-    requireNotNull(BitmapFactory.decodeFile(file.absolutePath)).asImageBitmap()
 }.getOrNull()
 
 private class ShellGameContext(

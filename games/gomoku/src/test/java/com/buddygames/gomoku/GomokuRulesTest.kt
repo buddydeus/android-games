@@ -6,6 +6,31 @@ import org.junit.Test
 
 class GomokuRulesTest {
     @Test
+    fun menuUsesUnifiedGameModeLabels() {
+        assertEquals(listOf("单人模式", "双人对战", "退出游戏"), gomokuMenuLabels())
+    }
+
+    @Test
+    fun scoreRecordsEachWinningSide() {
+        val score = GomokuScore()
+            .record(Stone.BLACK)
+            .record(Stone.WHITE)
+            .record(Stone.BLACK)
+
+        assertEquals(GomokuScore(black = 2, white = 1), score)
+        assertEquals("2 : 1", score.displayText)
+    }
+
+    @Test
+    fun newRoundResetsBoardAndFirstTurn() {
+        val round = newGomokuRound()
+
+        assertEquals(Stone.BLACK, round.turn)
+        assertNull(round.winner)
+        assertEquals(0, round.state.legalMoves().let { GomokuState.SIZE * GomokuState.SIZE - it.size })
+    }
+
+    @Test
     fun boardSideUsesAvailableSpaceWithinReferenceBounds() {
         assertEquals(280f, gomokuBoardSide(240f, 500f), 0.001f)
         assertEquals(540f, gomokuBoardSide(720f, 540f), 0.001f)
@@ -51,6 +76,38 @@ class GomokuRulesTest {
             .place(9, 5, Stone.BLACK)
 
         assertEquals(GomokuMove(9, 1), GomokuRules.robotMove(state, Stone.WHITE))
+    }
+
+    @Test
+    fun robotBlocksClosedFourAtItsOnlyWinningPoint() {
+        val state = GomokuState.empty()
+            .place(7, 3, Stone.WHITE)
+            .place(7, 4, Stone.BLACK)
+            .place(7, 5, Stone.BLACK)
+            .place(7, 6, Stone.BLACK)
+            .place(7, 7, Stone.BLACK)
+
+        assertEquals(GomokuMove(7, 8), GomokuRules.robotMove(state, Stone.WHITE))
+    }
+
+    @Test
+    fun robotBlocksOpenThreeBeforeUsingPositionalHeuristic() {
+        val state = GomokuState.empty()
+            .place(7, 6, Stone.BLACK)
+            .place(7, 7, Stone.BLACK)
+            .place(7, 8, Stone.BLACK)
+
+        assertEquals(GomokuMove(7, 5), GomokuRules.robotMove(state, Stone.WHITE))
+    }
+
+    @Test
+    fun robotFillsGapThatWouldTurnBrokenThreeIntoOpenFour() {
+        val state = GomokuState.empty()
+            .place(7, 5, Stone.BLACK)
+            .place(7, 7, Stone.BLACK)
+            .place(7, 8, Stone.BLACK)
+
+        assertEquals(GomokuMove(7, 6), GomokuRules.robotMove(state, Stone.WHITE))
     }
 
     @Test

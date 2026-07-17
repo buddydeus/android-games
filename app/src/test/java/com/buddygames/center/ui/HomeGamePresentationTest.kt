@@ -5,17 +5,98 @@ import org.junit.Test
 
 class HomeGamePresentationTest {
     @Test
-    fun presentationUsesKnownBoardMetadataAndFallsBackForImportedGames() {
-        assertEquals("15 x 15", homeGamePresentation("gomoku").boardSize)
-        assertEquals("8 x 8", homeGamePresentation("othello").boardSize)
-        assertEquals("9 x 10", homeGamePresentation("xiangqi").boardSize)
-        assertEquals("本地游戏", homeGamePresentation("sudoku").boardSize)
+    fun builtInGamesUseDesignOrderAndVectorLogos() {
+        assertEquals(HomeGameLogo.Gomoku, homeGamePresentation("gomoku").logo)
+        assertEquals(0, homeGamePresentation("gomoku").order)
+        assertEquals(HomeGameLogo.Xiangqi, homeGamePresentation("xiangqi").logo)
+        assertEquals(1, homeGamePresentation("xiangqi").order)
+        assertEquals(HomeGameLogo.Othello, homeGamePresentation("othello").logo)
+        assertEquals(2, homeGamePresentation("othello").order)
+        assertEquals(HomeGameLogo.Generic, homeGamePresentation("sudoku").logo)
+        assertEquals(Int.MAX_VALUE, homeGamePresentation("sudoku").order)
     }
 
     @Test
-    fun builtInGamesUseDistinctShelfBoardTextures() {
-        assertEquals("textures/gomoku-shelf.png", homeGamePresentation("gomoku").shelfTexture)
-        assertEquals("textures/othello-shelf.png", homeGamePresentation("othello").shelfTexture)
-        assertEquals("textures/xiangqi-shelf.png", homeGamePresentation("xiangqi").shelfTexture)
+    fun wideTabletUsesFixedEqualSquareButtons() {
+        assertEquals(
+            HomeGameLayout(
+                mode = HomeGameLayoutMode.SquareRow,
+                horizontalPaddingDp = 32,
+                gapDp = 28,
+                buttonSizeDp = 264,
+                buttonHeightDp = 264,
+                logoSizeDp = 112
+            ),
+            homeGameLayout(widthDp = 1200f, heightDp = 800f)
+        )
+    }
+
+    @Test
+    fun mediumTabletUsesThreeEqualAdaptiveSquares() {
+        assertEquals(
+            HomeGameLayout(
+                mode = HomeGameLayoutMode.SquareRow,
+                horizontalPaddingDp = 24,
+                gapDp = 20,
+                buttonSizeDp = 237,
+                buttonHeightDp = 237,
+                logoSizeDp = 96
+            ),
+            homeGameLayout(widthDp = 800f, heightDp = 600f)
+        )
+    }
+
+    @Test
+    fun compactWidthUsesEqualHorizontalButtons() {
+        val expected = HomeGameLayout(
+            mode = HomeGameLayoutMode.CompactColumn,
+            horizontalPaddingDp = 24,
+            gapDp = 16,
+            buttonSizeDp = null,
+            buttonHeightDp = 112,
+            logoSizeDp = 64
+        )
+
+        assertEquals(expected, homeGameLayout(widthDp = 599f, heightDp = 800f))
+        assertEquals(expected, homeGameLayout(widthDp = 375f, heightDp = 667f))
+        assertEquals(expected, homeGameLayout(widthDp = 599.9f, heightDp = 800f))
+    }
+
+    @Test
+    fun portraitTabletUsesCompactHorizontalButtons() {
+        assertEquals(
+            HomeGameLayout(
+                mode = HomeGameLayoutMode.CompactColumn,
+                horizontalPaddingDp = 24,
+                gapDp = 16,
+                buttonSizeDp = null,
+                buttonHeightDp = 112,
+                logoSizeDp = 64
+            ),
+            homeGameLayout(widthDp = 800f, heightDp = 1100f)
+        )
+    }
+
+    @Test
+    fun exactResponsiveBoundariesUseSpecifiedSquareModes() {
+        assertEquals(
+            HomeGameLayoutMode.SquareRow,
+            homeGameLayout(widthDp = 600f, heightDp = 600f).mode
+        )
+        assertEquals(
+            240,
+            homeGameLayout(widthDp = 959.9f, heightDp = 600f).buttonSizeDp
+        )
+        assertEquals(
+            264,
+            homeGameLayout(widthDp = 960f, heightDp = 600f).buttonSizeDp
+        )
+    }
+
+    @Test
+    fun xiangqiGlyphScalesDownInsideCompactLogo() {
+        assertEquals(27, xiangqiGlyphSizeSp(64))
+        assertEquals(42, xiangqiGlyphSizeSp(96))
+        assertEquals(42, xiangqiGlyphSizeSp(112))
     }
 }

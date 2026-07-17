@@ -7,6 +7,61 @@ import org.junit.Test
 
 class XiangqiRulesTest {
     @Test
+    fun menuUsesUnifiedGameModeLabels() {
+        assertEquals(listOf("单人模式", "双人对战", "退出游戏"), xiangqiMenuLabels())
+    }
+
+    @Test
+    fun scoreRecordsRedAndBlackWins() {
+        val score = XiangqiScore()
+            .record(Side.RED)
+            .record(Side.BLACK)
+            .record(Side.RED)
+
+        assertEquals(XiangqiScore(red = 2, black = 1), score)
+        assertEquals("2 : 1", score.displayText)
+    }
+
+    @Test
+    fun newRoundRestoresInitialBoardRedTurnAndNoSelection() {
+        val round = newXiangqiRound()
+
+        assertEquals(Side.RED, round.turn)
+        assertEquals(XiangqiState.initial(), round.state)
+        assertEquals(null, round.selected)
+        assertEquals(null, round.winner)
+    }
+
+    @Test
+    fun rookGivesCheckOnAnOpenFile() {
+        val state = XiangqiState.empty()
+            .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+            .put(5, 4, XiangqiPiece(Side.RED, PieceType.ROOK))
+
+        assertTrue(XiangqiRules.isInCheck(state, Side.BLACK))
+    }
+
+    @Test
+    fun pieceBetweenRookAndGeneralBlocksCheck() {
+        val state = XiangqiState.empty()
+            .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+            .put(3, 4, XiangqiPiece(Side.BLACK, PieceType.SOLDIER))
+            .put(5, 4, XiangqiPiece(Side.RED, PieceType.ROOK))
+
+        assertFalse(XiangqiRules.isInCheck(state, Side.BLACK))
+    }
+
+    @Test
+    fun generalsFacingOnOpenFileGiveCheck() {
+        val state = XiangqiState.empty()
+            .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+            .put(9, 4, XiangqiPiece(Side.RED, PieceType.GENERAL))
+
+        assertTrue(XiangqiRules.isInCheck(state, Side.BLACK))
+        assertTrue(XiangqiRules.isInCheck(state, Side.RED))
+    }
+
+    @Test
     fun boardFrameMatchesReferenceAspectWithinBounds() {
         val compact = xiangqiBoardSize(240f, 500f)
         val typical = xiangqiBoardSize(900f, 600f)

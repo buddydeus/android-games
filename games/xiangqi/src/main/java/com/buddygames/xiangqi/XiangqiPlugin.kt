@@ -93,20 +93,24 @@ class XiangqiPlugin : GamePlugin {
         val texture = remember(context.gamePackage.assetsDir) {
             loadXiangqiTexture(context.gamePackage.assetsDir.resolve("textures/xiangqi-shelf.png"))
         }
-        var state by remember { mutableStateOf(XiangqiState.initial()) }
-        var turn by remember { mutableStateOf(Side.RED) }
-        var selected by remember { mutableStateOf<Pair<Int, Int>?>(null) }
-        var winner by remember { mutableStateOf<Side?>(null) }
+        val initialRound = remember { newXiangqiRound() }
+        var state by remember { mutableStateOf(initialRound.state) }
+        var turn by remember { mutableStateOf(initialRound.turn) }
+        var selected by remember { mutableStateOf(initialRound.selected) }
+        var winner by remember { mutableStateOf(initialRound.winner) }
+        var score by remember { mutableStateOf(XiangqiScore()) }
 
         fun applyMove(move: XiangqiMove) {
             winner = XiangqiRules.winnerAfterMove(state, move)
             state = state.apply(move)
             selected = null
+            if (winner != null) score = score.record(winner)
             if (winner == null && mode == GameMode.SINGLE_PLAYER) {
                 val robot = XiangqiRules.robotMove(state, Side.BLACK)
                 if (robot != null) {
                     winner = XiangqiRules.winnerAfterMove(state, robot)
                     state = state.apply(robot)
+                    if (winner != null) score = score.record(winner)
                 }
                 turn = Side.RED
             } else if (winner == null) {
@@ -130,12 +134,26 @@ class XiangqiPlugin : GamePlugin {
             }
         }
 
+        fun restart() {
+            val round = newXiangqiRound()
+            state = round.state
+            turn = round.turn
+            selected = round.selected
+            winner = round.winner
+        }
+
+        val inCheck = winner == null && XiangqiRules.isInCheck(state, turn)
         Surface(Modifier.fillMaxSize(), color = XiangqiPaper) {
             XiangqiGameLayout(
                 state = state,
                 selected = selected,
                 status = statusText(winner, turn, mode),
+                turn = turn,
+                score = score.displayText,
+                gameOver = winner != null,
+                inCheck = inCheck,
                 onTap = ::tap,
+                onRestart = ::restart,
                 onExit = context::exitGame,
                 texture = texture
             )

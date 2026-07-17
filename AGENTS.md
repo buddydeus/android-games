@@ -1,12 +1,20 @@
 # Android Games — Agent Instructions
 
-For humans: no README yet; see [design spec](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md) for product context.
+For humans: start with [README.md](README.md). The approved product and architecture baseline is the [design spec](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md).
 
 ## Project
 
 Offline Android Pad game center (Kotlin + Jetpack Compose). The `app` module is a stable loading shell; each game ships as a zip package with dex plugin code loaded via `DexClassLoader`. MVP games: Gomoku, Othello, Xiangqi.
 
 Gradle multi-module layout: `app` (shell), `game-api` (shell↔game contract), `games/*` (per-game modules + package assets).
+
+Current game behavior:
+
+- All game menus use `单人模式`, `双人对战`, and `退出游戏`.
+- All games own their rules, robot, UI, score state, and restart flow inside their game module.
+- Gomoku uses a 15×15 intersection board. Its robot priority is: win immediately, block an immediate five (including closed four), block moves that create at least two immediate winning points (continuous or broken open three), then use the positional fallback.
+- Othello hides robot hint points in two-player mode.
+- Xiangqi uses intersection placement, colors the active side in the turn display, and shows `将军` in the side panel when applicable.
 
 ## Environment
 
@@ -24,6 +32,7 @@ Run from repository root:
 - `npm run verify` — full MVP gate: tests + three game packages + debug APK
 - `npm run build` — build debug APK and all game package zips
 - `npm run build:apk` — `./gradlew :app:assembleDebug` (also copies built-in game zips into assets)
+- `npm run build:game` — build all three game package zips
 - `npm run build:game:gomoku` — `./gradlew packageGomokuGame`
 - `npm run build:game:othello` — `./gradlew packageOthelloGame`
 - `npm run build:game:xiangqi` — `./gradlew packageXiangqiGame`
@@ -55,6 +64,7 @@ Run from repository root:
 
 - Run `npm run verify` before claiming work complete (unless change is docs-only).
 - Scope game logic/UI to the relevant `games/<name>/` module.
+- Keep robot strategy and its regression tests in the same game module; threat-priority changes must include deterministic board-state tests.
 - Keep `game-api` backward-compatible or update every `games/*` plugin in the same change.
 - Run targeted unit tests for touched modules (see Commands).
 - Match existing Kotlin + Compose style in neighboring files.
@@ -97,6 +107,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 
 | Doc | Purpose |
 | --- | ------- |
+| [README.md](README.md) | Human setup, build, runtime, package format, and current game capabilities |
 | [docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md) | Product scope, architecture, non-goals |
 | [docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md](docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md) | MVP task breakdown and file map |
 | [docs/agents/game-plugins.md](docs/agents/game-plugins.md) | GamePlugin contract, zip layout, adding a game |

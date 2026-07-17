@@ -83,37 +83,54 @@ class GomokuPlugin : GamePlugin {
         val texture = remember(context.gamePackage.assetsDir) {
             loadGomokuTexture(context.gamePackage.assetsDir.resolve("textures/gomoku-shelf.png"))
         }
-        var state by remember { mutableStateOf(GomokuState.empty()) }
-        var turn by remember { mutableStateOf(Stone.BLACK) }
-        var winner by remember { mutableStateOf<Stone?>(null) }
+        val initialRound = remember { newGomokuRound() }
+        var state by remember { mutableStateOf(initialRound.state) }
+        var turn by remember { mutableStateOf(initialRound.turn) }
+        var winner by remember { mutableStateOf(initialRound.winner) }
+        var score by remember { mutableStateOf(GomokuScore()) }
 
         fun play(row: Int, col: Int) {
-            if (winner != null || state.cell(row, col) != null) return
+            if (winner != null || state.legalMoves().isEmpty() || state.cell(row, col) != null) return
             state = state.place(row, col, turn)
             winner = GomokuRules.winner(state)
-            if (winner == null && mode == GameMode.SINGLE_PLAYER) {
+            if (winner != null) {
+                score = score.record(winner)
+            } else if (state.legalMoves().isNotEmpty() && mode == GameMode.SINGLE_PLAYER) {
                 val robot = GomokuRules.robotMove(state, Stone.WHITE)
                 state = state.place(robot.row, robot.col, Stone.WHITE)
                 winner = GomokuRules.winner(state)
+                if (winner != null) score = score.record(winner)
                 turn = Stone.BLACK
             } else if (winner == null) {
                 turn = turn.other()
             }
         }
 
+        fun restart() {
+            val round = newGomokuRound()
+            state = round.state
+            turn = round.turn
+            winner = round.winner
+        }
+
+        val gameOver = winner != null || state.legalMoves().isEmpty()
         Surface(Modifier.fillMaxSize(), color = GomokuPaper) {
             GomokuGameLayout(
                 state = state,
-                status = statusText(winner, turn, mode),
+                status = statusText(winner, turn, mode, gameOver),
+                score = score.displayText,
+                gameOver = gameOver,
                 onPlay = ::play,
+                onRestart = ::restart,
                 onExit = context::exitGame,
                 texture = texture
             )
         }
     }
 
-    private fun statusText(winner: Stone?, turn: Stone, mode: GameMode): String {
+    private fun statusText(winner: Stone?, turn: Stone, mode: GameMode, gameOver: Boolean): String {
         winner?.let { return if (it == Stone.BLACK) "黑方胜" else "白方胜" }
+        if (gameOver) return "平局"
         return if (mode == GameMode.SINGLE_PLAYER) {
             "你的回合 · 执黑"
         } else {
