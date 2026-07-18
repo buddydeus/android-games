@@ -21,4 +21,4 @@ include(":game-api")
 include(":games:gomoku")
 include(":games:othello")
 include(":games:xiangqi")
-
+include(":games:chess")

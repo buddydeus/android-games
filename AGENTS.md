@@ -67,6 +67,7 @@ Run from repository root:
 | `games/gomoku/` | Gomoku plugin module + `package/` assets/manifest |
 | `games/othello/` | Othello plugin module + package layout |
 | `games/xiangqi/` | Xiangqi plugin module + package layout |
+| `games/chess/` | International Chess plugin module + package layout |
 | `build.gradle.kts` | Registers `package*Game` zip tasks (jar → d8 → plugin.apk → zip) |
 | `scripts/start-android-debug.sh` | Local emulator + install + launch |
 | `docs/superpowers/specs/` | Approved product/architecture spec (SSOT) |
