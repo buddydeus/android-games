@@ -11,9 +11,9 @@ import org.junit.Test
 class XiangqiRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(3, XiangqiPlugin.manifest.versionCode)
-        assertEquals("0.0.3", XiangqiPlugin.manifest.versionName)
-        assertEquals("版本 0.0.3", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+        assertEquals(4, XiangqiPlugin.manifest.versionCode)
+        assertEquals("0.0.4", XiangqiPlugin.manifest.versionName)
+        assertEquals("版本 0.0.4", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
     }
 
     @Test
@@ -64,6 +64,7 @@ class XiangqiRulesTest {
         assertEquals(XiangqiState.initial(), round.state)
         assertEquals(null, round.selected)
         assertEquals(null, round.winner)
+        assertEquals(null, round.lastMove)
     }
 
     @Test
@@ -87,6 +88,8 @@ class XiangqiRulesTest {
         assertFalse(round.state == XiangqiState.initial())
         assertEquals(null, round.selected)
         assertEquals(null, round.winner)
+        val lastMove = requireNotNull(round.lastMove)
+        assertEquals(Side.RED, round.state.piece(lastMove.toRow, lastMove.toCol)?.side)
     }
 
     @Test
@@ -95,13 +98,15 @@ class XiangqiRulesTest {
             state = XiangqiState.initial(),
             turn = Side.RED,
             winner = null,
-            score = XiangqiScore()
+            score = XiangqiScore(),
+            lastMove = null
         )
         val move = XiangqiMove(6, 0, 5, 0)
         val second = first.copy(
             state = first.state.apply(move),
             turn = Side.BLACK,
-            score = XiangqiScore(red = 2, black = 1)
+            score = XiangqiScore(red = 2, black = 1),
+            lastMove = move
         )
 
         val undo = undoXiangqi(listOf(first, second))
@@ -109,6 +114,15 @@ class XiangqiRulesTest {
         assertEquals(second, undo?.snapshot)
         assertEquals(listOf(first), undo?.remainingHistory)
         assertNull(undoXiangqi(emptyList()))
+    }
+
+    @Test
+    fun lastMoveCellUsesDestinationAndSurvivesRotatedDisplayMapping() {
+        val move = XiangqiMove(6, 0, 5, 0)
+
+        assertEquals(5 to 0, xiangqiLastMoveCell(move))
+        assertEquals(4 to 8, xiangqiBoardCoordinate(5, 0, rotated = true))
+        assertNull(xiangqiLastMoveCell(null))
     }
 
     @Test

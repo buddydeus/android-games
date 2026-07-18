@@ -36,6 +36,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
@@ -110,10 +111,13 @@ internal fun othelloMenuLabels(): List<String> = listOf("单人模式", "双人�
 internal fun othelloVersionLabel(versionName: String): String = "版本 $versionName"
 internal fun shouldShowOthelloUndo(gameOver: Boolean, winner: Disc?): Boolean =
     !gameOver || winner == null
+internal fun othelloLastMoveCell(move: OthelloMove?): Pair<Int, Int>? =
+    move?.let { it.row to it.col }
 
 @Composable
 internal fun OthelloGameLayout(
     state: OthelloState,
+    lastMove: OthelloMove?,
     turn: Disc,
     status: String,
     score: String,
@@ -137,7 +141,8 @@ internal fun OthelloGameLayout(
                         onPlay,
                         Modifier.weight(1f),
                         texture,
-                        showLegalMoveHints = showLegalMoveHints
+                        showLegalMoveHints = showLegalMoveHints,
+                        lastMove = lastMove
                     )
                     Spacer(Modifier.width(34.dp))
                     OthelloInfoRail(
@@ -161,7 +166,8 @@ internal fun OthelloGameLayout(
                         onPlay,
                         Modifier.weight(1f),
                         texture,
-                        showLegalMoveHints = showLegalMoveHints
+                        showLegalMoveHints = showLegalMoveHints,
+                        lastMove = lastMove
                     )
                     OthelloInfoRail(
                         state,
@@ -189,11 +195,13 @@ private fun OthelloBoard(
     modifier: Modifier,
     texture: ImageBitmap?,
     interactive: Boolean = true,
-    showLegalMoveHints: Boolean = true
+    showLegalMoveHints: Boolean = true,
+    lastMove: OthelloMove? = null
 ) {
     val legalMoves = remember(state, turn, interactive, showLegalMoveHints) {
         if (interactive && showLegalMoveHints) OthelloRules.legalMoves(state, turn).toSet() else emptySet()
     }
+    val lastMoveCell = othelloLastMoveCell(lastMove)
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val boardSide = othelloBoardSide(maxWidth.value - 8f, maxHeight.value - 8f).dp
         val surfaceSide = boardSide - 54.dp
@@ -225,10 +233,15 @@ private fun OthelloBoard(
                                 repeat(OthelloState.SIZE) { col ->
                                     val disc = state.cell(row, col)
                                     val legal = OthelloMove(row, col) in legalMoves
+                                    val isLastMove = lastMoveCell == row to col
                                     Box(
                                         modifier = Modifier
                                             .size(cellSize)
-                                            .semantics { contentDescription = "第${row + 1}行第${col + 1}列" }
+                                            .semantics {
+                                                contentDescription =
+                                                    "第${row + 1}行第${col + 1}列" +
+                                                        if (isLastMove) "，最后一步" else ""
+                                            }
                                             .clickable(enabled = interactive) { onPlay(row, col) },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -236,6 +249,7 @@ private fun OthelloBoard(
                                             disc != null -> DiscPiece(disc, cellSize * 0.76f)
                                             legal -> LegalMoveHint(cellSize * 0.16f)
                                         }
+                                        if (isLastMove) LastMoveMarker(cellSize * 0.76f)
                                     }
                                 }
                             }
@@ -280,6 +294,31 @@ private fun DiscPiece(disc: Disc, diameter: Dp) {
         )
         drawCircle(if (disc == Disc.BLACK) Color(0xFF090A0B) else Color(0xFFA5A8A2), radius, center, style = Stroke(1.15f))
         drawCircle(Color.White.copy(alpha = if (disc == Disc.BLACK) 0.16f else 0.42f), radius * 0.16f, center - Offset(radius * 0.35f, radius * 0.39f))
+    }
+}
+
+@Composable
+private fun LastMoveMarker(size: Dp) {
+    Canvas(Modifier.size(size)) {
+        val inset = this.size.minDimension * 0.08f
+        val length = this.size.minDimension * 0.24f
+        val edge = this.size.minDimension - inset
+        val shadowWidth = this.size.minDimension * 0.075f
+        val highlightWidth = this.size.minDimension * 0.045f
+        val segments = listOf(
+            Offset(inset, inset + length) to Offset(inset, inset),
+            Offset(inset, inset) to Offset(inset + length, inset),
+            Offset(edge - length, inset) to Offset(edge, inset),
+            Offset(edge, inset) to Offset(edge, inset + length),
+            Offset(inset, edge - length) to Offset(inset, edge),
+            Offset(inset, edge) to Offset(inset + length, edge),
+            Offset(edge - length, edge) to Offset(edge, edge),
+            Offset(edge, edge) to Offset(edge, edge - length)
+        )
+        segments.forEach { (start, end) ->
+            drawLine(Color(0xB0000000), start, end, shadowWidth, StrokeCap.Round)
+            drawLine(Color(0xFFFFD24A), start, end, highlightWidth, StrokeCap.Round)
+        }
     }
 }
 

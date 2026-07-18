@@ -10,9 +10,9 @@ import org.junit.Test
 class OthelloRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(2, OthelloPlugin.manifest.versionCode)
-        assertEquals("0.0.2", OthelloPlugin.manifest.versionName)
-        assertEquals("版本 0.0.2", othelloVersionLabel(OthelloPlugin.manifest.versionName))
+        assertEquals(3, OthelloPlugin.manifest.versionCode)
+        assertEquals("0.0.3", OthelloPlugin.manifest.versionName)
+        assertEquals("版本 0.0.3", othelloVersionLabel(OthelloPlugin.manifest.versionName))
     }
 
     @Test
@@ -52,6 +52,7 @@ class OthelloRulesTest {
         assertEquals(Disc.BLACK, round.playerDisc)
         assertEquals(Disc.BLACK, round.turn)
         assertEquals(OthelloState.initial(), round.state)
+        assertNull(round.lastMove)
     }
 
     @Test
@@ -74,6 +75,8 @@ class OthelloRulesTest {
         assertEquals(Disc.WHITE, round.turn)
         assertEquals(4, round.state.count(Disc.BLACK))
         assertEquals(1, round.state.count(Disc.WHITE))
+        val lastMove = requireNotNull(round.lastMove)
+        assertEquals(Disc.BLACK, round.state.cell(lastMove.row, lastMove.col))
     }
 
     @Test
@@ -81,13 +84,15 @@ class OthelloRulesTest {
         val first = OthelloSnapshot(
             state = OthelloState.initial(),
             turn = Disc.BLACK,
-            score = OthelloScore()
+            score = OthelloScore(),
+            lastMove = null
         )
         val moved = OthelloRules.applyMove(first.state, OthelloMove(2, 3), Disc.BLACK)
         val second = first.copy(
             state = moved,
             turn = Disc.WHITE,
-            score = OthelloScore(black = 3, white = 2)
+            score = OthelloScore(black = 3, white = 2),
+            lastMove = OthelloMove(2, 3)
         )
 
         val undo = undoOthello(listOf(first, second))
@@ -95,6 +100,12 @@ class OthelloRulesTest {
         assertEquals(second, undo?.snapshot)
         assertEquals(listOf(first), undo?.remainingHistory)
         assertNull(undoOthello(emptyList()))
+    }
+
+    @Test
+    fun lastMoveCellUsesNewlyPlacedDiscRatherThanFlippedDiscs() {
+        assertEquals(2 to 3, othelloLastMoveCell(OthelloMove(2, 3)))
+        assertNull(othelloLastMoveCell(null))
     }
 
     @Test

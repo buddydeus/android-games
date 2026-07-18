@@ -18,14 +18,16 @@ internal data class GomokuRound(
     val state: GomokuState,
     val turn: Stone,
     val winner: Stone?,
-    val playerStone: Stone
+    val playerStone: Stone,
+    val lastMove: GomokuMove?
 )
 
 internal data class GomokuSnapshot(
     val state: GomokuState,
     val turn: Stone,
     val winner: Stone?,
-    val score: GomokuScore
+    val score: GomokuScore,
+    val lastMove: GomokuMove?
 )
 
 internal data class GomokuUndo(
@@ -46,16 +48,15 @@ internal fun nextGomokuPlayerStone(currentPlayer: Stone, winner: Stone?): Stone 
 
 internal fun newGomokuRound(playerStone: Stone = Stone.BLACK): GomokuRound {
     val empty = GomokuState.empty()
-    val state = if (playerStone == Stone.WHITE) {
-        val opening = GomokuRules.robotMove(empty, Stone.BLACK)
-        empty.place(opening.row, opening.col, Stone.BLACK)
-    } else {
-        empty
-    }
+    val opening = if (playerStone == Stone.WHITE) {
+        GomokuRules.robotMove(empty, Stone.BLACK)
+    } else null
+    val state = opening?.let { empty.place(it.row, it.col, Stone.BLACK) } ?: empty
     return GomokuRound(
         state = state,
         turn = playerStone,
         winner = null,
-        playerStone = playerStone
+        playerStone = playerStone,
+        lastMove = opening
     )
 }

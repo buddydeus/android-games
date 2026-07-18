@@ -89,14 +89,16 @@ class GomokuPlugin : GamePlugin {
         var turn by remember { mutableStateOf(initialRound.turn) }
         var winner by remember { mutableStateOf(initialRound.winner) }
         var playerStone by remember { mutableStateOf(initialRound.playerStone) }
+        var lastMove by remember { mutableStateOf(initialRound.lastMove) }
         var score by remember { mutableStateOf(GomokuScore()) }
         var history by remember { mutableStateOf(emptyList<GomokuSnapshot>()) }
 
         fun play(row: Int, col: Int) {
             if (winner != null || state.legalMoves().isEmpty() || state.cell(row, col) != null) return
             if (mode == GameMode.SINGLE_PLAYER && turn != playerStone) return
-            history = history + GomokuSnapshot(state, turn, winner, score)
+            history = history + GomokuSnapshot(state, turn, winner, score, lastMove)
             state = state.place(row, col, turn)
+            lastMove = GomokuMove(row, col)
             winner = GomokuRules.winner(state)
             if (winner != null) {
                 score = score.record(winner)
@@ -104,6 +106,7 @@ class GomokuPlugin : GamePlugin {
                 val robotStone = playerStone.other()
                 val robot = GomokuRules.robotMove(state, robotStone)
                 state = state.place(robot.row, robot.col, robotStone)
+                lastMove = robot
                 winner = GomokuRules.winner(state)
                 if (winner != null) score = score.record(winner)
                 turn = playerStone
@@ -118,6 +121,7 @@ class GomokuPlugin : GamePlugin {
             turn = undo.snapshot.turn
             winner = undo.snapshot.winner
             score = undo.snapshot.score
+            lastMove = undo.snapshot.lastMove
             history = undo.remainingHistory
         }
 
@@ -132,6 +136,7 @@ class GomokuPlugin : GamePlugin {
             turn = round.turn
             winner = round.winner
             playerStone = round.playerStone
+            lastMove = round.lastMove
             history = emptyList()
         }
 
@@ -139,6 +144,7 @@ class GomokuPlugin : GamePlugin {
         Surface(Modifier.fillMaxSize(), color = GomokuPaper) {
             GomokuGameLayout(
                 state = state,
+                lastMove = lastMove,
                 status = statusText(winner, turn, playerStone, mode, gameOver),
                 score = score.displayText,
                 gameOver = gameOver,
@@ -173,8 +179,8 @@ class GomokuPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "gomoku",
             displayName = "五子棋",
-            versionCode = 2,
-            versionName = "0.0.2",
+            versionCode = 3,
+            versionName = "0.0.3",
             entryClass = "com.buddygames.gomoku.GomokuPlugin",
             minShellApi = 1,
             icon = "assets/icon.txt"

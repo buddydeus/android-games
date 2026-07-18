@@ -19,14 +19,16 @@ internal data class XiangqiRound(
     val turn: Side,
     val selected: Pair<Int, Int>?,
     val winner: Side?,
-    val playerSide: Side
+    val playerSide: Side,
+    val lastMove: XiangqiMove?
 )
 
 internal data class XiangqiSnapshot(
     val state: XiangqiState,
     val turn: Side,
     val winner: Side?,
-    val score: XiangqiScore
+    val score: XiangqiScore,
+    val lastMove: XiangqiMove?
 )
 
 internal data class XiangqiUndo(
@@ -47,17 +49,16 @@ internal fun nextXiangqiPlayerSide(currentPlayer: Side, winner: Side?): Side = w
 
 internal fun newXiangqiRound(playerSide: Side = Side.RED): XiangqiRound {
     val initial = XiangqiState.initial()
-    val state = if (playerSide == Side.BLACK) {
-        val opening = requireNotNull(XiangqiRules.robotMove(initial, Side.RED))
-        initial.apply(opening)
-    } else {
-        initial
-    }
+    val opening = if (playerSide == Side.BLACK) {
+        requireNotNull(XiangqiRules.robotMove(initial, Side.RED))
+    } else null
+    val state = opening?.let(initial::apply) ?: initial
     return XiangqiRound(
         state = state,
         turn = playerSide,
         selected = null,
         winner = null,
-        playerSide = playerSide
+        playerSide = playerSide,
+        lastMove = opening
     )
 }

@@ -9,9 +9,9 @@ import org.junit.Test
 class GomokuRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(2, GomokuPlugin.manifest.versionCode)
-        assertEquals("0.0.2", GomokuPlugin.manifest.versionName)
-        assertEquals("版本 0.0.2", gomokuVersionLabel(GomokuPlugin.manifest.versionName))
+        assertEquals(3, GomokuPlugin.manifest.versionCode)
+        assertEquals("0.0.3", GomokuPlugin.manifest.versionName)
+        assertEquals("版本 0.0.3", gomokuVersionLabel(GomokuPlugin.manifest.versionName))
     }
 
     @Test
@@ -44,6 +44,7 @@ class GomokuRulesTest {
         assertEquals(Stone.BLACK, round.playerStone)
         assertEquals(Stone.BLACK, round.turn)
         assertNull(round.winner)
+        assertNull(round.lastMove)
         assertEquals(0, round.state.legalMoves().let { GomokuState.SIZE * GomokuState.SIZE - it.size })
     }
 
@@ -66,6 +67,7 @@ class GomokuRulesTest {
         assertEquals(Stone.WHITE, round.playerStone)
         assertEquals(Stone.WHITE, round.turn)
         assertEquals(Stone.BLACK, round.state.cell(7, 7))
+        assertEquals(GomokuMove(7, 7), round.lastMove)
         assertEquals(
             1,
             GomokuState.SIZE * GomokuState.SIZE - round.state.legalMoves().size
@@ -78,12 +80,14 @@ class GomokuRulesTest {
             state = GomokuState.empty(),
             turn = Stone.BLACK,
             winner = null,
-            score = GomokuScore()
+            score = GomokuScore(),
+            lastMove = null
         )
         val second = first.copy(
             state = first.state.place(7, 7, Stone.BLACK),
             turn = Stone.WHITE,
-            score = GomokuScore(black = 2, white = 1)
+            score = GomokuScore(black = 2, white = 1),
+            lastMove = GomokuMove(7, 7)
         )
 
         val undo = undoGomoku(listOf(first, second))
@@ -91,6 +95,12 @@ class GomokuRulesTest {
         assertEquals(second, undo?.snapshot)
         assertEquals(listOf(first), undo?.remainingHistory)
         assertNull(undoGomoku(emptyList()))
+    }
+
+    @Test
+    fun lastMoveCellUsesPlacedIntersection() {
+        assertEquals(7 to 9, gomokuLastMoveCell(GomokuMove(7, 9)))
+        assertNull(gomokuLastMoveCell(null))
     }
 
     @Test

@@ -100,12 +100,14 @@ class XiangqiPlugin : GamePlugin {
         var selected by remember { mutableStateOf(initialRound.selected) }
         var winner by remember { mutableStateOf(initialRound.winner) }
         var playerSide by remember { mutableStateOf(initialRound.playerSide) }
+        var lastMove by remember { mutableStateOf(initialRound.lastMove) }
         var score by remember { mutableStateOf(XiangqiScore()) }
         var history by remember { mutableStateOf(emptyList<XiangqiSnapshot>()) }
 
         fun applyMove(move: XiangqiMove) {
             winner = XiangqiRules.winnerAfterMove(state, move)
             state = state.apply(move)
+            lastMove = move
             selected = null
             if (winner != null) score = score.record(winner)
             if (winner == null && mode == GameMode.SINGLE_PLAYER) {
@@ -114,6 +116,7 @@ class XiangqiPlugin : GamePlugin {
                 if (robot != null) {
                     winner = XiangqiRules.winnerAfterMove(state, robot)
                     state = state.apply(robot)
+                    lastMove = robot
                     if (winner != null) score = score.record(winner)
                 }
                 turn = playerSide
@@ -133,7 +136,7 @@ class XiangqiPlugin : GamePlugin {
             }
             val move = XiangqiMove(currentSelection.first, currentSelection.second, row, col)
             if (XiangqiRules.isLegalMove(state, move, turn)) {
-                history = history + XiangqiSnapshot(state, turn, winner, score)
+                history = history + XiangqiSnapshot(state, turn, winner, score, lastMove)
                 applyMove(move)
             } else {
                 selected = if (piece?.side == turn) row to col else null
@@ -147,6 +150,7 @@ class XiangqiPlugin : GamePlugin {
             selected = null
             winner = undo.snapshot.winner
             score = undo.snapshot.score
+            lastMove = undo.snapshot.lastMove
             history = undo.remainingHistory
         }
 
@@ -162,6 +166,7 @@ class XiangqiPlugin : GamePlugin {
             selected = round.selected
             winner = round.winner
             playerSide = round.playerSide
+            lastMove = round.lastMove
             history = emptyList()
         }
 
@@ -170,6 +175,7 @@ class XiangqiPlugin : GamePlugin {
             XiangqiGameLayout(
                 state = state,
                 selected = selected,
+                lastMove = lastMove,
                 status = statusText(winner, turn, playerSide, mode),
                 turn = turn,
                 score = score.displayText,
@@ -205,8 +211,8 @@ class XiangqiPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "xiangqi",
             displayName = "象棋",
-            versionCode = 3,
-            versionName = "0.0.3",
+            versionCode = 4,
+            versionName = "0.0.4",
             entryClass = "com.buddygames.xiangqi.XiangqiPlugin",
             minShellApi = 1,
             icon = "assets/icon.txt"

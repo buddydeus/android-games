@@ -37,6 +37,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
@@ -121,10 +122,13 @@ private fun GomokuMenuPanel(
 internal fun gomokuMenuLabels(): List<String> = listOf("单人模式", "双人对战", "退出游戏")
 internal fun gomokuVersionLabel(versionName: String): String = "版本 $versionName"
 internal fun shouldShowGomokuUndo(winner: Stone?): Boolean = winner == null
+internal fun gomokuLastMoveCell(move: GomokuMove?): Pair<Int, Int>? =
+    move?.let { it.row to it.col }
 
 @Composable
 internal fun GomokuGameLayout(
     state: GomokuState,
+    lastMove: GomokuMove?,
     status: String,
     score: String,
     gameOver: Boolean,
@@ -140,7 +144,13 @@ internal fun GomokuGameLayout(
         BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
             if (maxWidth >= 900.dp) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                    GomokuBoard(state, onPlay, Modifier.weight(1f), texture)
+                    GomokuBoard(
+                        state,
+                        onPlay,
+                        Modifier.weight(1f),
+                        texture,
+                        lastMove = lastMove
+                    )
                     Spacer(Modifier.width(34.dp))
                     GomokuInfoRail(
                         score,
@@ -156,7 +166,13 @@ internal fun GomokuGameLayout(
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    GomokuBoard(state, onPlay, Modifier.weight(1f), texture)
+                    GomokuBoard(
+                        state,
+                        onPlay,
+                        Modifier.weight(1f),
+                        texture,
+                        lastMove = lastMove
+                    )
                     GomokuInfoRail(
                         score,
                         status,
@@ -180,12 +196,14 @@ private fun GomokuBoard(
     onPlay: (Int, Int) -> Unit,
     modifier: Modifier,
     texture: ImageBitmap?,
-    interactive: Boolean = true
+    interactive: Boolean = true,
+    lastMove: GomokuMove? = null
 ) {
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val boardSide = gomokuBoardSide(maxWidth.value - 8f, maxHeight.value - 8f).dp
         val surfaceSide = boardSide - 48.dp
         val step = surfaceSide / GomokuState.SIZE.toFloat()
+        val lastMoveCell = gomokuLastMoveCell(lastMove)
 
         Box(
             Modifier
@@ -213,14 +231,20 @@ private fun GomokuBoard(
                             Row {
                                 repeat(GomokuState.SIZE) { col ->
                                     val stone = state.cell(row, col)
+                                    val isLastMove = lastMoveCell == row to col
                                     Box(
                                         modifier = Modifier
                                             .size(step)
-                                            .semantics { contentDescription = "第${row + 1}行第${col + 1}列" }
+                                            .semantics {
+                                                contentDescription =
+                                                    "第${row + 1}行第${col + 1}列" +
+                                                        if (isLastMove) "，最后一步" else ""
+                                            }
                                             .clickable(enabled = interactive) { onPlay(row, col) },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (stone != null) GomokuStone(stone, step * 0.86f)
+                                        if (isLastMove) LastMoveMarker(step * 0.76f)
                                     }
                                 }
                             }
@@ -267,6 +291,31 @@ private fun GomokuStone(stone: Stone, diameter: Dp) {
         )
         drawCircle(if (stone == Stone.BLACK) Color(0xFF080B0B) else Color(0xFFABAEA5), radius, center, style = Stroke(1.1f))
         drawCircle(Color.White.copy(alpha = if (stone == Stone.BLACK) 0.18f else 0.42f), radius * 0.18f, center - Offset(radius * 0.36f, radius * 0.38f))
+    }
+}
+
+@Composable
+private fun LastMoveMarker(size: Dp) {
+    Canvas(Modifier.size(size)) {
+        val inset = this.size.minDimension * 0.08f
+        val length = this.size.minDimension * 0.24f
+        val edge = this.size.minDimension - inset
+        val shadowWidth = this.size.minDimension * 0.075f
+        val highlightWidth = this.size.minDimension * 0.045f
+        val segments = listOf(
+            Offset(inset, inset + length) to Offset(inset, inset),
+            Offset(inset, inset) to Offset(inset + length, inset),
+            Offset(edge - length, inset) to Offset(edge, inset),
+            Offset(edge, inset) to Offset(edge, inset + length),
+            Offset(inset, edge - length) to Offset(inset, edge),
+            Offset(inset, edge) to Offset(inset + length, edge),
+            Offset(edge - length, edge) to Offset(edge, edge),
+            Offset(edge, edge) to Offset(edge, edge - length)
+        )
+        segments.forEach { (start, end) ->
+            drawLine(Color(0xB0000000), start, end, shadowWidth, StrokeCap.Round)
+            drawLine(Color(0xFFFFD24A), start, end, highlightWidth, StrokeCap.Round)
+        }
     }
 }
 

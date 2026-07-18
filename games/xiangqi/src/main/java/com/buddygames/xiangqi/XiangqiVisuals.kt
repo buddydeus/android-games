@@ -38,6 +38,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
@@ -129,11 +130,14 @@ internal fun xiangqiBoardCoordinate(row: Int, col: Int, rotated: Boolean): Pair<
 
 internal fun xiangqiRiverLabels(rotated: Boolean): Pair<String, String> =
     if (rotated) "漢  界" to "楚  河" else "楚  河" to "漢  界"
+internal fun xiangqiLastMoveCell(move: XiangqiMove?): Pair<Int, Int>? =
+    move?.let { it.toRow to it.toCol }
 
 @Composable
 internal fun XiangqiGameLayout(
     state: XiangqiState,
     selected: Pair<Int, Int>?,
+    lastMove: XiangqiMove?,
     status: String,
     turn: Side,
     score: String,
@@ -158,7 +162,8 @@ internal fun XiangqiGameLayout(
                         onTap,
                         Modifier.weight(1f),
                         texture,
-                        rotated = rotateBoard
+                        rotated = rotateBoard,
+                        lastMove = lastMove
                     )
                     Spacer(Modifier.width(34.dp))
                     XiangqiInfoRail(
@@ -183,7 +188,8 @@ internal fun XiangqiGameLayout(
                         onTap,
                         Modifier.weight(1f),
                         texture,
-                        rotated = rotateBoard
+                        rotated = rotateBoard,
+                        lastMove = lastMove
                     )
                     XiangqiInfoRail(
                         score,
@@ -212,7 +218,8 @@ private fun XiangqiBoard(
     modifier: Modifier,
     texture: ImageBitmap?,
     interactive: Boolean = true,
-    rotated: Boolean = false
+    rotated: Boolean = false,
+    lastMove: XiangqiMove? = null
 ) {
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val board = xiangqiBoardSize(maxWidth.value - 8f, maxHeight.value - 8f)
@@ -224,6 +231,7 @@ private fun XiangqiBoard(
         val hitHeight = surfaceHeight - 16.dp
         val stepX = hitWidth / XiangqiState.COLS.toFloat()
         val stepY = hitHeight / XiangqiState.ROWS.toFloat()
+        val lastMoveCell = xiangqiLastMoveCell(lastMove)
 
         Box(
             Modifier
@@ -257,12 +265,14 @@ private fun XiangqiBoard(
                                             xiangqiBoardCoordinate(row, col, rotated)
                                         val piece = state.piece(modelRow, modelCol)
                                         val isSelected = selected == modelRow to modelCol
+                                        val isLastMove = lastMoveCell == modelRow to modelCol
                                         Box(
                                             modifier = Modifier
                                                 .size(stepX, stepY)
                                                 .semantics {
                                                     contentDescription =
-                                                        "第${modelRow + 1}行第${modelCol + 1}列"
+                                                        "第${modelRow + 1}行第${modelCol + 1}列" +
+                                                            if (isLastMove) "，最后一步" else ""
                                                 }
                                                 .clickable(enabled = interactive) {
                                                     onTap(modelRow, modelCol)
@@ -271,6 +281,11 @@ private fun XiangqiBoard(
                                         ) {
                                             if (isSelected) SelectionHalo(stepY * 0.90f)
                                             if (piece != null) XiangqiPieceView(piece, stepY * 0.82f)
+                                            if (isLastMove) {
+                                                LastMoveMarker(
+                                                    minOf(stepX.value, stepY.value).dp * 0.78f
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -336,6 +351,31 @@ private fun RiverLabels(stepX: Dp, stepY: Dp, rotated: Boolean) {
 @Composable
 private fun SelectionHalo(diameter: Dp) {
     Box(Modifier.size(diameter).border(3.dp, Color(0xFFF4D27D), CircleShape))
+}
+
+@Composable
+private fun LastMoveMarker(size: Dp) {
+    Canvas(Modifier.size(size)) {
+        val inset = this.size.minDimension * 0.08f
+        val length = this.size.minDimension * 0.24f
+        val edge = this.size.minDimension - inset
+        val shadowWidth = this.size.minDimension * 0.075f
+        val highlightWidth = this.size.minDimension * 0.045f
+        val segments = listOf(
+            Offset(inset, inset + length) to Offset(inset, inset),
+            Offset(inset, inset) to Offset(inset + length, inset),
+            Offset(edge - length, inset) to Offset(edge, inset),
+            Offset(edge, inset) to Offset(edge, inset + length),
+            Offset(inset, edge - length) to Offset(inset, edge),
+            Offset(inset, edge) to Offset(inset + length, edge),
+            Offset(edge - length, edge) to Offset(edge, edge),
+            Offset(edge, edge) to Offset(edge, edge - length)
+        )
+        segments.forEach { (start, end) ->
+            drawLine(Color(0xB0000000), start, end, shadowWidth, StrokeCap.Round)
+            drawLine(Color(0xFFFFD24A), start, end, highlightWidth, StrokeCap.Round)
+        }
+    }
 }
 
 @Composable
