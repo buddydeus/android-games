@@ -133,6 +133,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [README.md](README.md) | Human setup, build, runtime, package format, and current game capabilities |
 | [docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md) | Product scope, architecture, non-goals |
 | [docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md](docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md) | MVP task breakdown and file map |
+| [docs/superpowers/plans/2026-07-18-xiangqi-intelligence-gradient.md](docs/superpowers/plans/2026-07-18-xiangqi-intelligence-gradient.md) | TDD implementation steps for the Xiangqi ten-level search engine and score-driven single-player flow |
 | [docs/superpowers/specs/2026-07-18-xiangqi-intelligence-gradient-design.md](docs/superpowers/specs/2026-07-18-xiangqi-intelligence-gradient-design.md) | Xiangqi ten-level offline intelligence gradient, score mapping, search boundary, and calibration |
 | [docs/agents/game-plugins.md](docs/agents/game-plugins.md) | GamePlugin contract, zip layout, adding a game |
 | [designs/specs/android-games-home.md](designs/specs/android-games-home.md) | Current home-screen visual SSOT |
