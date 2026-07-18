@@ -102,14 +102,17 @@ class HomeGamePresentationTest {
             213,
             homeGameLayout(widthDp = 960f, heightDp = 600f).buttonSizeDp
         )
-        assertEquals(
-            240,
-            homeGameLayout(widthDp = 1107.9f, heightDp = 700f).buttonSizeDp
-        )
-        assertEquals(
-            240,
-            homeGameLayout(widthDp = 1108f, heightDp = 700f).buttonSizeDp
-        )
+        val belowWideBreakpoint = homeGameLayout(widthDp = 1107.9f, heightDp = 700f)
+        assertEquals(240, belowWideBreakpoint.buttonSizeDp)
+        assertEquals(24, belowWideBreakpoint.horizontalPaddingDp)
+        assertEquals(20, belowWideBreakpoint.gapDp)
+        assertEquals(72, belowWideBreakpoint.logoSizeDp)
+
+        val atWideBreakpoint = homeGameLayout(widthDp = 1108f, heightDp = 700f)
+        assertEquals(240, atWideBreakpoint.buttonSizeDp)
+        assertEquals(32, atWideBreakpoint.horizontalPaddingDp)
+        assertEquals(28, atWideBreakpoint.gapDp)
+        assertEquals(112, atWideBreakpoint.logoSizeDp)
     }
 
     @Test

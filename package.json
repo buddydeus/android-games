@@ -8,7 +8,7 @@
     "build:game:othello": "./gradlew packageOthelloGame",
     "build:game:xiangqi": "./gradlew packageXiangqiGame",
     "build:game:chess": "./gradlew packageChessGame",
-    "verify": "./gradlew test packageGomokuGame packageOthelloGame packageXiangqiGame packageChessGame :app:assembleDebug",
+    "verify": "./gradlew test verifyGamePackages",
     "start": "bash scripts/start-android-debug.sh"
   }
 }

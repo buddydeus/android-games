@@ -1,5 +1,6 @@
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.bundling.Zip
+import java.util.zip.ZipFile
 
 plugins {
     id("com.android.application") version "9.2.1" apply false
@@ -50,3 +51,34 @@ registerGamePackageTask("packageGomokuGame", "gomoku")
 registerGamePackageTask("packageOthelloGame", "othello")
 registerGamePackageTask("packageXiangqiGame", "xiangqi")
 registerGamePackageTask("packageChessGame", "chess")
+
+tasks.register("verifyGamePackages") {
+    group = "verification"
+    description = "Verifies game zip contents and their inclusion in the debug APK."
+    dependsOn(":app:assembleDebug")
+
+    doLast {
+        val gameIds = listOf("gomoku", "othello", "xiangqi", "chess")
+        val requiredPackageEntries = setOf("manifest.json", "plugin.apk", "assets/icon.txt")
+
+        gameIds.forEach { gameId ->
+            val packageFile = layout.buildDirectory.file("game-packages/$gameId.zip").get().asFile
+            check(packageFile.isFile) { "Missing game package: ${packageFile.absolutePath}" }
+            ZipFile(packageFile).use { archive ->
+                val entries = archive.entries().asSequence().map { it.name }.toSet()
+                val missing = requiredPackageEntries - entries
+                check(missing.isEmpty()) { "$gameId.zip is missing: ${missing.joinToString()}" }
+            }
+        }
+
+        val debugApk = file("app/build/outputs/apk/debug/app-debug.apk")
+        check(debugApk.isFile) { "Missing debug APK: ${debugApk.absolutePath}" }
+        ZipFile(debugApk).use { archive ->
+            val entries = archive.entries().asSequence().map { it.name }.toSet()
+            val missing = gameIds
+                .map { "assets/builtin-games/$it.zip" }
+                .filterNot(entries::contains)
+            check(missing.isEmpty()) { "Debug APK is missing built-in games: ${missing.joinToString()}" }
+        }
+    }
+}

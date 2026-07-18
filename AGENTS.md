@@ -45,7 +45,7 @@ Current design direction:
 Run from repository root:
 
 - `npm run test` — all unit tests (`./gradlew test`)
-- `npm run verify` — full MVP gate: tests + four game packages + debug APK
+- `npm run verify` — full MVP gate: tests + four validated game packages + debug APK asset validation
 - `npm run build` — build debug APK and all game package zips
 - `npm run build:apk` — `./gradlew :app:assembleDebug` (also copies built-in game zips into assets)
 - `npm run build:game` — build all four game package zips
@@ -83,6 +83,7 @@ Run from repository root:
 ### Always do
 
 - Run `npm run verify` before claiming work complete (unless change is docs-only).
+- Keep `verifyGamePackages` checking every built-in zip's required entries and its inclusion in the debug APK.
 - Increment `app/build.gradle.kts` `versionCode` and semantic `versionName` for every game-center shell feature, UI, resource, package-management, or loader update. Game-only changes do not increment the shell version.
 - Scope game logic/UI to the relevant `games/<name>/` module.
 - Increment only the touched game's `versionCode` and semantic `versionName` for every rules, robot, UI, or package-asset update. Keep the plugin manifest and `games/<name>/package/manifest.json` exactly aligned.
