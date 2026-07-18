@@ -26,6 +26,8 @@ Current game behavior:
 - International Chess version `0.0.2` uses standard square placement, complete special moves and draw rules, legal-move-equivalent threefold-repetition keys, player-score-driven 1-10 offline search, explicit draw session state, Xiangqi-family score/undo/restart behavior, and a 180-degree Black-player view with upright piece glyphs. Its square board and right rail remain side by side at 800×600 landscape, and the rail distinguishes the active side, check, terminal result, AI level, undo, and restart.
 - International Chess promotion must expose queen, rook, bishop, and knight choices to human players; its search must preserve checkmate precedence over automatic draws and include session repetition history.
 - International Chess search and session repetition keys must remain identical, including normalized move-counter hash components and both usable and unusable en-passant rights.
+- Disable International Chess transposition-table reuse whenever the current search history contains a repeated position; repetition scores are path-dependent.
+- Keep International Chess perft fixtures aligned with the published Position 2, Position 3, and Position 5 FEN strings and pair level-budget assertions with deterministic tactical depth checks.
 - Human-facing documentation must list all four built-in packages and keep the independent shell/game versions aligned with their Gradle and manifest sources.
 
 Current design direction:

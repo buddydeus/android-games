@@ -116,6 +116,33 @@ class ChessSearchEngineTest {
     }
 
     @Test
+    fun higherLevelSearchesDeeperAndAvoidsThePoisonedCapture() {
+        val state = ChessState.empty()
+            .put("e1", white(ChessPieceType.KING))
+            .put("d1", white(ChessPieceType.QUEEN))
+            .put("e8", black(ChessPieceType.KING))
+            .put("d8", black(ChessPieceType.ROOK))
+            .put("d5", black(ChessPieceType.PAWN))
+        val poisoned = ChessMove.fromUci("d1d5")
+
+        val levelOne = ChessAi.search(
+            state,
+            level = 1,
+            limits = ChessSearchLimits(50_000, Long.MAX_VALUE)
+        )
+        val levelEight = ChessAi.search(
+            state,
+            level = 8,
+            limits = ChessSearchLimits(180_000, Long.MAX_VALUE)
+        )
+
+        assertEquals(1, levelOne.stats.completedDepth)
+        assertTrue(levelEight.stats.completedDepth > levelOne.stats.completedDepth)
+        assertNotEquals(levelOne.move, levelEight.move)
+        assertNotEquals(poisoned, levelEight.move)
+    }
+
+    @Test
     fun searchIsDeterministicForTheSamePositionAndLevel() {
         val state = ChessState.initial()
             .apply(ChessMove.fromUci("e2e4"))
@@ -320,6 +347,25 @@ class ChessSearchEngineTest {
     }
 
     @Test
+    fun specialMovePressurePositionsMatchStandardPerft() {
+        assertPerft(
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            48L,
+            2_039L
+        )
+        assertPerft(
+            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+            14L,
+            191L
+        )
+        assertPerft(
+            "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+            44L,
+            1_486L
+        )
+    }
+
+    @Test
     fun searchPositionMatchesRulesAndEvaluationIsSymmetric() {
         val states = listOf(
             ChessState.initial(),
@@ -364,5 +410,51 @@ class ChessSearchEngineTest {
             position.unmakeMove(undo)
         }
         return nodes
+    }
+
+    private fun assertPerft(fen: String, depthOne: Long, depthTwo: Long) {
+        val position = ChessSearchPosition.from(stateFromFen(fen))
+        assertEquals(depthOne, perft(position, 1))
+        assertEquals(depthTwo, perft(position, 2))
+    }
+
+    private fun stateFromFen(fen: String): ChessState {
+        val fields = fen.split(" ")
+        val side = if (fields[1] == "w") ChessSide.WHITE else ChessSide.BLACK
+        val rights = fields[2]
+        var state = ChessState.empty(
+            sideToMove = side,
+            castlingRights = ChessCastlingRights(
+                whiteKingSide = 'K' in rights,
+                whiteQueenSide = 'Q' in rights,
+                blackKingSide = 'k' in rights,
+                blackQueenSide = 'q' in rights
+            ),
+            enPassantSquare = fields[3].takeUnless { it == "-" }?.let(::chessSquare),
+            halfMoveClock = fields[4].toInt(),
+            fullMoveNumber = fields[5].toInt()
+        )
+        fields[0].split("/").forEachIndexed { row, rankText ->
+            var file = 0
+            rankText.forEach { symbol ->
+                if (symbol.isDigit()) {
+                    file += symbol.digitToInt()
+                } else {
+                    val sideOfPiece = if (symbol.isUpperCase()) ChessSide.WHITE else ChessSide.BLACK
+                    val type = when (symbol.lowercaseChar()) {
+                        'k' -> ChessPieceType.KING
+                        'q' -> ChessPieceType.QUEEN
+                        'r' -> ChessPieceType.ROOK
+                        'b' -> ChessPieceType.BISHOP
+                        'n' -> ChessPieceType.KNIGHT
+                        else -> ChessPieceType.PAWN
+                    }
+                    val square = (7 - row) * 8 + file
+                    state = state.put(chessSquareName(square), ChessPiece(sideOfPiece, type))
+                    file++
+                }
+            }
+        }
+        return state
     }
 }

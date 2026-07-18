@@ -79,6 +79,7 @@ internal class ChessSearchEngine(
         val rootKey = position.repetitionKey()
         if (rootKey !in this) this[rootKey] = 1
     }
+    private var repeatedPositionCount = repetitions.values.count { it >= 2 }
 
     fun search(): ChessSearchResult {
         val startedAt = System.nanoTime()
@@ -161,22 +162,7 @@ internal class ChessSearchEngine(
             return quiescence(alpha, beta, ply, config.quiescenceDepth)
         }
 
-        val originalAlpha = alpha
-        val originalBeta = beta
-        var currentAlpha = alpha
-        var currentBeta = beta
-        val hash = position.hash
-        val cached = transposition.probe(hash)
-        if (cached != null && cached.depth >= depth) {
-            when (cached.bound) {
-                ChessBound.EXACT -> return cached.score
-                ChessBound.LOWER -> currentAlpha = maxOf(currentAlpha, cached.score)
-                ChessBound.UPPER -> currentBeta = minOf(currentBeta, cached.score)
-            }
-            if (currentAlpha >= currentBeta) return cached.score
-        }
-
-        val moves = orderedMoves(ply, cached?.bestMove)
+        var moves = position.legalMoves()
         if (moves.isEmpty()) {
             return if (position.isInCheck(side)) {
                 -MATE_SCORE + ply
@@ -185,6 +171,22 @@ internal class ChessSearchEngine(
             }
         }
         if (isDrawByRule()) return 0
+        val originalAlpha = alpha
+        val originalBeta = beta
+        var currentAlpha = alpha
+        var currentBeta = beta
+        val hash = position.hash
+        val transpositionSafe = repeatedPositionCount == 0
+        val cached = transposition.probe(hash).takeIf { transpositionSafe }
+        if (cached != null && cached.depth >= depth) {
+            when (cached.bound) {
+                ChessBound.EXACT -> return cached.score
+                ChessBound.LOWER -> currentAlpha = maxOf(currentAlpha, cached.score)
+                ChessBound.UPPER -> currentBeta = minOf(currentBeta, cached.score)
+            }
+            if (currentAlpha >= currentBeta) return cached.score
+        }
+        moves = orderMoves(moves, ply, cached?.bestMove)
 
         var best = -INFINITY
         var bestMove: ChessMove? = null
@@ -208,19 +210,21 @@ internal class ChessSearchEngine(
                 break
             }
         }
-        transposition.store(
-            ChessTranspositionEntry(
-                hash = hash,
-                depth = depth,
-                score = best,
-                bound = when {
-                    best <= originalAlpha -> ChessBound.UPPER
-                    best >= originalBeta -> ChessBound.LOWER
-                    else -> ChessBound.EXACT
-                },
-                bestMove = bestMove
+        if (transpositionSafe) {
+            transposition.store(
+                ChessTranspositionEntry(
+                    hash = hash,
+                    depth = depth,
+                    score = best,
+                    bound = when {
+                        best <= originalAlpha -> ChessBound.UPPER
+                        best >= originalBeta -> ChessBound.LOWER
+                        else -> ChessBound.EXACT
+                    },
+                    bestMove = bestMove
+                )
             )
-        )
+        }
         return best
     }
 
@@ -259,7 +263,14 @@ internal class ChessSearchEngine(
     }
 
     private fun orderedMoves(ply: Int, preferred: ChessMove? = null): List<ChessMove> {
-        val moves = position.legalMoves()
+        return orderMoves(position.legalMoves(), ply, preferred)
+    }
+
+    private fun orderMoves(
+        moves: List<ChessMove>,
+        ply: Int,
+        preferred: ChessMove?
+    ): List<ChessMove> {
         return moves.sortedWith(
             compareByDescending<ChessMove> { move ->
                 moveOrderScore(move, ply, preferred)
@@ -270,13 +281,16 @@ internal class ChessSearchEngine(
     private fun makeMove(move: ChessMove): ChessSearchPosition.Undo {
         val undo = position.makeMove(move)
         val key = position.repetitionKey()
-        repetitions[key] = (repetitions[key] ?: 0) + 1
+        val previous = repetitions[key] ?: 0
+        repetitions[key] = previous + 1
+        if (previous == 1) repeatedPositionCount++
         return undo
     }
 
     private fun unmakeMove(undo: ChessSearchPosition.Undo) {
         val key = position.repetitionKey()
         val count = repetitions.getValue(key)
+        if (count == 2) repeatedPositionCount--
         if (count == 1) repetitions.remove(key) else repetitions[key] = count - 1
         position.unmakeMove(undo)
     }
