@@ -1,16 +1,25 @@
 package com.buddygames.xiangqi
 
+import com.buddygames.api.GameMode
+
 internal data class XiangqiScore(
     val red: Int = 0,
-    val black: Int = 0
+    val black: Int = 0,
+    val player: Int = 0,
+    val robot: Int = 0
 ) {
-    val displayText: String
-        get() = "$red : $black"
+    val intelligenceLevel: Int
+        get() = (player + 1).coerceAtMost(10)
 
-    fun record(winner: Side?): XiangqiScore = when (winner) {
-        Side.RED -> copy(red = red + 1)
-        Side.BLACK -> copy(black = black + 1)
-        null -> this
+    fun displayText(mode: GameMode): String =
+        if (mode == GameMode.SINGLE_PLAYER) "$player : $robot" else "$red : $black"
+
+    fun record(winner: Side?, mode: GameMode, playerSide: Side): XiangqiScore = when {
+        winner == null -> this
+        mode == GameMode.SINGLE_PLAYER && winner == playerSide -> copy(player = player + 1)
+        mode == GameMode.SINGLE_PLAYER -> copy(robot = robot + 1)
+        winner == Side.RED -> copy(red = red + 1)
+        else -> copy(black = black + 1)
     }
 }
 
@@ -47,18 +56,34 @@ internal fun nextXiangqiPlayerSide(currentPlayer: Side, winner: Side?): Side = w
     else -> currentPlayer
 }
 
+internal fun needsXiangqiRobotTurn(
+    mode: GameMode,
+    turn: Side,
+    playerSide: Side,
+    winner: Side?
+): Boolean = mode == GameMode.SINGLE_PLAYER && winner == null && turn != playerSide
+
+internal fun shouldApplyXiangqiRobotResult(
+    requestedState: XiangqiState,
+    requestedSide: Side,
+    requestedGeneration: Int,
+    currentState: XiangqiState,
+    currentTurn: Side,
+    currentGeneration: Int,
+    winner: Side?
+): Boolean =
+    winner == null &&
+        requestedGeneration == currentGeneration &&
+        requestedState == currentState &&
+        requestedSide == currentTurn
+
 internal fun newXiangqiRound(playerSide: Side = Side.RED): XiangqiRound {
-    val initial = XiangqiState.initial()
-    val opening = if (playerSide == Side.BLACK) {
-        requireNotNull(XiangqiRules.robotMove(initial, Side.RED))
-    } else null
-    val state = opening?.let(initial::apply) ?: initial
     return XiangqiRound(
-        state = state,
-        turn = playerSide,
+        state = XiangqiState.initial(),
+        turn = Side.RED,
         selected = null,
         winner = null,
         playerSide = playerSide,
-        lastMove = opening
+        lastMove = null
     )
 }

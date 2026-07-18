@@ -35,7 +35,7 @@
 - Produces: `XiangqiScore.record(winner, mode, playerSide)`, `XiangqiScore.displayText(mode)`, `XiangqiScore.intelligenceLevel`, `XiangqiAiGradient.config(level)`.
 - Consumes: existing `Side`, `GameMode`, and `XiangqiMove`.
 
-- [ ] **Step 1: Write failing score and gradient tests**
+- [x] **Step 1: Write failing score and gradient tests**
 
 Add tests proving player/robot scoring survives side swaps, two-player scoring
 remains color-based, levels clamp from 1 through 10, and all budgets are
@@ -67,7 +67,7 @@ fun intelligenceLevelClampsAtTenAndBudgetsAreMonotonic() {
 }
 ```
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run:
 
@@ -78,7 +78,7 @@ Run:
 Expected: compilation fails because mode-aware scoring, identity fields,
 `intelligenceLevel`, and `XiangqiAiGradient` do not exist.
 
-- [ ] **Step 3: Implement the minimal score and configuration APIs**
+- [x] **Step 3: Implement the minimal score and configuration APIs**
 
 Use one score object with explicit identity and color counters:
 
@@ -114,7 +114,7 @@ Update existing plugin call sites to use
 `score.record(winner, mode, playerSide)` and `score.displayText(mode)` so the
 module stays compilable after the API change.
 
-- [ ] **Step 4: Run tests and verify GREEN**
+- [x] **Step 4: Run tests and verify GREEN**
 
 Run `./gradlew :games:xiangqi:testDebugUnitTest`.
 
@@ -134,7 +134,7 @@ compiles.
 - Consumes: `XiangqiRules.legalMoves`, `XiangqiState.apply`, `XiangqiAiGradient.config`.
 - Produces: `XiangqiAi.chooseMove(state, side, level, shouldStop): XiangqiMove?`.
 
-- [ ] **Step 1: Write failing AI contract tests**
+- [x] **Step 1: Write failing AI contract tests**
 
 Replace old `XiangqiRules.robotMove` assertions with `XiangqiAi.chooseMove` and
 add determinism, legality, configuration, and cancellation coverage:
@@ -166,13 +166,13 @@ fun weakenedSelectionIsDeterministicAndLegal() {
 Keep the existing checkmate-over-capture and poisoned-capture positions, but
 call levels 7 and 10 respectively through `XiangqiAi`.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run `./gradlew :games:xiangqi:testDebugUnitTest`.
 
 Expected: compilation fails because `XiangqiAi.chooseMove` is not implemented.
 
-- [ ] **Step 3: Replace brute-force destination enumeration**
+- [x] **Step 3: Replace brute-force destination enumeration**
 
 Generate candidate destinations by piece:
 
@@ -188,7 +188,7 @@ Pass generated candidates through the existing `isLegalMove` filter, keeping
 self-check behavior unchanged. Remove the nested loop over all 90 destination
 squares.
 
-- [ ] **Step 4: Implement minimal iterative Negamax**
+- [x] **Step 4: Implement minimal iterative Negamax**
 
 Implement:
 
@@ -218,7 +218,7 @@ capture when a safe alternative exists.
 Delete `XiangqiRules.robotMove`, `robotMoveScore`,
 `immediateReplyThreat`, and their robot-only constants.
 
-- [ ] **Step 5: Run tests and verify GREEN**
+- [x] **Step 5: Run tests and verify GREEN**
 
 Run `./gradlew :games:xiangqi:testDebugUnitTest`.
 
@@ -239,7 +239,7 @@ Expected: all rules and AI regression tests pass.
 - Produces: `needsXiangqiRobotTurn`, `xiangqiIntelligenceLabel`, cancellable
   background robot turns.
 
-- [ ] **Step 1: Write failing session and UI helper tests**
+- [x] **Step 1: Write failing session and UI helper tests**
 
 ```kotlin
 @Test
@@ -260,14 +260,14 @@ fun intelligenceLabelOnlyFormatsValidLevels() {
 Add score-record and undo assertions proving snapshots restore player and robot
 scores.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run `./gradlew :games:xiangqi:testDebugUnitTest`.
 
 Expected: assertions fail because black rounds still calculate a synchronous
 opening and the label/helper do not exist.
 
-- [ ] **Step 3: Make round setup and scoring mode-aware**
+- [x] **Step 3: Make round setup and scoring mode-aware**
 
 `newXiangqiRound` returns the untouched initial state and sets `turn` to red.
 Add:
@@ -284,7 +284,7 @@ internal fun needsXiangqiRobotTurn(
 Record results with `score.record(winner, mode, playerSide)`. Render
 `score.displayText(mode)`.
 
-- [ ] **Step 4: Move robot calculation off the UI thread**
+- [x] **Step 4: Move robot calculation off the UI thread**
 
 Represent each requested turn with state, robot side, level, and an increasing
 generation. Use `LaunchedEffect(request)` and `withContext(Dispatchers.Default)`
@@ -297,14 +297,14 @@ cannot mutate the board. After a human move, set `turn` to the robot side and
 let the effect perform the reply. A black-player restart schedules the opening
 through the same path, outside undo history.
 
-- [ ] **Step 5: Display the active intelligence level**
+- [x] **Step 5: Display the active intelligence level**
 
 Extend `XiangqiGameLayout` and `XiangqiInfoRail` with
 `intelligenceLevel: Int?`. Single-player passes `score.intelligenceLevel`;
 two-player passes `null`. Render `智能等级 N` under the score and preserve the
 existing `将军`, undo, restart, and exit controls.
 
-- [ ] **Step 6: Run tests and verify GREEN**
+- [x] **Step 6: Run tests and verify GREEN**
 
 Run `./gradlew :games:xiangqi:testDebugUnitTest`.
 
@@ -325,7 +325,7 @@ Expected: all session, UI helper, rules, and AI tests pass.
 - Consumes: completed behavior from Tasks 1–3.
 - Produces: aligned package metadata and verified repository handoff.
 
-- [ ] **Step 1: Write the failing version test**
+- [x] **Step 1: Write the failing version test**
 
 Change the expected version to:
 
@@ -335,13 +335,13 @@ assertEquals("0.0.6", XiangqiPlugin.manifest.versionName)
 assertEquals("版本 0.0.6", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
 ```
 
-- [ ] **Step 2: Run the version test and verify RED**
+- [x] **Step 2: Run the version test and verify RED**
 
 Run `./gradlew :games:xiangqi:testDebugUnitTest`.
 
 Expected: version assertions report `5` / `0.0.5`.
 
-- [ ] **Step 3: Align both version sources**
+- [x] **Step 3: Align both version sources**
 
 Set `XiangqiPlugin.manifest` and `games/xiangqi/package/manifest.json` to
 `versionCode = 6` and `versionName = 0.0.6`.
@@ -349,7 +349,7 @@ Set `XiangqiPlugin.manifest` and `games/xiangqi/package/manifest.json` to
 Update `AGENTS.md` only if implementation details differ from the approved
 description. Mark completed plan checkboxes without changing requirements.
 
-- [ ] **Step 4: Run targeted verification**
+- [x] **Step 4: Run targeted verification**
 
 Run:
 
@@ -359,7 +359,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Run the repository gate**
+- [x] **Step 5: Run the repository gate**
 
 Run:
 
@@ -370,7 +370,7 @@ npm run verify
 Expected: all unit tests, three game packages, and the debug APK build
 successfully.
 
-- [ ] **Step 6: Inspect and commit**
+- [x] **Step 6: Inspect and commit**
 
 Inspect `git status`, unstaged/staged diffs, and recent log. Exclude
 `desgins/`, build outputs, local properties, and credentials. Commit the

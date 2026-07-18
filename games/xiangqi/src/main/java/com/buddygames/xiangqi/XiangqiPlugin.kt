@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +47,9 @@ import com.buddygames.api.GameManifest
 import com.buddygames.api.GameMode
 import com.buddygames.api.GamePlugin
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 
 private val XiangqiPaper = Color(0xFFF1E7D5)
 private val XiangqiBoard = Color(0xFFD2AC73)
@@ -103,23 +107,16 @@ class XiangqiPlugin : GamePlugin {
         var lastMove by remember { mutableStateOf(initialRound.lastMove) }
         var score by remember { mutableStateOf(XiangqiScore()) }
         var history by remember { mutableStateOf(emptyList<XiangqiSnapshot>()) }
+        var searchGeneration by remember { mutableStateOf(0) }
 
         fun applyMove(move: XiangqiMove) {
             winner = XiangqiRules.winnerAfterMove(state, move)
             state = state.apply(move)
             lastMove = move
             selected = null
-            if (winner != null) score = score.record(winner)
+            if (winner != null) score = score.record(winner, mode, playerSide)
             if (winner == null && mode == GameMode.SINGLE_PLAYER) {
-                val robotSide = playerSide.other()
-                val robot = XiangqiRules.robotMove(state, robotSide)
-                if (robot != null) {
-                    winner = XiangqiRules.winnerAfterMove(state, robot)
-                    state = state.apply(robot)
-                    lastMove = robot
-                    if (winner != null) score = score.record(winner)
-                }
-                turn = playerSide
+                turn = playerSide.other()
             } else if (winner == null) {
                 turn = turn.other()
             }
@@ -127,7 +124,7 @@ class XiangqiPlugin : GamePlugin {
 
         fun tap(row: Int, col: Int) {
             if (winner != null) return
-            if (mode == GameMode.SINGLE_PLAYER && turn != playerSide) return
+            if (needsXiangqiRobotTurn(mode, turn, playerSide, winner)) return
             val piece = state.piece(row, col)
             val currentSelection = selected
             if (currentSelection == null) {
@@ -145,6 +142,7 @@ class XiangqiPlugin : GamePlugin {
 
         fun undo() {
             val undo = undoXiangqi(history) ?: return
+            searchGeneration++
             state = undo.snapshot.state
             turn = undo.snapshot.turn
             selected = null
@@ -155,6 +153,7 @@ class XiangqiPlugin : GamePlugin {
         }
 
         fun restart() {
+            searchGeneration++
             val nextPlayerSide = if (mode == GameMode.SINGLE_PLAYER) {
                 nextXiangqiPlayerSide(playerSide, winner)
             } else {
@@ -170,15 +169,61 @@ class XiangqiPlugin : GamePlugin {
             history = emptyList()
         }
 
+        val robotThinking = needsXiangqiRobotTurn(mode, turn, playerSide, winner)
+        val intelligenceLevel = score.intelligenceLevel
+        LaunchedEffect(
+            state,
+            turn,
+            playerSide,
+            winner,
+            intelligenceLevel,
+            mode,
+            searchGeneration
+        ) {
+            if (!needsXiangqiRobotTurn(mode, turn, playerSide, winner)) return@LaunchedEffect
+            val requestedState = state
+            val requestedSide = turn
+            val requestedGeneration = searchGeneration
+            val robot = withContext(Dispatchers.Default) {
+                XiangqiAi.chooseMove(
+                    state = requestedState,
+                    side = requestedSide,
+                    level = intelligenceLevel,
+                    shouldStop = { !isActive }
+                )
+            }
+            if (
+                robot == null ||
+                !shouldApplyXiangqiRobotResult(
+                    requestedState,
+                    requestedSide,
+                    requestedGeneration,
+                    state,
+                    turn,
+                    searchGeneration,
+                    winner
+                )
+            ) {
+                return@LaunchedEffect
+            }
+            winner = XiangqiRules.winnerAfterMove(state, robot)
+            state = state.apply(robot)
+            lastMove = robot
+            selected = null
+            if (winner != null) score = score.record(winner, mode, playerSide)
+            turn = playerSide
+        }
+
         val inCheck = winner == null && XiangqiRules.isInCheck(state, turn)
         Surface(Modifier.fillMaxSize(), color = XiangqiPaper) {
             XiangqiGameLayout(
                 state = state,
                 selected = selected,
                 lastMove = lastMove,
-                status = statusText(winner, turn, playerSide, mode),
+                status = statusText(winner, turn, playerSide, mode, robotThinking, intelligenceLevel),
                 turn = turn,
-                score = score.displayText,
+                score = score.displayText(mode),
+                intelligenceLevel = if (mode == GameMode.SINGLE_PLAYER) intelligenceLevel else null,
                 gameOver = winner != null,
                 inCheck = inCheck,
                 canUndo = history.isNotEmpty(),
@@ -197,11 +242,17 @@ class XiangqiPlugin : GamePlugin {
         winner: Side?,
         turn: Side,
         playerSide: Side,
-        mode: GameMode
+        mode: GameMode,
+        robotThinking: Boolean,
+        intelligenceLevel: Int
     ): String {
         winner?.let { return if (it == Side.RED) "红方胜" else "黑方胜" }
         return if (mode == GameMode.SINGLE_PLAYER) {
-            "你的回合 · 执${if (playerSide == Side.RED) "红" else "黑"}"
+            if (robotThinking) {
+                "智能思考中 · 等级 $intelligenceLevel"
+            } else {
+                "你的回合 · 执${if (playerSide == Side.RED) "红" else "黑"}"
+            }
         } else {
             "当前回合：${if (turn == Side.RED) "红方" else "黑方"}"
         }
@@ -211,8 +262,8 @@ class XiangqiPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "xiangqi",
             displayName = "象棋",
-            versionCode = 5,
-            versionName = "0.0.5",
+            versionCode = 6,
+            versionName = "0.0.6",
             entryClass = "com.buddygames.xiangqi.XiangqiPlugin",
             minShellApi = 1,
             icon = "assets/icon.txt"

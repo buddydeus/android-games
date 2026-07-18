@@ -106,8 +106,9 @@ object XiangqiRules {
     fun legalMoves(state: XiangqiState, side: Side): List<XiangqiMove> {
         val moves = mutableListOf<XiangqiMove>()
         for (fromRow in 0 until XiangqiState.ROWS) for (fromCol in 0 until XiangqiState.COLS) {
-            if (state.piece(fromRow, fromCol)?.side != side) continue
-            for (toRow in 0 until XiangqiState.ROWS) for (toCol in 0 until XiangqiState.COLS) {
+            val piece = state.piece(fromRow, fromCol) ?: continue
+            if (piece.side != side) continue
+            candidateDestinations(state, fromRow, fromCol, piece).forEach { (toRow, toCol) ->
                 val move = XiangqiMove(fromRow, fromCol, toRow, toCol)
                 if (isLegalMove(state, move, side)) moves += move
             }
@@ -115,14 +116,80 @@ object XiangqiRules {
         return moves
     }
 
-    fun robotMove(state: XiangqiState, side: Side): XiangqiMove? {
-        return legalMoves(state, side)
-            .sortedWith(compareByDescending<XiangqiMove> { robotMoveScore(state, it, side) }
-                .thenBy { it.fromRow }
-                .thenBy { it.fromCol }
-                .thenBy { it.toRow }
-                .thenBy { it.toCol })
-            .firstOrNull()
+    private fun candidateDestinations(
+        state: XiangqiState,
+        row: Int,
+        col: Int,
+        piece: XiangqiPiece
+    ): Sequence<Pair<Int, Int>> {
+        val candidates = when (piece.type) {
+            PieceType.ROOK -> rayDestinations(state, row, col, cannon = false)
+            PieceType.CANNON -> rayDestinations(state, row, col, cannon = true)
+            PieceType.HORSE -> HORSE_OFFSETS.map { (dr, dc) -> row + dr to col + dc }
+            PieceType.ELEPHANT -> DIAGONAL_TWO_OFFSETS.map { (dr, dc) -> row + dr to col + dc }
+            PieceType.ADVISOR -> DIAGONAL_ONE_OFFSETS.map { (dr, dc) -> row + dr to col + dc }
+            PieceType.GENERAL -> buildList {
+                ORTHOGONAL_OFFSETS.forEach { (dr, dc) -> add(row + dr to col + dc) }
+                for (direction in listOf(-1, 1)) {
+                    var targetRow = row + direction
+                    while (targetRow in 0 until XiangqiState.ROWS) {
+                        val target = state.piece(targetRow, col)
+                        if (target != null) {
+                            if (target.side != piece.side && target.type == PieceType.GENERAL) {
+                                add(targetRow to col)
+                            }
+                            break
+                        }
+                        targetRow += direction
+                    }
+                }
+            }
+            PieceType.SOLDIER -> {
+                val forward = if (piece.side == Side.RED) -1 else 1
+                listOf(row + forward to col, row to col - 1, row to col + 1)
+            }
+        }
+        return candidates
+            .asSequence()
+            .distinct()
+            .filter { (targetRow, targetCol) ->
+                targetRow in 0 until XiangqiState.ROWS &&
+                    targetCol in 0 until XiangqiState.COLS
+            }
+    }
+
+    private fun rayDestinations(
+        state: XiangqiState,
+        row: Int,
+        col: Int,
+        cannon: Boolean
+    ): List<Pair<Int, Int>> = buildList {
+        ORTHOGONAL_OFFSETS.forEach { (rowStep, colStep) ->
+            var targetRow = row + rowStep
+            var targetCol = col + colStep
+            var screenFound = false
+            while (
+                targetRow in 0 until XiangqiState.ROWS &&
+                targetCol in 0 until XiangqiState.COLS
+            ) {
+                val target = state.piece(targetRow, targetCol)
+                if (!cannon) {
+                    add(targetRow to targetCol)
+                    if (target != null) break
+                } else if (!screenFound) {
+                    if (target == null) {
+                        add(targetRow to targetCol)
+                    } else {
+                        screenFound = true
+                    }
+                } else if (target != null) {
+                    add(targetRow to targetCol)
+                    break
+                }
+                targetRow += rowStep
+                targetCol += colStep
+            }
+        }
     }
 
     fun winnerAfterMove(state: XiangqiState, move: XiangqiMove): Side? {
@@ -153,48 +220,21 @@ object XiangqiRules {
         }
     }
 
-    private fun robotMoveScore(state: XiangqiState, move: XiangqiMove, side: Side): Int {
-        val captured = state.piece(move.toRow, move.toCol)
-        if (captured?.type == PieceType.GENERAL) return WIN_SCORE
-
-        val nextState = state.apply(move)
-        val opponent = side.other()
-        val opponentMoves = legalMoves(nextState, opponent)
-        if (opponentMoves.isEmpty()) return WIN_SCORE - 1
-
-        val captureScore = (captured?.type?.value ?: 0) * CAPTURE_WEIGHT
-        val checkScore = if (isInCheck(nextState, opponent)) CHECK_SCORE else 0
-        val materialScore = materialBalance(nextState, side) * MATERIAL_WEIGHT
-        val opponentThreat = opponentMoves.maxOf { reply ->
-            immediateReplyThreat(nextState, reply, opponent, side)
-        }
-        return captureScore + checkScore + materialScore - opponentThreat
-    }
-
-    private fun immediateReplyThreat(
-        state: XiangqiState,
-        move: XiangqiMove,
-        mover: Side,
-        targetSide: Side
-    ): Int {
-        val captured = state.piece(move.toRow, move.toCol)
-        if (captured?.type == PieceType.GENERAL) return WIN_SCORE
-        val nextState = state.apply(move)
-        val captureThreat = (captured?.type?.value ?: 0) * REPLY_CAPTURE_WEIGHT
-        val checkThreat = if (isInCheck(nextState, targetSide)) REPLY_CHECK_SCORE else 0
-        return captureThreat + checkThreat + materialBalance(nextState, mover)
-    }
-
-    private fun materialBalance(state: XiangqiState, side: Side): Int {
-        var score = 0
-        state.board.forEach { row ->
-            row.forEach { piece ->
-                if (piece != null) {
-                    score += if (piece.side == side) piece.type.value else -piece.type.value
-                }
+    internal fun isDefended(state: XiangqiState, row: Int, col: Int, side: Side): Boolean {
+        val target = state.piece(row, col) ?: return false
+        if (target.side != side) return false
+        val probe = state.put(row, col, target.copy(side = side.other()))
+        return state.board.anyIndexed { fromRow, cells ->
+            cells.anyIndexed { fromCol, piece ->
+                piece?.side == side &&
+                    (fromRow != row || fromCol != col) &&
+                    isPseudoLegalMove(
+                        probe,
+                        XiangqiMove(fromRow, fromCol, row, col),
+                        side
+                    )
             }
         }
-        return score
     }
 
     private inline fun <T> List<T>.anyIndexed(predicate: (Int, T) -> Boolean): Boolean {
@@ -202,12 +242,19 @@ object XiangqiRules {
         return false
     }
 
-    private const val WIN_SCORE = 1_000_000
-    private const val CHECK_SCORE = 4_000
-    private const val REPLY_CHECK_SCORE = 1_200
-    private const val CAPTURE_WEIGHT = 40
-    private const val REPLY_CAPTURE_WEIGHT = 45
-    private const val MATERIAL_WEIGHT = 4
+    private val HORSE_OFFSETS = listOf(
+        -2 to -1,
+        -2 to 1,
+        -1 to -2,
+        -1 to 2,
+        1 to -2,
+        1 to 2,
+        2 to -1,
+        2 to 1
+    )
+    private val DIAGONAL_TWO_OFFSETS = listOf(-2 to -2, -2 to 2, 2 to -2, 2 to 2)
+    private val DIAGONAL_ONE_OFFSETS = listOf(-1 to -1, -1 to 1, 1 to -1, 1 to 1)
+    private val ORTHOGONAL_OFFSETS = listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1)
 
     private fun screensBetween(state: XiangqiState, move: XiangqiMove): Int {
         val rowStep = move.toRow.compareTo(move.fromRow)

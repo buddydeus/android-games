@@ -132,6 +132,10 @@ internal fun xiangqiRiverLabels(rotated: Boolean): Pair<String, String> =
     if (rotated) "漢  界" to "楚  河" else "楚  河" to "漢  界"
 internal fun xiangqiLastMoveCell(move: XiangqiMove?): Pair<Int, Int>? =
     move?.let { it.toRow to it.toCol }
+internal fun xiangqiIntelligenceLabel(level: Int): String {
+    require(level in 1..10)
+    return "智能等级 $level"
+}
 internal const val LAST_MOVE_MARKER_SCALE = 0.92f
 internal const val LAST_MOVE_MARKER_INSET_FRACTION = 0.04f
 internal const val LAST_MOVE_MARKER_CORNER_LENGTH_FRACTION = 0.18f
@@ -146,6 +150,7 @@ internal fun XiangqiGameLayout(
     status: String,
     turn: Side,
     score: String,
+    intelligenceLevel: Int?,
     gameOver: Boolean,
     inCheck: Boolean,
     canUndo: Boolean,
@@ -173,6 +178,7 @@ internal fun XiangqiGameLayout(
                     Spacer(Modifier.width(34.dp))
                     XiangqiInfoRail(
                         score,
+                        intelligenceLevel,
                         status,
                         turn,
                         gameOver,
@@ -198,6 +204,7 @@ internal fun XiangqiGameLayout(
                     )
                     XiangqiInfoRail(
                         score,
+                        intelligenceLevel,
                         status,
                         turn,
                         gameOver,
@@ -443,6 +450,7 @@ private fun XiangqiPieceView(piece: XiangqiPiece, diameter: Dp) {
 @Composable
 private fun XiangqiInfoRail(
     score: String,
+    intelligenceLevel: Int?,
     status: String,
     turn: Side,
     gameOver: Boolean,
@@ -456,9 +464,23 @@ private fun XiangqiInfoRail(
 ) {
     MaterialPanel(modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("历史比分", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                if (intelligenceLevel == null) "红方 : 黑方" else "玩家 : 智能",
+                color = Ink,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold
+            )
             Spacer(Modifier.height(14.dp))
             Text(score, color = Ink, fontSize = 48.sp, fontWeight = FontWeight.Light)
+            if (intelligenceLevel != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    xiangqiIntelligenceLabel(intelligenceLevel),
+                    color = Cinnabar,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
         HorizontalDivider(color = Color(0xFFB9C0BD))
         Column(

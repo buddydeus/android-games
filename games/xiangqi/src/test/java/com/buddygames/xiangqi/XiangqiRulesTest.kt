@@ -11,9 +11,9 @@ import org.junit.Test
 class XiangqiRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(5, XiangqiPlugin.manifest.versionCode)
-        assertEquals("0.0.5", XiangqiPlugin.manifest.versionName)
-        assertEquals("版本 0.0.5", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+        assertEquals(6, XiangqiPlugin.manifest.versionCode)
+        assertEquals("0.0.6", XiangqiPlugin.manifest.versionName)
+        assertEquals("版本 0.0.6", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
     }
 
     @Test
@@ -45,14 +45,102 @@ class XiangqiRulesTest {
     }
 
     @Test
-    fun scoreRecordsRedAndBlackWins() {
+    fun twoPlayerScoreRecordsRedAndBlackWins() {
         val score = XiangqiScore()
-            .record(Side.RED)
-            .record(Side.BLACK)
-            .record(Side.RED)
+            .record(Side.RED, GameMode.TWO_PLAYERS, Side.RED)
+            .record(Side.BLACK, GameMode.TWO_PLAYERS, Side.RED)
+            .record(Side.RED, GameMode.TWO_PLAYERS, Side.RED)
 
         assertEquals(XiangqiScore(red = 2, black = 1), score)
-        assertEquals("2 : 1", score.displayText)
+        assertEquals("2 : 1", score.displayText(GameMode.TWO_PLAYERS))
+    }
+
+    @Test
+    fun singlePlayerScoreFollowsPlayerIdentityAcrossSideSwaps() {
+        val score = XiangqiScore()
+            .record(Side.RED, GameMode.SINGLE_PLAYER, Side.RED)
+            .record(Side.RED, GameMode.SINGLE_PLAYER, Side.BLACK)
+            .record(Side.BLACK, GameMode.SINGLE_PLAYER, Side.BLACK)
+
+        assertEquals(2, score.player)
+        assertEquals(1, score.robot)
+        assertEquals("2 : 1", score.displayText(GameMode.SINGLE_PLAYER))
+        assertEquals(3, score.intelligenceLevel)
+    }
+
+    @Test
+    fun intelligenceLevelClampsAtTenAndBudgetsAreMonotonic() {
+        assertEquals(1, XiangqiScore().intelligenceLevel)
+        assertEquals(10, XiangqiScore(player = 20).intelligenceLevel)
+        val configs = (1..10).map(XiangqiAiGradient::config)
+
+        assertEquals((1..10).toList(), configs.map { it.level })
+        assertTrue(configs.zipWithNext().all { (lower, higher) ->
+            lower.maxDepth <= higher.maxDepth &&
+                lower.nodeBudget <= higher.nodeBudget &&
+                lower.maxThinkTimeMillis <= higher.maxThinkTimeMillis
+        })
+        assertEquals(
+            listOf(64, 128, 384, 1_024, 4_096, 16_384, 65_536, 262_144, 786_432, 2_000_000),
+            configs.map { it.nodeBudget }
+        )
+        assertEquals(listOf(6, 5, 4, 3, 2, 2, 1, 1, 1, 1), configs.map { it.candidatePool })
+        assertEquals(listOf(45, 35, 25, 18, 10, 5, 0, 0, 0, 0), configs.map { it.suboptimalPercent })
+    }
+
+    @Test
+    fun evaluationProfilesAddSafetyPositionAndFullBoardKnowledge() {
+        val state = XiangqiState.empty()
+            .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+            .put(4, 0, XiangqiPiece(Side.BLACK, PieceType.ROOK))
+            .put(4, 3, XiangqiPiece(Side.RED, PieceType.HORSE))
+            .put(5, 4, XiangqiPiece(Side.RED, PieceType.SOLDIER))
+            .put(8, 3, XiangqiPiece(Side.RED, PieceType.ADVISOR))
+            .put(9, 4, XiangqiPiece(Side.RED, PieceType.GENERAL))
+
+        val material = XiangqiAi.evaluationScore(
+            state,
+            Side.RED,
+            XiangqiEvaluationProfile.MATERIAL
+        )
+        val safety = XiangqiAi.evaluationScore(
+            state,
+            Side.RED,
+            XiangqiEvaluationProfile.MATERIAL_AND_SAFETY
+        )
+        val basic = XiangqiAi.evaluationScore(
+            state,
+            Side.RED,
+            XiangqiEvaluationProfile.BASIC_POSITIONAL
+        )
+        val full = XiangqiAi.evaluationScore(
+            state,
+            Side.RED,
+            XiangqiEvaluationProfile.FULL_POSITIONAL
+        )
+
+        assertTrue(safety < material)
+        assertNotEquals(safety, basic)
+        assertNotEquals(basic, full)
+    }
+
+    @Test
+    fun fullEvaluationRewardsProtectedAttackingPieces() {
+        fun position(protectorCol: Int): XiangqiState = XiangqiState.empty()
+            .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+            .put(3, 4, XiangqiPiece(Side.BLACK, PieceType.SOLDIER))
+            .put(4, 0, XiangqiPiece(Side.RED, PieceType.ROOK))
+            .put(4, 4, XiangqiPiece(Side.BLACK, PieceType.HORSE))
+            .put(5, protectorCol, XiangqiPiece(Side.RED, PieceType.SOLDIER))
+            .put(9, 4, XiangqiPiece(Side.RED, PieceType.GENERAL))
+
+        val protected = position(protectorCol = 0)
+        val unsupported = position(protectorCol = 1)
+
+        assertTrue(
+            XiangqiAi.supportedAttackerScore(protected, Side.RED) >
+                XiangqiAi.supportedAttackerScore(unsupported, Side.RED)
+        )
     }
 
     @Test
@@ -80,16 +168,37 @@ class XiangqiRulesTest {
     }
 
     @Test
-    fun blackPlayerRoundStartsAfterRedRobotOpening() {
+    fun blackPlayerRoundBeginsWithPendingRedRobotTurn() {
         val round = newXiangqiRound(Side.BLACK)
 
         assertEquals(Side.BLACK, round.playerSide)
-        assertEquals(Side.BLACK, round.turn)
-        assertFalse(round.state == XiangqiState.initial())
+        assertEquals(Side.RED, round.turn)
+        assertEquals(XiangqiState.initial(), round.state)
         assertEquals(null, round.selected)
         assertEquals(null, round.winner)
-        val lastMove = requireNotNull(round.lastMove)
-        assertEquals(Side.RED, round.state.piece(lastMove.toRow, lastMove.toCol)?.side)
+        assertNull(round.lastMove)
+        assertTrue(
+            needsXiangqiRobotTurn(
+                GameMode.SINGLE_PLAYER,
+                round.turn,
+                round.playerSide,
+                round.winner
+            )
+        )
+        assertFalse(
+            needsXiangqiRobotTurn(
+                GameMode.TWO_PLAYERS,
+                round.turn,
+                round.playerSide,
+                round.winner
+            )
+        )
+    }
+
+    @Test
+    fun intelligenceLabelFormatsFirstAndHighestLevels() {
+        assertEquals("智能等级 1", xiangqiIntelligenceLabel(1))
+        assertEquals("智能等级 10", xiangqiIntelligenceLabel(10))
     }
 
     @Test
@@ -105,13 +214,14 @@ class XiangqiRulesTest {
         val second = first.copy(
             state = first.state.apply(move),
             turn = Side.BLACK,
-            score = XiangqiScore(red = 2, black = 1),
+            score = XiangqiScore(red = 2, black = 1, player = 4, robot = 3),
             lastMove = move
         )
 
         val undo = undoXiangqi(listOf(first, second))
 
         assertEquals(second, undo?.snapshot)
+        assertEquals(5, undo?.snapshot?.score?.intelligenceLevel)
         assertEquals(listOf(first), undo?.remainingHistory)
         assertNull(undoXiangqi(emptyList()))
     }
@@ -161,6 +271,45 @@ class XiangqiRulesTest {
 
         assertTrue(XiangqiRules.isInCheck(state, Side.BLACK))
         assertTrue(XiangqiRules.isInCheck(state, Side.RED))
+    }
+
+    @Test
+    fun legalMoveGeneratorDoesNotReturnDuplicateMoves() {
+        val moves = XiangqiRules.legalMoves(XiangqiState.initial(), Side.RED)
+
+        assertEquals(moves.toSet().size, moves.size)
+    }
+
+    @Test
+    fun optimizedLegalMoveGeneratorMatchesExhaustiveLegalityFilter() {
+        val states = listOf(
+            XiangqiState.initial(),
+            XiangqiState.empty()
+                .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+                .put(2, 1, XiangqiPiece(Side.BLACK, PieceType.CANNON))
+                .put(5, 1, XiangqiPiece(Side.RED, PieceType.SOLDIER))
+                .put(7, 1, XiangqiPiece(Side.RED, PieceType.ROOK))
+                .put(9, 4, XiangqiPiece(Side.RED, PieceType.GENERAL))
+        )
+
+        states.forEach { state ->
+            Side.entries.forEach { side ->
+                val exhaustive = buildSet {
+                    for (fromRow in 0 until XiangqiState.ROWS) {
+                        for (fromCol in 0 until XiangqiState.COLS) {
+                            for (toRow in 0 until XiangqiState.ROWS) {
+                                for (toCol in 0 until XiangqiState.COLS) {
+                                    val move = XiangqiMove(fromRow, fromCol, toRow, toCol)
+                                    if (XiangqiRules.isLegalMove(state, move, side)) add(move)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                assertEquals(exhaustive, XiangqiRules.legalMoves(state, side).toSet())
+            }
+        }
     }
 
     @Test
@@ -224,12 +373,125 @@ class XiangqiRulesTest {
     }
 
     @Test
-    fun robotCapturesGeneralFirst() {
+    fun everyIntelligenceLevelCapturesExposedGeneral() {
         val state = XiangqiState.empty()
             .put(5, 4, XiangqiPiece(Side.RED, PieceType.ROOK))
             .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+            .put(9, 3, XiangqiPiece(Side.RED, PieceType.GENERAL))
 
-        assertEquals(XiangqiMove(5, 4, 0, 4), XiangqiRules.robotMove(state, Side.RED))
+        (1..10).forEach { level ->
+            assertEquals(
+                XiangqiMove(5, 4, 0, 4),
+                XiangqiAi.chooseMove(state, Side.RED, level)
+            )
+        }
+    }
+
+    @Test
+    fun sideWithoutGeneralHasNoAiMove() {
+        val state = XiangqiState.empty()
+            .put(9, 4, XiangqiPiece(Side.RED, PieceType.GENERAL))
+            .put(4, 0, XiangqiPiece(Side.BLACK, PieceType.ROOK))
+
+        assertNull(XiangqiAi.chooseMove(state, Side.BLACK, 10))
+    }
+
+    @Test
+    fun quiescenceIncludesQuietEvasionWhenSideIsInCheck() {
+        val block = XiangqiMove(1, 0, 1, 4)
+        val state = XiangqiState.empty()
+            .put(0, 3, XiangqiPiece(Side.BLACK, PieceType.ADVISOR))
+            .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+            .put(0, 5, XiangqiPiece(Side.BLACK, PieceType.ADVISOR))
+            .put(1, 0, XiangqiPiece(Side.BLACK, PieceType.ROOK))
+            .put(3, 4, XiangqiPiece(Side.RED, PieceType.ROOK))
+            .put(9, 4, XiangqiPiece(Side.RED, PieceType.GENERAL))
+
+        assertTrue(XiangqiRules.isInCheck(state, Side.BLACK))
+        assertTrue(XiangqiRules.isLegalMove(state, block, Side.BLACK))
+        assertTrue(block in XiangqiAi.quiescenceMoves(state, Side.BLACK))
+    }
+
+    @Test
+    fun weakenedSelectionIsDeterministicAndLegal() {
+        val state = XiangqiState.initial()
+
+        val first = XiangqiAi.chooseMove(state, Side.RED, 1)
+        val second = XiangqiAi.chooseMove(state, Side.RED, 1)
+
+        assertEquals(first, second)
+        assertTrue(first != null && XiangqiRules.isLegalMove(state, first, Side.RED))
+    }
+
+    @Test
+    fun cancellationReturnsDeterministicLegalFallback() {
+        val state = XiangqiState.initial()
+
+        val move = XiangqiAi.chooseMove(state, Side.RED, 10, shouldStop = { true })
+
+        assertTrue(move != null && XiangqiRules.isLegalMove(state, move, Side.RED))
+    }
+
+    @Test
+    fun staleRobotResultIsRejectedByGenerationPositionTurnOrWinner() {
+        val requestedState = XiangqiState.initial()
+        val movedState = requestedState.apply(XiangqiMove(6, 0, 5, 0))
+
+        assertTrue(
+            shouldApplyXiangqiRobotResult(
+                requestedState,
+                Side.RED,
+                3,
+                requestedState,
+                Side.RED,
+                3,
+                null
+            )
+        )
+        assertFalse(
+            shouldApplyXiangqiRobotResult(
+                requestedState,
+                Side.RED,
+                3,
+                movedState,
+                Side.RED,
+                3,
+                null
+            )
+        )
+        assertFalse(
+            shouldApplyXiangqiRobotResult(
+                requestedState,
+                Side.RED,
+                3,
+                requestedState,
+                Side.RED,
+                4,
+                null
+            )
+        )
+        assertFalse(
+            shouldApplyXiangqiRobotResult(
+                requestedState,
+                Side.RED,
+                3,
+                requestedState,
+                Side.BLACK,
+                3,
+                null
+            )
+        )
+        assertFalse(
+            shouldApplyXiangqiRobotResult(
+                requestedState,
+                Side.RED,
+                3,
+                requestedState,
+                Side.RED,
+                3,
+                Side.BLACK
+            )
+        )
     }
 
     @Test
@@ -276,7 +538,7 @@ class XiangqiRulesTest {
 
         assertEquals(
             XiangqiMove(2, 4, 1, 4),
-            XiangqiRules.robotMove(state, Side.RED)
+            XiangqiAi.chooseMove(state, Side.RED, 7)
         )
     }
 
@@ -291,7 +553,7 @@ class XiangqiRulesTest {
             .put(5, 3, XiangqiPiece(Side.RED, PieceType.ROOK))
             .put(9, 4, XiangqiPiece(Side.RED, PieceType.GENERAL))
 
-        assertNotEquals(trappedCapture, XiangqiRules.robotMove(state, Side.BLACK))
+        assertNotEquals(trappedCapture, XiangqiAi.chooseMove(state, Side.BLACK, 10))
     }
 
     @Test
