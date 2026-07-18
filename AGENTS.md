@@ -15,7 +15,7 @@ Current game behavior:
 - All game menus use `单人模式`, `双人对战`, and `退出游戏`.
 - Every game owns an independent version starting at `0.0.1`, and its main menu displays `GameManifest.versionName`.
 - All games own their rules, robot, UI, score state, and restart flow inside their game module.
-- All game boards mark the latest placed or moved-to cell with the same center-free four-corner highlight. In single-player mode the robot response replaces the player's marker; a second-player round marks the robot opening. Undo restores the previous marker, while a fresh first-player round has none.
+- All game boards mark the latest placed or moved-to cell with the same enlarged, translucent bright-blue four-corner highlight. It stays inside one cell, leaves a visible gap around the piece, and keeps the center clear. In single-player mode the robot response replaces the player's marker; a second-player round marks the robot opening. Undo restores the previous marker, while a fresh first-player round has none.
 - All game side rails expose `悔棋` while no winner exists, and hide it after either side wins; an Othello draw keeps the undo action. Single-player undo restores the snapshot before the player's last move and the following robot response; two-player undo restores one move. Undo also restores score and winner state, while restart clears the history.
 - In single-player mode, a player win swaps sides for the next round, a player loss restores the player to the first-moving side, and the robot opens immediately when the player becomes second. A draw keeps the current side; two-player restart behavior stays fixed-first.
 - Gomoku uses a 15×15 intersection board. Its robot priority is: win immediately, block an immediate five (including closed four), block moves that create at least two immediate winning points (continuous or broken open three), then use the positional fallback.
@@ -84,6 +84,7 @@ Run from repository root:
 - Keep single-player side-selection and opening-turn rules in each game's session model; restart behavior changes must cover player win, player loss, and robot opening as second-player tests.
 - Record undo snapshots immediately before legal player actions, include score and terminal state in each snapshot, and keep the initial robot opening outside undo history.
 - Keep the last-move marker in each game's session and undo snapshot. Othello marks only the newly placed disc, Xiangqi marks the destination coordinate after perspective mapping, and robot moves replace the preceding player marker.
+- Keep last-move marker geometry and color constants aligned across all three game packages; marker scale must remain below one cell so adjacent pieces are unaffected.
 - Keep undo-button visibility separate from undo availability: hide it only when a winner exists, and keep Othello draws undoable.
 - Keep `game-api` backward-compatible or update every `games/*` plugin in the same change.
 - Run targeted unit tests for touched modules (see Commands).

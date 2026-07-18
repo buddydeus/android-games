@@ -11,9 +11,9 @@ import org.junit.Test
 class XiangqiRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(4, XiangqiPlugin.manifest.versionCode)
-        assertEquals("0.0.4", XiangqiPlugin.manifest.versionName)
-        assertEquals("版本 0.0.4", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+        assertEquals(5, XiangqiPlugin.manifest.versionCode)
+        assertEquals("0.0.5", XiangqiPlugin.manifest.versionName)
+        assertEquals("版本 0.0.5", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
     }
 
     @Test
@@ -123,6 +123,15 @@ class XiangqiRulesTest {
         assertEquals(5 to 0, xiangqiLastMoveCell(move))
         assertEquals(4 to 8, xiangqiBoardCoordinate(5, 0, rotated = true))
         assertNull(xiangqiLastMoveCell(null))
+    }
+
+    @Test
+    fun lastMoveMarkerLeavesPieceGapWithTranslucentBrightBlueCorners() {
+        assertEquals(0.92f, LAST_MOVE_MARKER_SCALE, 0f)
+        assertTrue(LAST_MOVE_MARKER_SCALE < 1f)
+        assertEquals(0.04f, LAST_MOVE_MARKER_INSET_FRACTION, 0f)
+        assertEquals(0.18f, LAST_MOVE_MARKER_CORNER_LENGTH_FRACTION, 0f)
+        assertEquals(0xB84FCBFFL, LAST_MOVE_MARKER_HIGHLIGHT_ARGB)
     }
 
     @Test

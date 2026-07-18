@@ -113,6 +113,11 @@ internal fun shouldShowOthelloUndo(gameOver: Boolean, winner: Disc?): Boolean =
     !gameOver || winner == null
 internal fun othelloLastMoveCell(move: OthelloMove?): Pair<Int, Int>? =
     move?.let { it.row to it.col }
+internal const val LAST_MOVE_MARKER_SCALE = 0.92f
+internal const val LAST_MOVE_MARKER_INSET_FRACTION = 0.04f
+internal const val LAST_MOVE_MARKER_CORNER_LENGTH_FRACTION = 0.18f
+internal const val LAST_MOVE_MARKER_SHADOW_ARGB = 0x70115C93L
+internal const val LAST_MOVE_MARKER_HIGHLIGHT_ARGB = 0xB84FCBFFL
 
 @Composable
 internal fun OthelloGameLayout(
@@ -249,7 +254,9 @@ private fun OthelloBoard(
                                             disc != null -> DiscPiece(disc, cellSize * 0.76f)
                                             legal -> LegalMoveHint(cellSize * 0.16f)
                                         }
-                                        if (isLastMove) LastMoveMarker(cellSize * 0.76f)
+                                        if (isLastMove) {
+                                            LastMoveMarker(cellSize * LAST_MOVE_MARKER_SCALE)
+                                        }
                                     }
                                 }
                             }
@@ -300,10 +307,10 @@ private fun DiscPiece(disc: Disc, diameter: Dp) {
 @Composable
 private fun LastMoveMarker(size: Dp) {
     Canvas(Modifier.size(size)) {
-        val inset = this.size.minDimension * 0.08f
-        val length = this.size.minDimension * 0.24f
+        val inset = this.size.minDimension * LAST_MOVE_MARKER_INSET_FRACTION
+        val length = this.size.minDimension * LAST_MOVE_MARKER_CORNER_LENGTH_FRACTION
         val edge = this.size.minDimension - inset
-        val shadowWidth = this.size.minDimension * 0.075f
+        val shadowWidth = this.size.minDimension * 0.068f
         val highlightWidth = this.size.minDimension * 0.045f
         val segments = listOf(
             Offset(inset, inset + length) to Offset(inset, inset),
@@ -316,8 +323,20 @@ private fun LastMoveMarker(size: Dp) {
             Offset(edge, edge) to Offset(edge, edge - length)
         )
         segments.forEach { (start, end) ->
-            drawLine(Color(0xB0000000), start, end, shadowWidth, StrokeCap.Round)
-            drawLine(Color(0xFFFFD24A), start, end, highlightWidth, StrokeCap.Round)
+            drawLine(
+                Color(LAST_MOVE_MARKER_SHADOW_ARGB),
+                start,
+                end,
+                shadowWidth,
+                StrokeCap.Round
+            )
+            drawLine(
+                Color(LAST_MOVE_MARKER_HIGHLIGHT_ARGB),
+                start,
+                end,
+                highlightWidth,
+                StrokeCap.Round
+            )
         }
     }
 }

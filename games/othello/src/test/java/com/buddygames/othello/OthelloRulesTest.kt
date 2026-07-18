@@ -10,9 +10,9 @@ import org.junit.Test
 class OthelloRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(3, OthelloPlugin.manifest.versionCode)
-        assertEquals("0.0.3", OthelloPlugin.manifest.versionName)
-        assertEquals("版本 0.0.3", othelloVersionLabel(OthelloPlugin.manifest.versionName))
+        assertEquals(4, OthelloPlugin.manifest.versionCode)
+        assertEquals("0.0.4", OthelloPlugin.manifest.versionName)
+        assertEquals("版本 0.0.4", othelloVersionLabel(OthelloPlugin.manifest.versionName))
     }
 
     @Test
@@ -106,6 +106,15 @@ class OthelloRulesTest {
     fun lastMoveCellUsesNewlyPlacedDiscRatherThanFlippedDiscs() {
         assertEquals(2 to 3, othelloLastMoveCell(OthelloMove(2, 3)))
         assertNull(othelloLastMoveCell(null))
+    }
+
+    @Test
+    fun lastMoveMarkerLeavesPieceGapWithTranslucentBrightBlueCorners() {
+        assertEquals(0.92f, LAST_MOVE_MARKER_SCALE, 0f)
+        assertTrue(LAST_MOVE_MARKER_SCALE < 1f)
+        assertEquals(0.04f, LAST_MOVE_MARKER_INSET_FRACTION, 0f)
+        assertEquals(0.18f, LAST_MOVE_MARKER_CORNER_LENGTH_FRACTION, 0f)
+        assertEquals(0xB84FCBFFL, LAST_MOVE_MARKER_HIGHLIGHT_ARGB)
     }
 
     @Test

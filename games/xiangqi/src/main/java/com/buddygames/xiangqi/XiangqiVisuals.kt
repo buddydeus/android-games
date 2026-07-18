@@ -132,6 +132,11 @@ internal fun xiangqiRiverLabels(rotated: Boolean): Pair<String, String> =
     if (rotated) "漢  界" to "楚  河" else "楚  河" to "漢  界"
 internal fun xiangqiLastMoveCell(move: XiangqiMove?): Pair<Int, Int>? =
     move?.let { it.toRow to it.toCol }
+internal const val LAST_MOVE_MARKER_SCALE = 0.92f
+internal const val LAST_MOVE_MARKER_INSET_FRACTION = 0.04f
+internal const val LAST_MOVE_MARKER_CORNER_LENGTH_FRACTION = 0.18f
+internal const val LAST_MOVE_MARKER_SHADOW_ARGB = 0x70115C93L
+internal const val LAST_MOVE_MARKER_HIGHLIGHT_ARGB = 0xB84FCBFFL
 
 @Composable
 internal fun XiangqiGameLayout(
@@ -283,7 +288,8 @@ private fun XiangqiBoard(
                                             if (piece != null) XiangqiPieceView(piece, stepY * 0.82f)
                                             if (isLastMove) {
                                                 LastMoveMarker(
-                                                    minOf(stepX.value, stepY.value).dp * 0.78f
+                                                    minOf(stepX.value, stepY.value).dp *
+                                                        LAST_MOVE_MARKER_SCALE
                                                 )
                                             }
                                         }
@@ -356,10 +362,10 @@ private fun SelectionHalo(diameter: Dp) {
 @Composable
 private fun LastMoveMarker(size: Dp) {
     Canvas(Modifier.size(size)) {
-        val inset = this.size.minDimension * 0.08f
-        val length = this.size.minDimension * 0.24f
+        val inset = this.size.minDimension * LAST_MOVE_MARKER_INSET_FRACTION
+        val length = this.size.minDimension * LAST_MOVE_MARKER_CORNER_LENGTH_FRACTION
         val edge = this.size.minDimension - inset
-        val shadowWidth = this.size.minDimension * 0.075f
+        val shadowWidth = this.size.minDimension * 0.068f
         val highlightWidth = this.size.minDimension * 0.045f
         val segments = listOf(
             Offset(inset, inset + length) to Offset(inset, inset),
@@ -372,8 +378,20 @@ private fun LastMoveMarker(size: Dp) {
             Offset(edge, edge) to Offset(edge, edge - length)
         )
         segments.forEach { (start, end) ->
-            drawLine(Color(0xB0000000), start, end, shadowWidth, StrokeCap.Round)
-            drawLine(Color(0xFFFFD24A), start, end, highlightWidth, StrokeCap.Round)
+            drawLine(
+                Color(LAST_MOVE_MARKER_SHADOW_ARGB),
+                start,
+                end,
+                shadowWidth,
+                StrokeCap.Round
+            )
+            drawLine(
+                Color(LAST_MOVE_MARKER_HIGHLIGHT_ARGB),
+                start,
+                end,
+                highlightWidth,
+                StrokeCap.Round
+            )
         }
     }
 }
