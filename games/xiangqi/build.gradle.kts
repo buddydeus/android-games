@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -23,4 +25,14 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui")
     testImplementation("junit:junit:4.13.2")
+}
+
+tasks.withType<Test>().configureEach {
+    systemProperty(
+        "xiangqi.calibration",
+        providers.gradleProperty("xiangqiCalibration").orNull ?: "false"
+    )
+    providers.gradleProperty("xiangqiCalibrationPair").orNull?.let { pair ->
+        systemProperty("xiangqi.calibration.pair", pair)
+    }
 }

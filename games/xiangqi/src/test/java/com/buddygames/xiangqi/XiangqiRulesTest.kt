@@ -11,9 +11,9 @@ import org.junit.Test
 class XiangqiRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(6, XiangqiPlugin.manifest.versionCode)
-        assertEquals("0.0.6", XiangqiPlugin.manifest.versionName)
-        assertEquals("版本 0.0.6", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+        assertEquals(7, XiangqiPlugin.manifest.versionCode)
+        assertEquals("0.0.7", XiangqiPlugin.manifest.versionName)
+        assertEquals("版本 0.0.7", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
     }
 
     @Test
@@ -81,11 +81,13 @@ class XiangqiRulesTest {
                 lower.maxThinkTimeMillis <= higher.maxThinkTimeMillis
         })
         assertEquals(
-            listOf(64, 128, 384, 1_024, 4_096, 16_384, 65_536, 262_144, 786_432, 2_000_000),
+            listOf(64, 512, 4_096, 13_000, 20_000, 96_000, 160_000, 300_000, 700_000, 2_000_000),
             configs.map { it.nodeBudget }
         )
-        assertEquals(listOf(6, 5, 4, 3, 2, 2, 1, 1, 1, 1), configs.map { it.candidatePool })
-        assertEquals(listOf(45, 35, 25, 18, 10, 5, 0, 0, 0, 0), configs.map { it.suboptimalPercent })
+        assertEquals(listOf(1, 2, 3, 4, 4, 5, 5, 6, 7, 8), configs.map { it.maxDepth })
+        assertEquals(listOf(8, 6, 5, 4, 2, 1, 1, 1, 1, 1), configs.map { it.candidatePool })
+        assertEquals(listOf(65, 50, 32, 20, 8, 0, 0, 0, 0, 0), configs.map { it.suboptimalPercent })
+        assertEquals(listOf(0, 0, 0, 0, 0, 0, 0, 1, 1, 2), configs.map { it.quiescenceDepth })
     }
 
     @Test

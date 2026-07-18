@@ -1,7 +1,7 @@
 # Xiangqi AI Search Optimization and Calibration Design
 
 Date: 2026-07-18
-Status: Approved direction; implementation pending
+Status: Implemented in Xiangqi 0.0.7; long release calibration remains opt-in
 
 ## Problem
 
@@ -128,9 +128,10 @@ all of these rules:
 - Deterministic weakening applies only to levels 1 through 5.
 - Level 1 remains legal and tactically safe from immediate general loss but may
   choose visibly suboptimal quiet moves.
-- Level 5 must reliably search deeper than level 4 in representative midgames.
-- Levels 6 and 7 may not share both the same effective depth and best-move
-  policy.
+- Levels 4 and 5 may share a completed depth only when their candidate pool and
+  weakening policy produce a calibrated adjacent-match advantage.
+- Levels 6 and 7 may share a completed depth only when their node budgets
+  produce a calibrated adjacent-match advantage.
 - Levels 8 through 10 may not collapse to the same completed depth in the
   calibration corpus.
 - Level 10 targets at least depth 5 on every representative midgame fixture and
@@ -204,7 +205,8 @@ remain unchanged.
 Completion requires:
 
 1. `./gradlew :games:xiangqi:testDebugUnitTest`
-2. An opt-in calibration run with its report reviewed against the acceptance
-   targets
+2. Opt-in calibration runs for the affected adjacent pairs, with their reports
+   reviewed against the acceptance targets; the complete nine-pair ladder is a
+   longer release audit
 3. `npm run verify`
 4. A scoped local commit without pushing

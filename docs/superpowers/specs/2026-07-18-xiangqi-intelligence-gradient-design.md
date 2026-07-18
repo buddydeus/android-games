@@ -67,30 +67,31 @@ than special-purpose production branches.
 Each level is represented by immutable configuration rather than scattered
 conditionals.
 
-| Level | Audience | Completed depth cap | Node budget | Candidate pool | Suboptimal probability | Evaluation profile |
-| ---: | --- | ---: | ---: | ---: | ---: | --- |
-| 1 | Child learner | 1 | 64 | 6 | 45% | material |
-| 2 | Child beginner | 1 | 128 | 5 | 35% | material + safety |
-| 3 | New player | 2 | 384 | 4 | 25% | material + safety |
-| 4 | Elementary player | 2 | 1,024 | 3 | 18% | basic positional |
-| 5 | Casual player | 3 | 4,096 | 2 | 10% | basic positional |
-| 6 | Skilled casual player | 4 | 16,384 | 2 | 5% | full positional |
-| 7 | Amateur player | 5 | 65,536 | 1 | 0% | full positional |
-| 8 | Strong amateur player | 6 | 262,144 | 1 | 0% | full + quiescence |
-| 9 | Advanced player | 7 | 786,432 | 1 | 0% | full + quiescence |
-| 10 | Experienced player | 8 | 2,000,000 | 1 | 0% | full + quiescence |
+| Level | Audience | Depth cap | Node budget | Time | Pool | Suboptimal | Evaluation | Q-depth |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| 1 | Child learner | 1 | 64 | 80ms | 8 | 65% | material | 0 |
+| 2 | Child beginner | 2 | 512 | 100ms | 6 | 50% | material + safety | 0 |
+| 3 | New player | 3 | 4,096 | 150ms | 5 | 32% | material + safety | 0 |
+| 4 | Elementary player | 4 | 13,000 | 325ms | 4 | 20% | basic positional | 0 |
+| 5 | Casual player | 4 | 20,000 | 400ms | 2 | 8% | basic positional | 0 |
+| 6 | Skilled casual player | 5 | 96,000 | 1,000ms | 1 | 0% | full positional | 0 |
+| 7 | Amateur player | 5 | 160,000 | 1,000ms | 1 | 0% | full positional | 0 |
+| 8 | Strong amateur player | 6 | 300,000 | 1,500ms | 1 | 0% | full + quiescence | 1 |
+| 9 | Advanced player | 7 | 700,000 | 2,200ms | 1 | 0% | full + quiescence | 1 |
+| 10 | Experienced player | 8 | 2,000,000 | 3,000ms | 1 | 0% | full + quiescence | 2 |
 
 The node budget is the strength control and produces more consistent behavior
 across devices than a time-only limit. The caller also supplies a safety
 deadline so a slow device cannot block indefinitely. The engine returns the
 best move from the last fully completed iteration.
 
-The exact budgets are initial product parameters. They may be calibrated using
-automated matches without changing the public level meanings or score mapping.
+These values are the calibrated `0.0.7` product parameters. Further statistical
+match calibration changes configuration data without changing the public level
+meanings or score mapping.
 
 ## Deterministic Weakening
 
-Levels 1 through 6 may choose a suboptimal move, but weakening must remain
+Levels 1 through 5 may choose a suboptimal move, but weakening must remain
 credible:
 
 - Never choose an illegal move.
@@ -189,6 +190,39 @@ Strength calibration is statistical rather than a unit-test assertion:
 - Target a 65% to 75% score for the higher adjacent level.
 - Target at least 80% for levels separated by two steps.
 - Adjust configuration data, not search correctness, when calibration misses.
+
+The `0.0.7` compact calibration on the local JVM reference run records:
+
+- Representative-midgame completed depths:
+  `[1, 2, 3, 4, 4, 5, 5, 5, 6, 6]`.
+- Representative-midgame visited nodes:
+  approximately `[39, 150, 1,347, 10,286, 10,286, 81,076, 81,076,
+  168,000, 250,000, 380,000]`; deadline-bound high-level counts vary with the
+  reference machine while completed-depth floors remain asserted.
+- Level 10 completes depth 6 within the three-second guard, compared with depth
+  2 and roughly 3,800 nodes before the search-position optimization.
+- Across 12 deterministic opening and middlegame positions, adjacent identical
+  move counts for levels 1 through 5 are `[1, 2, 4, 9]`, or at most 75%;
+  the 4→5 strength distinction is additionally established by its 69.5%
+  higher-level score in the 100-game match.
+- The completed 100-game color-swapped release pairs score:
+  `1→2 73.5%`, `2→3 71.5%`, `3→4 68.0%`, `4→5 69.5%`, and
+  `5→6 73.0%` for the higher level. These cover the QA-reported weak 1–5 range
+  and its transition to level 6. Pairs `6→7` through `9→10` remain opt-in
+  release runs and are not claimed as completed in this calibration record.
+
+The normal test suite checks this compact corpus and the color-swap harness.
+The full 100-game adjacent-pair ladder is explicitly enabled with:
+
+```bash
+./gradlew :games:xiangqi:testDebugUnitTest \
+  --tests com.buddygames.xiangqi.XiangqiAiCalibrationTest \
+  -PxiangqiCalibration=true \
+  -PxiangqiCalibrationPair=1
+```
+
+Use pair values `1` through `9` to run and retain each adjacent 100-game report
+independently. Omitting `xiangqiCalibrationPair` runs the complete ladder.
 
 Repository completion still requires the Xiangqi unit tests followed by
 `npm run verify`.
