@@ -82,7 +82,7 @@ class ChessSearchEngineTest {
             .put("h8", black(ChessPieceType.KING))
         val expected = ChessMove.fromUci("g6g7")
 
-        listOf(1, 5, 10).forEach { level ->
+        (1..10).forEach { level ->
             assertEquals(
                 expected,
                 ChessAi.search(
@@ -91,6 +91,23 @@ class ChessSearchEngineTest {
                     ChessSearchLimits(120_000, Long.MAX_VALUE)
                 ).move
             )
+        }
+    }
+
+    @Test
+    fun everyLevelReturnsALegalMoveWithinItsConfiguredDepthCeiling() {
+        val state = ChessState.initial()
+            .apply(ChessMove.fromUci("e2e4"))
+            .apply(ChessMove.fromUci("c7c5"))
+
+        (1..10).forEach { level ->
+            val result = ChessAi.search(
+                state,
+                level,
+                ChessSearchLimits(30_000, Long.MAX_VALUE)
+            )
+            assertTrue("level $level returned an illegal move", result.move in ChessRules.legalMoves(state))
+            assertTrue(result.stats.completedDepth <= ChessAiGradient.config(level).maxDepth)
         }
     }
 

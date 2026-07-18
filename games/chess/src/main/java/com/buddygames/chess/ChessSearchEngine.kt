@@ -79,7 +79,9 @@ internal class ChessSearchEngine(
         val rootKey = position.repetitionKey()
         if (rootKey !in this) this[rootKey] = 1
     }
-    private var repeatedPositionCount = repetitions.values.count { it >= 2 }
+    private var repetitionContextHash = repetitions.entries.fold(0L) { hash, (key, count) ->
+        hash xor repetitionEntryHash(key, count)
+    }
 
     fun search(): ChessSearchResult {
         val startedAt = System.nanoTime()
@@ -175,9 +177,8 @@ internal class ChessSearchEngine(
         val originalBeta = beta
         var currentAlpha = alpha
         var currentBeta = beta
-        val hash = position.hash
-        val transpositionSafe = repeatedPositionCount == 0
-        val cached = transposition.probe(hash).takeIf { transpositionSafe }
+        val hash = position.hash xor repetitionContextHash
+        val cached = transposition.probe(hash)
         if (cached != null && cached.depth >= depth) {
             when (cached.bound) {
                 ChessBound.EXACT -> return cached.score
@@ -210,21 +211,19 @@ internal class ChessSearchEngine(
                 break
             }
         }
-        if (transpositionSafe) {
-            transposition.store(
-                ChessTranspositionEntry(
-                    hash = hash,
-                    depth = depth,
-                    score = best,
-                    bound = when {
-                        best <= originalAlpha -> ChessBound.UPPER
-                        best >= originalBeta -> ChessBound.LOWER
-                        else -> ChessBound.EXACT
-                    },
-                    bestMove = bestMove
-                )
+        transposition.store(
+            ChessTranspositionEntry(
+                hash = hash,
+                depth = depth,
+                score = best,
+                bound = when {
+                    best <= originalAlpha -> ChessBound.UPPER
+                    best >= originalBeta -> ChessBound.LOWER
+                    else -> ChessBound.EXACT
+                },
+                bestMove = bestMove
             )
-        }
+        )
         return best
     }
 
@@ -282,21 +281,36 @@ internal class ChessSearchEngine(
         val undo = position.makeMove(move)
         val key = position.repetitionKey()
         val previous = repetitions[key] ?: 0
+        if (previous > 0) {
+            repetitionContextHash = repetitionContextHash xor repetitionEntryHash(key, previous)
+        }
         repetitions[key] = previous + 1
-        if (previous == 1) repeatedPositionCount++
+        repetitionContextHash = repetitionContextHash xor repetitionEntryHash(key, previous + 1)
         return undo
     }
 
     private fun unmakeMove(undo: ChessSearchPosition.Undo) {
         val key = position.repetitionKey()
         val count = repetitions.getValue(key)
-        if (count == 2) repeatedPositionCount--
-        if (count == 1) repetitions.remove(key) else repetitions[key] = count - 1
+        repetitionContextHash = repetitionContextHash xor repetitionEntryHash(key, count)
+        if (count == 1) {
+            repetitions.remove(key)
+        } else {
+            repetitions[key] = count - 1
+            repetitionContextHash = repetitionContextHash xor repetitionEntryHash(key, count - 1)
+        }
         position.unmakeMove(undo)
     }
 
     private fun isDrawByRule(): Boolean =
         position.isAutomaticDraw() || (repetitions[position.repetitionKey()] ?: 0) >= 3
+
+    private fun repetitionEntryHash(key: Long, count: Int): Long {
+        var value = key xor (count.toLong() * -7046029254386353131L)
+        value = (value xor (value ushr 30)) * -4658895280553007687L
+        value = (value xor (value ushr 27)) * -7723592293110705685L
+        return value xor (value ushr 31)
+    }
 
     private fun moveOrderScore(move: ChessMove, ply: Int, preferred: ChessMove?): Int {
         if (move == preferred) return PREFERRED_MOVE_SCORE
