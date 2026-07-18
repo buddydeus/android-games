@@ -20,7 +20,7 @@ Current game behavior:
 - In single-player mode, a player win swaps sides for the next round, a player loss restores the player to the first-moving side, and the robot opens immediately when the player becomes second. A draw keeps the current side; two-player restart behavior stays fixed-first.
 - Gomoku uses a 15×15 intersection board. Its robot priority is: win immediately, block an immediate five (including closed four), block moves that create at least two immediate winning points (continuous or broken open three), then use the positional fallback.
 - Othello hides robot hint points in two-player mode.
-- Xiangqi uses intersection placement, filters moves that expose the moving side's general, recognizes capture and checkmate wins, colors the active side in the turn display, and shows `将军` in the side panel when applicable. Its robot prioritizes immediate wins and checks, then discounts captures that allow a stronger immediate reply. In single-player mode, a black-side player sees a 180-degree coordinate-mapped board with black at the bottom while piece text stays upright.
+- Xiangqi uses intersection placement, filters moves that expose the moving side's general, recognizes capture and checkmate wins, colors the active side in the turn display, and shows `将军` in the side panel when applicable. Its approved intelligence gradient is defined in `docs/superpowers/specs/2026-07-18-xiangqi-intelligence-gradient-design.md`: single-player AI level is the human player's accumulated win score plus one, capped at level 10, and the compact Kotlin search replaces the legacy one-step heuristic robot. Single-player scoring follows player-versus-robot identities across side swaps, while two-player scoring stays red-versus-black. In single-player mode, a black-side player sees a 180-degree coordinate-mapped board with black at the bottom while piece text stays upright.
 
 Current design direction:
 
@@ -80,6 +80,7 @@ Run from repository root:
 - Increment only the touched game's `versionCode` and semantic `versionName` for every rules, robot, UI, or package-asset update. Keep the plugin manifest and `games/<name>/package/manifest.json` exactly aligned.
 - Keep robot strategy and its regression tests in the same game module; threat-priority changes must include deterministic board-state tests.
 - Xiangqi AI changes must preserve safe-move filtering and cover immediate general capture, checkmate preference, and poisoned-capture avoidance.
+- Keep Xiangqi intelligence levels centralized in immutable configuration, monotonic in depth and node budget, deterministic for a given position and level, and derived from the human player's accumulated single-player win score rather than a fixed board side.
 - Xiangqi black-side perspective changes must map model/display coordinates in both directions and keep two-player plus red-side layouts unchanged.
 - Keep single-player side-selection and opening-turn rules in each game's session model; restart behavior changes must cover player win, player loss, and robot opening as second-player tests.
 - Record undo snapshots immediately before legal player actions, include score and terminal state in each snapshot, and keep the initial robot opening outside undo history.
@@ -132,6 +133,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [README.md](README.md) | Human setup, build, runtime, package format, and current game capabilities |
 | [docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md) | Product scope, architecture, non-goals |
 | [docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md](docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md) | MVP task breakdown and file map |
+| [docs/superpowers/specs/2026-07-18-xiangqi-intelligence-gradient-design.md](docs/superpowers/specs/2026-07-18-xiangqi-intelligence-gradient-design.md) | Xiangqi ten-level offline intelligence gradient, score mapping, search boundary, and calibration |
 | [docs/agents/game-plugins.md](docs/agents/game-plugins.md) | GamePlugin contract, zip layout, adding a game |
 | [designs/specs/android-games-home.md](designs/specs/android-games-home.md) | Current home-screen visual SSOT |
 | [designs/specs/android-games-family-versus-logo.md](designs/specs/android-games-family-versus-logo.md) | Approved family-versus Logo and launcher-icon SSOT |
