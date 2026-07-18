@@ -24,6 +24,7 @@ Current game behavior:
 - Othello hides robot hint points in two-player mode.
 - Xiangqi uses intersection placement, filters moves that expose the moving side's general, recognizes capture and checkmate wins, colors the active side in the turn display, and shows `将军` in the side panel when applicable. Its intelligence gradient is defined in `docs/superpowers/specs/2026-07-18-xiangqi-intelligence-gradient-design.md`: single-player AI level is the human player's accumulated win score plus one, capped at level 10. A pure-Kotlin iterative-deepening Negamax search uses a primitive make/unmake position, cached move ordering, effective-depth statistics, a bounded transposition table, per-level node/depth/deadline budgets, deterministic weakening for levels 1-5, and bounded quiescence for levels 8-10; levels 4 and 6 are the first four-ply and five-ply transition tiers, and search runs away from the Compose UI thread. Single-player scoring follows player-versus-robot identities across side swaps, while two-player scoring stays red-versus-black. In single-player mode, a black-side player sees a 180-degree coordinate-mapped board with black at the bottom while piece text stays upright.
 - International Chess uses standard square placement, complete special moves and draw rules, legal-move-equivalent threefold-repetition keys, player-score-driven 1-10 offline search, explicit draw session state, Xiangqi-family score/undo/restart behavior, and a 180-degree Black-player view with upright piece glyphs. Its square board and right rail remain side by side at 800×600 landscape, and the rail distinguishes the active side, check, terminal result, AI level, undo, and restart.
+- Human-facing documentation must list all four built-in packages and keep the independent shell/game versions aligned with their Gradle and manifest sources.
 
 Current design direction:
 
@@ -56,6 +57,7 @@ Run from repository root:
 - `./gradlew :game-api:testDebugUnitTest` — game-api manifest/contract tests only
 - `./gradlew :app:testDebugUnitTest` — shell runtime tests only
 - `./gradlew :games:gomoku:testDebugUnitTest` — single game rules tests (swap module name as needed)
+- `./gradlew :games:chess:testDebugUnitTest` — International Chess rules, session, and AI tests
 - `./gradlew :games:xiangqi:testDebugUnitTest --tests com.buddygames.xiangqi.XiangqiAiCalibrationTest -PxiangqiCalibration=true -PxiangqiCalibrationPair=1` — opt-in long Xiangqi color-swapped calibration for levels 1 vs 2; use pair values 1-9
 
 `pnpm run <script>` works the same; lockfile has no runtime deps.

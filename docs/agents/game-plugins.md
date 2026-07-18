@@ -71,8 +71,10 @@ From repo root:
 - `./gradlew packageGomokuGame` — build gomoku zip only
 - `./gradlew :games:gomoku:testDebugUnitTest` — gomoku rules tests only
 - `./gradlew :games:gomoku:assembleDebug` — compile game library (no zip)
+- `./gradlew packageChessGame` — build international chess zip only
+- `./gradlew :games:chess:testDebugUnitTest` — international chess rules, session, and AI tests
 
-Swap `gomoku` for `othello` or `xiangqi`.
+Swap `gomoku` for `othello`, `xiangqi`, or `chess`.
 
 ## Adding a new game (checklist)
 
