@@ -553,22 +553,41 @@ internal class ChessSearchPosition private constructor(
     }
 
     private fun hasInsufficientMaterial(): Boolean {
-        val pieces = board.withIndex().filter { (_, code) ->
-            code != 0 && typeOf(code) != ChessPieceType.KING
+        var nonKingCount = 0
+        var onlyMinorType: ChessPieceType? = null
+        var allBishops = true
+        var bishopSquareColor = -1
+        var bishopsShareColor = true
+        for (square in board.indices) {
+            val code = board[square]
+            if (code == 0) continue
+            val type = typeOf(code)
+            if (type == ChessPieceType.KING) continue
+            nonKingCount++
+            onlyMinorType = type
+            if (type == ChessPieceType.BISHOP) {
+                val color = (fileOf(square) + rankOf(square)) and 1
+                if (bishopSquareColor < 0) {
+                    bishopSquareColor = color
+                } else if (bishopSquareColor != color) {
+                    bishopsShareColor = false
+                }
+            } else {
+                allBishops = false
+            }
+            if (
+                (type != ChessPieceType.BISHOP && type != ChessPieceType.KNIGHT) ||
+                nonKingCount > 1 && !allBishops
+            ) {
+                return false
+            }
         }
-        if (pieces.isEmpty()) return true
-        if (pieces.size == 1) {
-            return typeOf(pieces.single().value) in setOf(
-                ChessPieceType.BISHOP,
-                ChessPieceType.KNIGHT
-            )
+        return when {
+            nonKingCount == 0 -> true
+            nonKingCount == 1 -> onlyMinorType == ChessPieceType.BISHOP ||
+                onlyMinorType == ChessPieceType.KNIGHT
+            else -> allBishops && bishopsShareColor
         }
-        if (pieces.size == 2 && pieces.all { typeOf(it.value) == ChessPieceType.BISHOP }) {
-            return pieces.map { (square) -> (fileOf(square) + rankOf(square)) and 1 }
-                .distinct()
-                .size == 1
-        }
-        return false
     }
 
     companion object {

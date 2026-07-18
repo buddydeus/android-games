@@ -224,6 +224,8 @@ internal class ChessSearchEngine(
         if (position.isAutomaticDraw()) return 0
         val side = position.sideToMove
         val inCheck = position.isInCheck(side)
+        var moves = orderedMoves(ply)
+        if (moves.isEmpty()) return if (inCheck) -MATE_SCORE + ply else 0
         var currentAlpha = alpha
         if (!inCheck) {
             val standPat = position.evaluate(side, config.evaluationProfile)
@@ -234,8 +236,6 @@ internal class ChessSearchEngine(
             return position.evaluate(side, config.evaluationProfile)
         }
 
-        var moves = orderedMoves(ply)
-        if (moves.isEmpty()) return if (inCheck) -MATE_SCORE + ply else currentAlpha
         if (!inCheck) {
             moves = moves.filter { move ->
                 position.capturedPieceValue(move) > 0 || move.promotion != null
