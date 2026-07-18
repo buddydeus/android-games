@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "gameId": "chess",
+  "displayName": "国际象棋",
+  "versionCode": 1,
+  "versionName": "0.0.1",
+  "entryClass": "com.buddygames.chess.ChessPlugin",
+  "minShellApi": 1,
+  "orientation": "landscape",
+  "icon": "assets/icon.txt"
+}
