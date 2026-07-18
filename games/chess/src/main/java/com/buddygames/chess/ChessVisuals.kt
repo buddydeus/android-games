@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
@@ -68,6 +69,11 @@ internal fun chessModelSquare(displayRow: Int, displayCol: Int, rotated: Boolean
     }
 }
 
+internal fun chessUsesSideBySideLayout(
+    availableWidthDp: Float,
+    availableHeightDp: Float
+): Boolean = availableWidthDp >= 700f && availableWidthDp > availableHeightDp
+
 @Composable
 internal fun ChessMenu(
     versionName: String,
@@ -76,8 +82,8 @@ internal fun ChessMenu(
     onExit: () -> Unit
 ) {
     ChessBackdrop {
-        BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
-            if (maxWidth >= 760.dp && maxWidth > maxHeight) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(24.dp)) {
+            if (chessUsesSideBySideLayout(maxWidth.value, maxHeight.value)) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     ChessBoard(
                         state = ChessState.initial(),
@@ -178,8 +184,8 @@ internal fun ChessGameLayout(
     onReturn: () -> Unit
 ) {
     ChessBackdrop {
-        BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
-            if (maxWidth >= 760.dp && maxWidth > maxHeight) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(24.dp)) {
+            if (chessUsesSideBySideLayout(maxWidth.value, maxHeight.value)) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     ChessBoard(
                         state,
@@ -267,6 +273,7 @@ private fun ChessBoard(
         Box(
             Modifier
                 .size(boardSize)
+                .aspectRatio(1f)
                 .shadow(18.dp, RoundedCornerShape(7.dp), clip = false)
                 .clip(RoundedCornerShape(7.dp))
                 .background(Brush.linearGradient(listOf(Color(0xFF70533A), BoardRim)))

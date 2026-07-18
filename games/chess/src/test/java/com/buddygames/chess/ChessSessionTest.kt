@@ -159,4 +159,40 @@ class ChessSessionTest {
                 chessRepetitionKey(state.copy(sideToMove = ChessSide.BLACK))
         )
     }
+
+    @Test
+    fun repetitionKeyIncludesOnlyLegallyUsableEnPassantRights() {
+        val noCapture = ChessState.empty(enPassantSquare = chessSquare("d6"))
+            .put("e1", ChessPiece(ChessSide.WHITE, ChessPieceType.KING))
+            .put("e8", ChessPiece(ChessSide.BLACK, ChessPieceType.KING))
+        assertEquals(
+            chessRepetitionKey(noCapture.copy(enPassantSquare = null)),
+            chessRepetitionKey(noCapture)
+        )
+
+        val legalCapture = noCapture
+            .put("e5", ChessPiece(ChessSide.WHITE, ChessPieceType.PAWN))
+            .put("d5", ChessPiece(ChessSide.BLACK, ChessPieceType.PAWN))
+        assertFalse(
+            chessRepetitionKey(legalCapture.copy(enPassantSquare = null)) ==
+                chessRepetitionKey(legalCapture)
+        )
+
+        val pinnedCapture = legalCapture
+            .put("e1", ChessPiece(ChessSide.WHITE, ChessPieceType.KING))
+            .put("e5", ChessPiece(ChessSide.WHITE, ChessPieceType.PAWN))
+            .put("e8", ChessPiece(ChessSide.BLACK, ChessPieceType.ROOK))
+            .put("a8", ChessPiece(ChessSide.BLACK, ChessPieceType.KING))
+        assertEquals(
+            chessRepetitionKey(pinnedCapture.copy(enPassantSquare = null)),
+            chessRepetitionKey(pinnedCapture)
+        )
+    }
+
+    @Test
+    fun commonLandscapeTabletKeepsBoardAndRailSideBySide() {
+        assertTrue(chessUsesSideBySideLayout(752f, 552f))
+        assertTrue(chessUsesSideBySideLayout(1224f, 744f))
+        assertFalse(chessUsesSideBySideLayout(552f, 752f))
+    }
 }

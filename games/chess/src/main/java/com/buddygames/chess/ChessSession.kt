@@ -86,8 +86,22 @@ internal fun shouldApplyChessRobotResult(
         requestedGeneration == currentGeneration &&
         requestedState == currentState
 
-internal fun chessRepetitionKey(state: ChessState): Long =
-    positionHash(state.copy(halfMoveClock = 0, fullMoveNumber = 1))
+internal fun chessRepetitionKey(state: ChessState): Long {
+    val enPassant = state.enPassantSquare
+    val hasLegalEnPassant = enPassant != null && ChessRules.legalMoves(state).any { move ->
+        move.to == enPassant &&
+            state.board[move.from]?.type == ChessPieceType.PAWN &&
+            state.board[move.to] == null &&
+            fileOf(move.from) != fileOf(move.to)
+    }
+    return positionHash(
+        state.copy(
+            enPassantSquare = enPassant.takeIf { hasLegalEnPassant },
+            halfMoveClock = 0,
+            fullMoveNumber = 1
+        )
+    )
+}
 
 internal fun recordChessPosition(
     counts: Map<Long, Int>,
