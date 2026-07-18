@@ -19,7 +19,7 @@ Current game behavior:
 - In single-player mode, a player win swaps sides for the next round, a player loss restores the player to the first-moving side, and the robot opens immediately when the player becomes second. A draw keeps the current side; two-player restart behavior stays fixed-first.
 - Gomoku uses a 15×15 intersection board. Its robot priority is: win immediately, block an immediate five (including closed four), block moves that create at least two immediate winning points (continuous or broken open three), then use the positional fallback.
 - Othello hides robot hint points in two-player mode.
-- Xiangqi uses intersection placement, filters moves that expose the moving side's general, recognizes capture and checkmate wins, colors the active side in the turn display, and shows `将军` in the side panel when applicable. Its robot prioritizes immediate wins and checks, then discounts captures that allow a stronger immediate reply.
+- Xiangqi uses intersection placement, filters moves that expose the moving side's general, recognizes capture and checkmate wins, colors the active side in the turn display, and shows `将军` in the side panel when applicable. Its robot prioritizes immediate wins and checks, then discounts captures that allow a stronger immediate reply. In single-player mode, a black-side player sees a 180-degree coordinate-mapped board with black at the bottom while piece text stays upright.
 
 Current design direction:
 
@@ -79,6 +79,7 @@ Run from repository root:
 - Increment only the touched game's `versionCode` and semantic `versionName` for every rules, robot, UI, or package-asset update. Keep the plugin manifest and `games/<name>/package/manifest.json` exactly aligned.
 - Keep robot strategy and its regression tests in the same game module; threat-priority changes must include deterministic board-state tests.
 - Xiangqi AI changes must preserve safe-move filtering and cover immediate general capture, checkmate preference, and poisoned-capture avoidance.
+- Xiangqi black-side perspective changes must map model/display coordinates in both directions and keep two-player plus red-side layouts unchanged.
 - Keep single-player side-selection and opening-turn rules in each game's session model; restart behavior changes must cover player win, player loss, and robot opening as second-player tests.
 - Record undo snapshots immediately before legal player actions, include score and terminal state in each snapshot, and keep the initial robot opening outside undo history.
 - Keep undo-button visibility separate from undo availability: hide it only when a winner exists, and keep Othello draws undoable.

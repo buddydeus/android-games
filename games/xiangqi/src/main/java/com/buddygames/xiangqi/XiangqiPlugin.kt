@@ -177,6 +177,7 @@ class XiangqiPlugin : GamePlugin {
                 inCheck = inCheck,
                 canUndo = history.isNotEmpty(),
                 showUndo = shouldShowXiangqiUndo(winner),
+                rotateBoard = shouldRotateXiangqiBoard(mode, playerSide),
                 onTap = ::tap,
                 onUndo = ::undo,
                 onRestart = ::restart,
@@ -204,8 +205,8 @@ class XiangqiPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "xiangqi",
             displayName = "象棋",
-            versionCode = 2,
-            versionName = "0.0.2",
+            versionCode = 3,
+            versionName = "0.0.3",
             entryClass = "com.buddygames.xiangqi.XiangqiPlugin",
             minShellApi = 1,
             icon = "assets/icon.txt"

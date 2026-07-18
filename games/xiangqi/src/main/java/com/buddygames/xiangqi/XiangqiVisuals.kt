@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.buddygames.api.GameMode
 
 private val PaperTop = Color(0xFFF3F7F6)
 private val PaperBottom = Color(0xFFD7E3E4)
@@ -113,6 +114,21 @@ private fun XiangqiMenuPanel(
 internal fun xiangqiMenuLabels(): List<String> = listOf("单人模式", "双人对战", "退出游戏")
 internal fun xiangqiVersionLabel(versionName: String): String = "版本 $versionName"
 internal fun shouldShowXiangqiUndo(winner: Side?): Boolean = winner == null
+internal fun shouldRotateXiangqiBoard(mode: GameMode, playerSide: Side): Boolean =
+    mode == GameMode.SINGLE_PLAYER && playerSide == Side.BLACK
+
+internal fun xiangqiBoardCoordinate(row: Int, col: Int, rotated: Boolean): Pair<Int, Int> {
+    require(row in 0 until XiangqiState.ROWS)
+    require(col in 0 until XiangqiState.COLS)
+    return if (rotated) {
+        XiangqiState.ROWS - 1 - row to XiangqiState.COLS - 1 - col
+    } else {
+        row to col
+    }
+}
+
+internal fun xiangqiRiverLabels(rotated: Boolean): Pair<String, String> =
+    if (rotated) "漢  界" to "楚  河" else "楚  河" to "漢  界"
 
 @Composable
 internal fun XiangqiGameLayout(
@@ -125,6 +141,7 @@ internal fun XiangqiGameLayout(
     inCheck: Boolean,
     canUndo: Boolean,
     showUndo: Boolean,
+    rotateBoard: Boolean,
     onTap: (Int, Int) -> Unit,
     onUndo: () -> Unit,
     onRestart: () -> Unit,
@@ -135,7 +152,14 @@ internal fun XiangqiGameLayout(
         BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
             if (maxWidth >= 900.dp) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                    XiangqiBoard(state, selected, onTap, Modifier.weight(1f), texture)
+                    XiangqiBoard(
+                        state,
+                        selected,
+                        onTap,
+                        Modifier.weight(1f),
+                        texture,
+                        rotated = rotateBoard
+                    )
                     Spacer(Modifier.width(34.dp))
                     XiangqiInfoRail(
                         score,
@@ -153,7 +177,14 @@ internal fun XiangqiGameLayout(
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    XiangqiBoard(state, selected, onTap, Modifier.weight(1f), texture)
+                    XiangqiBoard(
+                        state,
+                        selected,
+                        onTap,
+                        Modifier.weight(1f),
+                        texture,
+                        rotated = rotateBoard
+                    )
                     XiangqiInfoRail(
                         score,
                         status,
@@ -180,7 +211,8 @@ private fun XiangqiBoard(
     onTap: (Int, Int) -> Unit,
     modifier: Modifier,
     texture: ImageBitmap?,
-    interactive: Boolean = true
+    interactive: Boolean = true,
+    rotated: Boolean = false
 ) {
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val board = xiangqiBoardSize(maxWidth.value - 8f, maxHeight.value - 8f)
@@ -216,18 +248,25 @@ private fun XiangqiBoard(
                     }
                     Box(Modifier.size(hitWidth, hitHeight)) {
                         XiangqiGrid(stepX, stepY)
-                        RiverLabels(stepX, stepY)
+                        RiverLabels(stepX, stepY, rotated)
                         Column(Modifier.fillMaxSize()) {
                             repeat(XiangqiState.ROWS) { row ->
                                 Row {
                                     repeat(XiangqiState.COLS) { col ->
-                                        val piece = state.piece(row, col)
-                                        val isSelected = selected == row to col
+                                        val (modelRow, modelCol) =
+                                            xiangqiBoardCoordinate(row, col, rotated)
+                                        val piece = state.piece(modelRow, modelCol)
+                                        val isSelected = selected == modelRow to modelCol
                                         Box(
                                             modifier = Modifier
                                                 .size(stepX, stepY)
-                                                .semantics { contentDescription = "第${row + 1}行第${col + 1}列" }
-                                                .clickable(enabled = interactive) { onTap(row, col) },
+                                                .semantics {
+                                                    contentDescription =
+                                                        "第${modelRow + 1}行第${modelCol + 1}列"
+                                                }
+                                                .clickable(enabled = interactive) {
+                                                    onTap(modelRow, modelCol)
+                                                },
                                             contentAlignment = Alignment.Center
                                         ) {
                                             if (isSelected) SelectionHalo(stepY * 0.90f)
@@ -274,9 +313,10 @@ private fun XiangqiGrid(stepX: Dp, stepY: Dp) {
 }
 
 @Composable
-private fun RiverLabels(stepX: Dp, stepY: Dp) {
+private fun RiverLabels(stepX: Dp, stepY: Dp, rotated: Boolean) {
+    val (leftLabel, rightLabel) = xiangqiRiverLabels(rotated)
     Text(
-        "楚  河",
+        leftLabel,
         modifier = Modifier.offset(x = stepX * 1.30f, y = stepY * 5f - 17.dp),
         color = Color(0xFF292117),
         fontFamily = FontFamily.Serif,
@@ -284,7 +324,7 @@ private fun RiverLabels(stepX: Dp, stepY: Dp) {
         fontSize = 23.sp
     )
     Text(
-        "漢  界",
+        rightLabel,
         modifier = Modifier.offset(x = stepX * 5.25f, y = stepY * 5f - 17.dp),
         color = Color(0xFF292117),
         fontFamily = FontFamily.Serif,

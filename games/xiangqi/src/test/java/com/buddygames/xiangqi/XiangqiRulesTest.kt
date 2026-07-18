@@ -1,5 +1,6 @@
 package com.buddygames.xiangqi
 
+import com.buddygames.api.GameMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -10,9 +11,25 @@ import org.junit.Test
 class XiangqiRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(2, XiangqiPlugin.manifest.versionCode)
-        assertEquals("0.0.2", XiangqiPlugin.manifest.versionName)
-        assertEquals("版本 0.0.2", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+        assertEquals(3, XiangqiPlugin.manifest.versionCode)
+        assertEquals("0.0.3", XiangqiPlugin.manifest.versionName)
+        assertEquals("版本 0.0.3", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+    }
+
+    @Test
+    fun onlySinglePlayerBlackUsesRotatedBoard() {
+        assertTrue(shouldRotateXiangqiBoard(GameMode.SINGLE_PLAYER, Side.BLACK))
+        assertFalse(shouldRotateXiangqiBoard(GameMode.SINGLE_PLAYER, Side.RED))
+        assertFalse(shouldRotateXiangqiBoard(GameMode.TWO_PLAYERS, Side.BLACK))
+    }
+
+    @Test
+    fun rotatedBoardMapsVisualAndModelCoordinatesBothWays() {
+        assertEquals(9 to 8, xiangqiBoardCoordinate(0, 0, rotated = true))
+        assertEquals(0 to 0, xiangqiBoardCoordinate(9, 8, rotated = true))
+        assertEquals(4 to 6, xiangqiBoardCoordinate(4, 6, rotated = false))
+        assertEquals("漢  界" to "楚  河", xiangqiRiverLabels(rotated = true))
+        assertEquals("楚  河" to "漢  界", xiangqiRiverLabels(rotated = false))
     }
 
     @Test
