@@ -9,7 +9,8 @@ internal class ChessSearchPosition private constructor(
     private var enPassantSquare: Int,
     var halfMoveClock: Int,
     private var fullMoveNumber: Int,
-    var hash: Long
+    var hash: Long,
+    private var repetitionHash: Long
 ) {
     data class Undo(
         val from: Int,
@@ -23,6 +24,7 @@ internal class ChessSearchPosition private constructor(
         val previousHalfMoveClock: Int,
         val previousFullMoveNumber: Int,
         val previousHash: Long,
+        val previousRepetitionHash: Long,
         val rookFrom: Int,
         val rookTo: Int
     )
@@ -84,6 +86,7 @@ internal class ChessSearchPosition private constructor(
             previousHalfMoveClock = halfMoveClock,
             previousFullMoveNumber = fullMoveNumber,
             previousHash = hash,
+            previousRepetitionHash = repetitionHash,
             rookFrom = rookFrom,
             rookTo = rookTo
         )
@@ -95,8 +98,17 @@ internal class ChessSearchPosition private constructor(
             halfMoveClock,
             fullMoveNumber
         )
+        repetitionHash = repetitionHash xor repetitionMetadataHash(
+            sideToMove,
+            castlingMask,
+            enPassantSquare
+        )
         hash = hash xor pieceHash(move.from, moving)
-        if (captured != 0) hash = hash xor pieceHash(capturedSquare, captured)
+        repetitionHash = repetitionHash xor pieceHash(move.from, moving)
+        if (captured != 0) {
+            hash = hash xor pieceHash(capturedSquare, captured)
+            repetitionHash = repetitionHash xor pieceHash(capturedSquare, captured)
+        }
         board[move.from] = 0
         board[capturedSquare] = 0
 
@@ -110,13 +122,16 @@ internal class ChessSearchPosition private constructor(
         }
         board[move.to] = placed
         hash = hash xor pieceHash(move.to, placed)
+        repetitionHash = repetitionHash xor pieceHash(move.to, placed)
 
         if (castle) {
             val rook = board[rookFrom]
             hash = hash xor pieceHash(rookFrom, rook)
+            repetitionHash = repetitionHash xor pieceHash(rookFrom, rook)
             board[rookFrom] = 0
             board[rookTo] = rook
             hash = hash xor pieceHash(rookTo, rook)
+            repetitionHash = repetitionHash xor pieceHash(rookTo, rook)
         }
 
         castlingMask = updatedCastlingMask(move, moving, captured)
@@ -142,6 +157,11 @@ internal class ChessSearchPosition private constructor(
             halfMoveClock,
             fullMoveNumber
         )
+        repetitionHash = repetitionHash xor repetitionMetadataHash(
+            sideToMove,
+            castlingMask,
+            enPassantSquare
+        )
         return undo
     }
 
@@ -159,6 +179,7 @@ internal class ChessSearchPosition private constructor(
         halfMoveClock = undo.previousHalfMoveClock
         fullMoveNumber = undo.previousFullMoveNumber
         hash = undo.previousHash
+        repetitionHash = undo.previousRepetitionHash
     }
 
     fun capturedPieceValue(move: ChessMove): Int {
@@ -188,6 +209,13 @@ internal class ChessSearchPosition private constructor(
 
     fun isAutomaticDraw(): Boolean = halfMoveClock >= 100 || hasInsufficientMaterial()
 
+    fun repetitionKey(): Long =
+        if (enPassantSquare >= 0 && !hasLegalEnPassant()) {
+            repetitionHash xor mixChessHash(3_000L + fileOf(enPassantSquare))
+        } else {
+            repetitionHash
+        }
+
     fun evaluate(side: ChessSide, profile: ChessEvaluationProfile): Int {
         val absolute = evaluateForWhite(profile)
         return if (side == ChessSide.WHITE) absolute else -absolute
@@ -199,10 +227,11 @@ internal class ChessSearchPosition private constructor(
             val code = board[square]
             if (code == 0) continue
             val type = typeOf(code)
-            if (type == ChessPieceType.KING) continue
             val pieceSide = sideOf(code)
             val sign = if (pieceSide == ChessSide.WHITE) 1 else -1
-            score += sign * type.value
+            if (type != ChessPieceType.KING) {
+                score += sign * type.value
+            }
             if (profile >= ChessEvaluationProfile.PIECE_SQUARE) {
                 score += sign * pieceSquareValue(pieceSide, type, square)
             }
@@ -590,15 +619,39 @@ internal class ChessSearchPosition private constructor(
         }
     }
 
+    private fun hasLegalEnPassant(): Boolean {
+        if (enPassantSquare < 0 || board[enPassantSquare] != 0) return false
+        val movingSide = sideToMove
+        val fromRank = rankOf(enPassantSquare) + if (movingSide == ChessSide.WHITE) -1 else 1
+        if (fromRank !in 0..7) return false
+        val movingPawn = encodePiece(ChessPiece(movingSide, ChessPieceType.PAWN))
+        val capturedSquare = enPassantSquare + if (movingSide == ChessSide.WHITE) -8 else 8
+        val enemyPawn = encodePiece(ChessPiece(movingSide.other(), ChessPieceType.PAWN))
+        if (capturedSquare !in 0..63 || board[capturedSquare] != enemyPawn) return false
+
+        for (fromFile in listOf(fileOf(enPassantSquare) - 1, fileOf(enPassantSquare) + 1)) {
+            if (fromFile !in 0..7) continue
+            val from = fromRank * 8 + fromFile
+            if (board[from] != movingPawn) continue
+            val undo = makeMove(ChessMove(from, enPassantSquare))
+            val legal = !isInCheck(movingSide)
+            unmakeMove(undo)
+            if (legal) return true
+        }
+        return false
+    }
+
     companion object {
         fun from(state: ChessState): ChessSearchPosition {
             val board = IntArray(64)
             var hash = 0L
+            var repetitionHash = 0L
             state.board.forEachIndexed { square, piece ->
                 if (piece != null) {
                     val code = encodePiece(piece)
                     board[square] = code
                     hash = hash xor pieceHash(square, code)
+                    repetitionHash = repetitionHash xor pieceHash(square, code)
                 }
             }
             val castlingMask = encodeCastlingRights(state.castlingRights)
@@ -610,6 +663,11 @@ internal class ChessSearchPosition private constructor(
                 state.halfMoveClock,
                 state.fullMoveNumber
             )
+            repetitionHash = repetitionHash xor repetitionMetadataHash(
+                state.sideToMove,
+                castlingMask,
+                enPassant
+            )
             return ChessSearchPosition(
                 board = board,
                 sideToMove = state.sideToMove,
@@ -617,7 +675,8 @@ internal class ChessSearchPosition private constructor(
                 enPassantSquare = enPassant,
                 halfMoveClock = state.halfMoveClock,
                 fullMoveNumber = state.fullMoveNumber,
-                hash = hash
+                hash = hash,
+                repetitionHash = repetitionHash
             )
         }
 
@@ -654,6 +713,21 @@ internal class ChessSearchPosition private constructor(
             }
             hash = hash xor mixChessHash(4_000L + halfMoveClock.coerceAtMost(100))
             hash = hash xor mixChessHash(5_000L + fullMoveNumber.coerceAtMost(20))
+            return hash
+        }
+
+        private fun repetitionMetadataHash(
+            side: ChessSide,
+            castlingMask: Int,
+            enPassantSquare: Int
+        ): Long {
+            var hash = mixChessHash(2_000L + castlingMask)
+            if (side == ChessSide.BLACK) hash = hash xor SIDE_HASH
+            if (enPassantSquare >= 0) {
+                hash = hash xor mixChessHash(3_000L + fileOf(enPassantSquare))
+            }
+            hash = hash xor mixChessHash(4_000L)
+            hash = hash xor mixChessHash(5_001L)
             return hash
         }
 

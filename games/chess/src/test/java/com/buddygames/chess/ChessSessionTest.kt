@@ -10,9 +10,9 @@ import org.junit.Test
 class ChessSessionTest {
     @Test
     fun gameVersionAndUnifiedMenuLabelsStayAligned() {
-        assertEquals(1, ChessPlugin.manifest.versionCode)
-        assertEquals("0.0.1", ChessPlugin.manifest.versionName)
-        assertEquals("版本 0.0.1", chessVersionLabel(ChessPlugin.manifest.versionName))
+        assertEquals(2, ChessPlugin.manifest.versionCode)
+        assertEquals("0.0.2", ChessPlugin.manifest.versionName)
+        assertEquals("版本 0.0.2", chessVersionLabel(ChessPlugin.manifest.versionName))
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), chessMenuLabels())
     }
 
@@ -194,5 +194,30 @@ class ChessSessionTest {
         assertTrue(chessUsesSideBySideLayout(752f, 552f))
         assertTrue(chessUsesSideBySideLayout(1224f, 744f))
         assertFalse(chessUsesSideBySideLayout(552f, 752f))
+    }
+
+    @Test
+    fun playerCanChooseEveryStandardPromotionPiece() {
+        val state = ChessState.empty()
+            .put("e1", ChessPiece(ChessSide.WHITE, ChessPieceType.KING))
+            .put("e8", ChessPiece(ChessSide.BLACK, ChessPieceType.KING))
+            .put("a7", ChessPiece(ChessSide.WHITE, ChessPieceType.PAWN))
+        val candidates = ChessRules.legalMoves(state)
+            .filter { it.from == chessSquare("a7") && it.to == chessSquare("a8") }
+
+        assertEquals(
+            listOf(
+                ChessPieceType.QUEEN,
+                ChessPieceType.ROOK,
+                ChessPieceType.BISHOP,
+                ChessPieceType.KNIGHT
+            ),
+            chessPromotionChoices(candidates)
+        )
+        ChessPieceType.entries
+            .filter { it !in setOf(ChessPieceType.KING, ChessPieceType.PAWN) }
+            .forEach { type ->
+                assertEquals(type, chooseChessPromotion(candidates, type)?.promotion)
+            }
     }
 }

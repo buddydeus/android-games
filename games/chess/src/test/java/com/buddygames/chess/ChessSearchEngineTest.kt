@@ -255,6 +255,71 @@ class ChessSearchEngineTest {
     }
 
     @Test
+    fun repetitionKeyMatchesSessionRulesAndSearchHonorsThreeOccurrences() {
+        val state = ChessState.initial()
+            .apply(ChessMove.fromUci("g1f3"))
+            .apply(ChessMove.fromUci("g8f6"))
+            .apply(ChessMove.fromUci("f3g1"))
+            .apply(ChessMove.fromUci("f6g8"))
+        val key = chessRepetitionKey(state)
+        val uncapturableEnPassant = ChessState.initial().apply(ChessMove.fromUci("e2e4"))
+
+        assertEquals(key, ChessSearchPosition.from(state).repetitionKey())
+        assertEquals(
+            chessRepetitionKey(uncapturableEnPassant),
+            ChessSearchPosition.from(uncapturableEnPassant).repetitionKey()
+        )
+        assertEquals(
+            null,
+            ChessAi.search(
+                state = state,
+                level = 8,
+                limits = ChessSearchLimits(100_000, Long.MAX_VALUE),
+                repetitionCounts = mapOf(key to 3)
+            ).move
+        )
+    }
+
+    @Test
+    fun mateTakesPriorityWhenQuietMoveReachesFiftyMoveThreshold() {
+        val mateInOne = ChessState.empty(halfMoveClock = 99)
+            .put("f6", white(ChessPieceType.KING))
+            .put("g6", white(ChessPieceType.QUEEN))
+            .put("h8", black(ChessPieceType.KING))
+
+        assertEquals(
+            ChessMove.fromUci("g6g7"),
+            ChessAi.search(
+                mateInOne,
+                level = 8,
+                limits = ChessSearchLimits(120_000, Long.MAX_VALUE)
+            ).move
+        )
+    }
+
+    @Test
+    fun kingPieceSquareEvaluationIsActive() {
+        val state = ChessState.empty()
+            .put("d4", white(ChessPieceType.KING))
+            .put("d8", black(ChessPieceType.KING))
+        val position = ChessSearchPosition.from(state)
+
+        assertNotEquals(
+            position.evaluate(ChessSide.WHITE, ChessEvaluationProfile.MATERIAL),
+            position.evaluate(ChessSide.WHITE, ChessEvaluationProfile.PIECE_SQUARE)
+        )
+    }
+
+    @Test
+    fun initialPositionMatchesStandardPerftThroughDepthThree() {
+        val position = ChessSearchPosition.from(ChessState.initial())
+
+        assertEquals(20L, perft(position, 1))
+        assertEquals(400L, perft(position, 2))
+        assertEquals(8_902L, perft(position, 3))
+    }
+
+    @Test
     fun searchPositionMatchesRulesAndEvaluationIsSymmetric() {
         val states = listOf(
             ChessState.initial(),
@@ -289,4 +354,15 @@ class ChessSearchEngineTest {
     private fun white(type: ChessPieceType) = ChessPiece(ChessSide.WHITE, type)
 
     private fun black(type: ChessPieceType) = ChessPiece(ChessSide.BLACK, type)
+
+    private fun perft(position: ChessSearchPosition, depth: Int): Long {
+        if (depth == 0) return 1
+        var nodes = 0L
+        position.legalMoves().forEach { move ->
+            val undo = position.makeMove(move)
+            nodes += perft(position, depth - 1)
+            position.unmakeMove(undo)
+        }
+        return nodes
+    }
 }

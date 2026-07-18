@@ -44,6 +44,7 @@ internal object ChessAi {
         state: ChessState,
         level: Int,
         limits: ChessSearchLimits? = null,
+        repetitionCounts: Map<Long, Int> = emptyMap(),
         shouldStop: () -> Boolean = { false }
     ): ChessSearchResult {
         val config = ChessAiGradient.config(level)
@@ -55,13 +56,20 @@ internal object ChessAi {
             state = state,
             config = config,
             limits = effectiveLimits,
-            shouldStop = shouldStop
+            shouldStop = shouldStop,
+            repetitionCounts = repetitionCounts
         ).search()
     }
 
     fun chooseMove(
         state: ChessState,
         level: Int,
+        repetitionCounts: Map<Long, Int> = emptyMap(),
         shouldStop: () -> Boolean = { false }
-    ): ChessMove? = search(state, level, shouldStop = shouldStop).move
+    ): ChessMove? = search(
+        state,
+        level,
+        repetitionCounts = repetitionCounts,
+        shouldStop = shouldStop
+    ).move
 }

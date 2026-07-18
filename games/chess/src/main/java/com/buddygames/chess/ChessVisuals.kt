@@ -25,7 +25,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -249,6 +251,49 @@ internal fun ChessGameLayout(
 }
 
 @Composable
+internal fun ChessPromotionDialog(
+    side: ChessSide,
+    choices: List<ChessPieceType>,
+    onSelect: (ChessPieceType) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("选择升变棋子", color = Ink, fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                choices.forEach { type ->
+                    TextButton(onClick = { onSelect(type) }) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                chessPieceGlyph(ChessPiece(side, type)),
+                                color = if (side == ChessSide.WHITE) Color(0xFF5A625F) else Ink,
+                                fontFamily = FontFamily.Serif,
+                                fontSize = 34.sp
+                            )
+                            Text(type.chineseName(), color = Ink, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消", color = MutedInk)
+            }
+        },
+        shape = RoundedCornerShape(8.dp),
+        containerColor = Color(0xFFFCFDFC)
+    )
+}
+
+@Composable
 private fun ChessBoard(
     state: ChessState,
     selected: Int?,
@@ -352,7 +397,20 @@ private fun ChessBoard(
 
 @Composable
 private fun ChessPieceGlyph(piece: ChessPiece, size: Dp) {
-    val glyph = when (piece.side) {
+    val glyph = chessPieceGlyph(piece)
+    val color = if (piece.side == ChessSide.WHITE) Ivory else Color(0xFF151B1A)
+    val shadow = if (piece.side == ChessSide.WHITE) Ink else Color.White.copy(alpha = 0.35f)
+    Text(
+        text = glyph,
+        color = color,
+        fontFamily = FontFamily.Serif,
+        fontSize = (size.value * 0.72f).sp,
+        style = TextStyle(shadow = Shadow(shadow, Offset(1.5f, 2f), 2f)),
+        textAlign = TextAlign.Center
+    )
+}
+
+private fun chessPieceGlyph(piece: ChessPiece): String = when (piece.side) {
         ChessSide.WHITE -> when (piece.type) {
             ChessPieceType.KING -> "♔"
             ChessPieceType.QUEEN -> "♕"
@@ -370,17 +428,6 @@ private fun ChessPieceGlyph(piece: ChessPiece, size: Dp) {
             ChessPieceType.PAWN -> "♟"
         }
     }
-    val color = if (piece.side == ChessSide.WHITE) Ivory else Color(0xFF151B1A)
-    val shadow = if (piece.side == ChessSide.WHITE) Ink else Color.White.copy(alpha = 0.35f)
-    Text(
-        text = glyph,
-        color = color,
-        fontFamily = FontFamily.Serif,
-        fontSize = (size.value * 0.72f).sp,
-        style = TextStyle(shadow = Shadow(shadow, Offset(1.5f, 2f), 2f)),
-        textAlign = TextAlign.Center
-    )
-}
 
 @Composable
 private fun BoxScope.CoordinateLabel(

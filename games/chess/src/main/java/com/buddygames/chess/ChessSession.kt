@@ -132,6 +132,14 @@ internal fun chessIntelligenceLabel(level: Int): String {
     return "智能等级 $level"
 }
 
+internal fun chessPromotionChoices(candidates: List<ChessMove>): List<ChessPieceType> =
+    CHESS_PROMOTION_CHOICES.filter { type -> candidates.any { it.promotion == type } }
+
+internal fun chooseChessPromotion(
+    candidates: List<ChessMove>,
+    type: ChessPieceType
+): ChessMove? = candidates.firstOrNull { it.promotion == type }
+
 internal fun shouldRotateChessBoard(mode: GameMode, playerSide: ChessSide): Boolean =
     mode == GameMode.SINGLE_PLAYER && playerSide == ChessSide.BLACK
 
@@ -151,3 +159,10 @@ internal const val CHESS_LAST_MOVE_MARKER_INSET_FRACTION = 0.04f
 internal const val CHESS_LAST_MOVE_MARKER_CORNER_LENGTH_FRACTION = 0.18f
 internal const val CHESS_LAST_MOVE_MARKER_SHADOW_ARGB = 0x70115C93L
 internal const val CHESS_LAST_MOVE_MARKER_HIGHLIGHT_ARGB = 0xB84FCBFFL
+
+private val CHESS_PROMOTION_CHOICES = listOf(
+    ChessPieceType.QUEEN,
+    ChessPieceType.ROOK,
+    ChessPieceType.BISHOP,
+    ChessPieceType.KNIGHT
+)

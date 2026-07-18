@@ -41,6 +41,7 @@ class ChessPlugin : GamePlugin {
         var repetitions by remember { mutableStateOf(initialRound.repetitionCounts) }
         var score by remember { mutableStateOf(ChessScore()) }
         var history by remember { mutableStateOf(emptyList<ChessSnapshot>()) }
+        var pendingPromotionMoves by remember { mutableStateOf(emptyList<ChessMove>()) }
         var searchGeneration by remember { mutableStateOf(0) }
 
         fun applyMove(move: ChessMove) {
@@ -55,6 +56,7 @@ class ChessPlugin : GamePlugin {
             result = nextResult
             lastMove = move
             selected = null
+            pendingPromotionMoves = emptyList()
             if (nextResult != null) {
                 score = score.record(nextResult, mode, playerSide)
             }
@@ -64,8 +66,25 @@ class ChessPlugin : GamePlugin {
             if (result == null) ChessRules.legalMoves(state) else emptyList()
         }
 
+        fun commitPlayerMove(move: ChessMove) {
+            history = history + ChessSnapshot(
+                state,
+                result,
+                score,
+                lastMove,
+                repetitions
+            )
+            applyMove(move)
+        }
+
         fun tap(square: Int) {
-            if (result != null || needsChessRobotTurn(mode, state, playerSide, result)) return
+            if (
+                result != null ||
+                pendingPromotionMoves.isNotEmpty() ||
+                needsChessRobotTurn(mode, state, playerSide, result)
+            ) {
+                return
+            }
             val piece = state.board[square]
             val currentSelection = selected
             if (currentSelection == null) {
@@ -73,17 +92,10 @@ class ChessPlugin : GamePlugin {
                 return
             }
             val candidates = legalMoves.filter { it.from == currentSelection && it.to == square }
-            val move = candidates.firstOrNull { it.promotion == ChessPieceType.QUEEN }
-                ?: candidates.firstOrNull()
-            if (move != null) {
-                history = history + ChessSnapshot(
-                    state,
-                    result,
-                    score,
-                    lastMove,
-                    repetitions
-                )
-                applyMove(move)
+            if (chessPromotionChoices(candidates).size > 1) {
+                pendingPromotionMoves = candidates
+            } else if (candidates.isNotEmpty()) {
+                commitPlayerMove(candidates.first())
             } else {
                 selected = if (piece?.side == state.sideToMove) square else null
             }
@@ -92,6 +104,7 @@ class ChessPlugin : GamePlugin {
         fun undo() {
             val undo = undoChess(history) ?: return
             searchGeneration++
+            pendingPromotionMoves = emptyList()
             state = undo.snapshot.state
             selected = null
             result = undo.snapshot.result
@@ -103,6 +116,7 @@ class ChessPlugin : GamePlugin {
 
         fun restart() {
             searchGeneration++
+            pendingPromotionMoves = emptyList()
             val nextPlayerSide = if (mode == GameMode.SINGLE_PLAYER) {
                 nextChessPlayerSide(playerSide, result)
             } else {
@@ -130,11 +144,13 @@ class ChessPlugin : GamePlugin {
         ) {
             if (!needsChessRobotTurn(mode, state, playerSide, result)) return@LaunchedEffect
             val requestedState = state
+            val requestedRepetitions = repetitions
             val requestedGeneration = searchGeneration
             val robotMove = withContext(Dispatchers.Default) {
                 ChessAi.chooseMove(
                     requestedState,
                     intelligenceLevel,
+                    repetitionCounts = requestedRepetitions,
                     shouldStop = { !isActive }
                 )
             }
@@ -183,14 +199,24 @@ class ChessPlugin : GamePlugin {
                 onReturn = context::returnToGameMain
             )
         }
+        if (pendingPromotionMoves.isNotEmpty()) {
+            ChessPromotionDialog(
+                side = state.sideToMove,
+                choices = chessPromotionChoices(pendingPromotionMoves),
+                onSelect = { type ->
+                    chooseChessPromotion(pendingPromotionMoves, type)?.let(::commitPlayerMove)
+                },
+                onDismiss = { pendingPromotionMoves = emptyList() }
+            )
+        }
     }
 
     companion object {
         val manifest = GameManifest(
             gameId = "chess",
             displayName = "国际象棋",
-            versionCode = 1,
-            versionName = "0.0.1",
+            versionCode = 2,
+            versionName = "0.0.2",
             entryClass = "com.buddygames.chess.ChessPlugin",
             minShellApi = 1,
             icon = "assets/icon.txt"

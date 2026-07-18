@@ -66,7 +66,8 @@ internal class ChessSearchEngine(
     state: ChessState,
     private val config: ChessAiLevelConfig,
     private val limits: ChessSearchLimits,
-    private val shouldStop: () -> Boolean
+    private val shouldStop: () -> Boolean,
+    repetitionCounts: Map<Long, Int> = emptyMap()
 ) {
     private val position = ChessSearchPosition.from(state)
     private val rootSide = state.sideToMove
@@ -74,14 +75,18 @@ internal class ChessSearchEngine(
     private val transposition = ChessTranspositionTable(TRANSPOSITION_SIZE)
     private val killerMoves = Array(MAX_PLY) { arrayOfNulls<ChessMove>(2) }
     private val history = IntArray(64 * 64)
+    private val repetitions = repetitionCounts.toMutableMap().apply {
+        val rootKey = position.repetitionKey()
+        if (rootKey !in this) this[rootKey] = 1
+    }
 
     fun search(): ChessSearchResult {
         val startedAt = System.nanoTime()
-        if (position.isAutomaticDraw()) {
-            return result(null, 0, startedAt, ChessSearchStopReason.COMPLETED)
-        }
         var rootMoves = orderedMoves(ply = 0)
         if (rootMoves.isEmpty()) {
+            return result(null, 0, startedAt, ChessSearchStopReason.COMPLETED)
+        }
+        if (isDrawByRule()) {
             return result(null, 0, startedAt, ChessSearchStopReason.COMPLETED)
         }
         if (context.shouldAbort()) {
@@ -119,10 +124,10 @@ internal class ChessSearchEngine(
     private fun findImmediateMate(moves: List<ChessMove>): ChessMove? {
         for (move in moves) {
             if (context.enterNode()) return null
-            val undo = position.makeMove(move)
+            val undo = makeMove(move)
             val opponent = position.sideToMove
             val mate = position.isInCheck(opponent) && position.legalMoves().isEmpty()
-            position.unmakeMove(undo)
+            unmakeMove(undo)
             if (mate) return move
         }
         return null
@@ -136,9 +141,9 @@ internal class ChessSearchEngine(
         var alpha = -INFINITY
         for (move in moves) {
             if (context.enterNode()) return null
-            val undo = position.makeMove(move)
+            val undo = makeMove(move)
             val score = -negamax(depth - 1, -INFINITY, -alpha, ply = 1)
-            position.unmakeMove(undo)
+            unmakeMove(undo)
             if (context.aborted) return null
             scored += move to score
             if (score > alpha) alpha = score
@@ -151,7 +156,6 @@ internal class ChessSearchEngine(
 
     private fun negamax(depth: Int, alpha: Int, beta: Int, ply: Int): Int {
         if (context.shouldAbort()) return 0
-        if (position.isAutomaticDraw()) return 0
         val side = position.sideToMove
         if (depth <= 0) {
             return quiescence(alpha, beta, ply, config.quiescenceDepth)
@@ -180,15 +184,16 @@ internal class ChessSearchEngine(
                 0
             }
         }
+        if (isDrawByRule()) return 0
 
         var best = -INFINITY
         var bestMove: ChessMove? = null
         for (move in moves) {
             if (context.enterNode()) return 0
             val capture = position.capturedPieceValue(move) > 0
-            val undo = position.makeMove(move)
+            val undo = makeMove(move)
             val score = -negamax(depth - 1, -currentBeta, -currentAlpha, ply + 1)
-            position.unmakeMove(undo)
+            unmakeMove(undo)
             if (context.aborted) return 0
             if (score > best) {
                 best = score
@@ -221,11 +226,11 @@ internal class ChessSearchEngine(
 
     private fun quiescence(alpha: Int, beta: Int, ply: Int, remainingDepth: Int): Int {
         if (context.shouldAbort()) return 0
-        if (position.isAutomaticDraw()) return 0
         val side = position.sideToMove
         val inCheck = position.isInCheck(side)
         var moves = orderedMoves(ply)
         if (moves.isEmpty()) return if (inCheck) -MATE_SCORE + ply else 0
+        if (isDrawByRule()) return 0
         var currentAlpha = alpha
         if (!inCheck) {
             val standPat = position.evaluate(side, config.evaluationProfile)
@@ -243,9 +248,9 @@ internal class ChessSearchEngine(
         }
         for (move in moves) {
             if (context.enterNode()) return currentAlpha
-            val undo = position.makeMove(move)
+            val undo = makeMove(move)
             val score = -quiescence(-beta, -currentAlpha, ply + 1, remainingDepth - 1)
-            position.unmakeMove(undo)
+            unmakeMove(undo)
             if (context.aborted) return currentAlpha
             if (score >= beta) return score
             if (score > currentAlpha) currentAlpha = score
@@ -261,6 +266,23 @@ internal class ChessSearchEngine(
             }.thenBy { it.toUci() }
         )
     }
+
+    private fun makeMove(move: ChessMove): ChessSearchPosition.Undo {
+        val undo = position.makeMove(move)
+        val key = position.repetitionKey()
+        repetitions[key] = (repetitions[key] ?: 0) + 1
+        return undo
+    }
+
+    private fun unmakeMove(undo: ChessSearchPosition.Undo) {
+        val key = position.repetitionKey()
+        val count = repetitions.getValue(key)
+        if (count == 1) repetitions.remove(key) else repetitions[key] = count - 1
+        position.unmakeMove(undo)
+    }
+
+    private fun isDrawByRule(): Boolean =
+        position.isAutomaticDraw() || (repetitions[position.repetitionKey()] ?: 0) >= 3
 
     private fun moveOrderScore(move: ChessMove, ply: Int, preferred: ChessMove?): Int {
         if (move == preferred) return PREFERRED_MOVE_SCORE
