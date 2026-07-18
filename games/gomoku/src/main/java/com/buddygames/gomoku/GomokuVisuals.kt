@@ -60,6 +60,7 @@ private val Ivory = Color(0xFFF8F8F4)
 @Composable
 internal fun GomokuMenu(
     texture: ImageBitmap?,
+    versionName: String,
     onSingle: () -> Unit,
     onTwo: () -> Unit,
     onExit: () -> Unit
@@ -80,12 +81,12 @@ internal fun GomokuMenu(
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     GomokuBoard(preview, { _, _ -> }, Modifier.weight(1f), texture, interactive = false)
                     Spacer(Modifier.width(34.dp))
-                    GomokuMenuPanel(onSingle, onTwo, onExit, Modifier.width(310.dp))
+                    GomokuMenuPanel(versionName, onSingle, onTwo, onExit, Modifier.width(310.dp))
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     GomokuBoard(preview, { _, _ -> }, Modifier.weight(1f), texture, interactive = false)
-                    GomokuMenuPanel(onSingle, onTwo, onExit, Modifier.fillMaxWidth())
+                    GomokuMenuPanel(versionName, onSingle, onTwo, onExit, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -94,6 +95,7 @@ internal fun GomokuMenu(
 
 @Composable
 private fun GomokuMenuPanel(
+    versionName: String,
     onSingle: () -> Unit,
     onTwo: () -> Unit,
     onExit: () -> Unit,
@@ -105,6 +107,8 @@ private fun GomokuMenuPanel(
             Text("五子棋", color = Ink, fontFamily = FontFamily.Serif, fontSize = 44.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text("十五路 · 连珠", color = Walnut, fontSize = 15.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(gomokuVersionLabel(versionName), color = Walnut, fontSize = 12.sp)
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             MenuButton(labels[0], Teal, Color.White, onSingle)
@@ -115,6 +119,8 @@ private fun GomokuMenuPanel(
 }
 
 internal fun gomokuMenuLabels(): List<String> = listOf("单人模式", "双人对战", "退出游戏")
+internal fun gomokuVersionLabel(versionName: String): String = "版本 $versionName"
+internal fun shouldShowGomokuUndo(winner: Stone?): Boolean = winner == null
 
 @Composable
 internal fun GomokuGameLayout(
@@ -122,7 +128,10 @@ internal fun GomokuGameLayout(
     status: String,
     score: String,
     gameOver: Boolean,
+    canUndo: Boolean,
+    showUndo: Boolean,
     onPlay: (Int, Int) -> Unit,
+    onUndo: () -> Unit,
     onRestart: () -> Unit,
     onExit: () -> Unit,
     texture: ImageBitmap?
@@ -133,12 +142,32 @@ internal fun GomokuGameLayout(
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     GomokuBoard(state, onPlay, Modifier.weight(1f), texture)
                     Spacer(Modifier.width(34.dp))
-                    GomokuInfoRail(score, status, gameOver, onRestart, onExit, Modifier.width(300.dp).fillMaxHeight(0.88f))
+                    GomokuInfoRail(
+                        score,
+                        status,
+                        gameOver,
+                        canUndo,
+                        showUndo,
+                        onUndo,
+                        onRestart,
+                        onExit,
+                        Modifier.width(300.dp).fillMaxHeight(0.88f)
+                    )
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     GomokuBoard(state, onPlay, Modifier.weight(1f), texture)
-                    GomokuInfoRail(score, status, gameOver, onRestart, onExit, Modifier.fillMaxWidth())
+                    GomokuInfoRail(
+                        score,
+                        status,
+                        gameOver,
+                        canUndo,
+                        showUndo,
+                        onUndo,
+                        onRestart,
+                        onExit,
+                        Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
@@ -246,6 +275,9 @@ private fun GomokuInfoRail(
     score: String,
     status: String,
     gameOver: Boolean,
+    canUndo: Boolean,
+    showUndo: Boolean,
+    onUndo: () -> Unit,
     onRestart: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier
@@ -265,6 +297,9 @@ private fun GomokuInfoRail(
         HorizontalDivider(color = Color(0xFFB9C0BD))
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (gameOver) MenuButton("重新开始", Teal, Color.White, onRestart)
+            if (showUndo) {
+                MenuButton("悔棋", Color.Transparent, Ink, onUndo, outlined = true, enabled = canUndo)
+            }
             MenuButton("退出游戏", Color.Transparent, Ink, onExit, outlined = true)
         }
     }
@@ -286,13 +321,25 @@ private fun MaterialPanel(modifier: Modifier, content: @Composable ColumnScope.(
 }
 
 @Composable
-private fun MenuButton(label: String, container: Color, content: Color, onClick: () -> Unit, outlined: Boolean = false) {
+private fun MenuButton(
+    label: String,
+    container: Color,
+    content: Color,
+    onClick: () -> Unit,
+    outlined: Boolean = false,
+    enabled: Boolean = true
+) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth().height(54.dp),
         shape = RoundedCornerShape(7.dp),
         colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = content),
-        border = if (outlined) BorderStroke(1.dp, content.copy(alpha = 0.42f)) else null
+        border = if (outlined) {
+            BorderStroke(1.dp, content.copy(alpha = if (enabled) 0.42f else 0.16f))
+        } else {
+            null
+        }
     ) { Text(label, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
 }
 

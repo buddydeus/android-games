@@ -16,10 +16,68 @@ internal data class OthelloScore(
 
 internal data class OthelloRound(
     val state: OthelloState,
+    val turn: Disc,
+    val playerDisc: Disc
+)
+
+internal data class OthelloTurnState(
+    val state: OthelloState,
     val turn: Disc
 )
 
-internal fun newOthelloRound(): OthelloRound = OthelloRound(
-    state = OthelloState.initial(),
-    turn = Disc.BLACK
+internal data class OthelloSnapshot(
+    val state: OthelloState,
+    val turn: Disc,
+    val score: OthelloScore
 )
+
+internal data class OthelloUndo(
+    val snapshot: OthelloSnapshot,
+    val remainingHistory: List<OthelloSnapshot>
+)
+
+internal fun undoOthello(history: List<OthelloSnapshot>): OthelloUndo? {
+    val snapshot = history.lastOrNull() ?: return null
+    return OthelloUndo(snapshot, history.dropLast(1))
+}
+
+internal fun nextOthelloPlayerDisc(currentPlayer: Disc, winner: Disc?): Disc = when {
+    winner == currentPlayer -> currentPlayer.other()
+    winner == currentPlayer.other() -> Disc.BLACK
+    else -> currentPlayer
+}
+
+internal fun advanceOthelloSinglePlayer(
+    state: OthelloState,
+    nextTurn: Disc,
+    playerDisc: Disc
+): OthelloTurnState {
+    var currentState = state
+    var currentTurn = nextTurn
+    while (!OthelloRules.isGameOver(currentState)) {
+        val legalMoves = OthelloRules.legalMoves(currentState, currentTurn)
+        if (legalMoves.isEmpty()) {
+            currentTurn = currentTurn.other()
+        } else if (currentTurn == playerDisc) {
+            return OthelloTurnState(currentState, currentTurn)
+        } else {
+            val robotMove = requireNotNull(OthelloRules.robotMove(currentState, currentTurn))
+            currentState = OthelloRules.applyMove(currentState, robotMove, currentTurn)
+            currentTurn = currentTurn.other()
+        }
+    }
+    return OthelloTurnState(currentState, currentTurn)
+}
+
+internal fun newOthelloRound(playerDisc: Disc = Disc.BLACK): OthelloRound {
+    val opening = advanceOthelloSinglePlayer(
+        state = OthelloState.initial(),
+        nextTurn = Disc.BLACK,
+        playerDisc = playerDisc
+    )
+    return OthelloRound(
+        state = opening.state,
+        turn = opening.turn,
+        playerDisc = playerDisc
+    )
+}

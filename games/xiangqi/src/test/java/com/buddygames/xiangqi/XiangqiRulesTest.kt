@@ -2,10 +2,26 @@ package com.buddygames.xiangqi
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class XiangqiRulesTest {
+    @Test
+    fun gameVersionAndMainMenuLabelStayAligned() {
+        assertEquals(2, XiangqiPlugin.manifest.versionCode)
+        assertEquals("0.0.2", XiangqiPlugin.manifest.versionName)
+        assertEquals("版本 0.0.2", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+    }
+
+    @Test
+    fun undoButtonHidesAfterEitherSideWins() {
+        assertTrue(shouldShowXiangqiUndo(null))
+        assertFalse(shouldShowXiangqiUndo(Side.RED))
+        assertFalse(shouldShowXiangqiUndo(Side.BLACK))
+    }
+
     @Test
     fun menuUsesUnifiedGameModeLabels() {
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), xiangqiMenuLabels())
@@ -26,10 +42,56 @@ class XiangqiRulesTest {
     fun newRoundRestoresInitialBoardRedTurnAndNoSelection() {
         val round = newXiangqiRound()
 
+        assertEquals(Side.RED, round.playerSide)
         assertEquals(Side.RED, round.turn)
         assertEquals(XiangqiState.initial(), round.state)
         assertEquals(null, round.selected)
         assertEquals(null, round.winner)
+    }
+
+    @Test
+    fun singlePlayerVictorySwitchesSidesForNextRound() {
+        assertEquals(Side.BLACK, nextXiangqiPlayerSide(Side.RED, Side.RED))
+        assertEquals(Side.RED, nextXiangqiPlayerSide(Side.BLACK, Side.BLACK))
+    }
+
+    @Test
+    fun singlePlayerDefeatAlwaysRestartsAsFirstPlayer() {
+        assertEquals(Side.RED, nextXiangqiPlayerSide(Side.RED, Side.BLACK))
+        assertEquals(Side.RED, nextXiangqiPlayerSide(Side.BLACK, Side.RED))
+    }
+
+    @Test
+    fun blackPlayerRoundStartsAfterRedRobotOpening() {
+        val round = newXiangqiRound(Side.BLACK)
+
+        assertEquals(Side.BLACK, round.playerSide)
+        assertEquals(Side.BLACK, round.turn)
+        assertFalse(round.state == XiangqiState.initial())
+        assertEquals(null, round.selected)
+        assertEquals(null, round.winner)
+    }
+
+    @Test
+    fun undoRestoresLatestPositionIncludingScore() {
+        val first = XiangqiSnapshot(
+            state = XiangqiState.initial(),
+            turn = Side.RED,
+            winner = null,
+            score = XiangqiScore()
+        )
+        val move = XiangqiMove(6, 0, 5, 0)
+        val second = first.copy(
+            state = first.state.apply(move),
+            turn = Side.BLACK,
+            score = XiangqiScore(red = 2, black = 1)
+        )
+
+        val undo = undoXiangqi(listOf(first, second))
+
+        assertEquals(second, undo?.snapshot)
+        assertEquals(listOf(first), undo?.remainingHistory)
+        assertNull(undoXiangqi(emptyList()))
     }
 
     @Test
@@ -128,6 +190,68 @@ class XiangqiRulesTest {
             .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
 
         assertEquals(XiangqiMove(5, 4, 0, 4), XiangqiRules.robotMove(state, Side.RED))
+    }
+
+    @Test
+    fun moveCannotExposeOwnGeneralToCheck() {
+        val state = XiangqiState.empty()
+            .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+            .put(5, 4, XiangqiPiece(Side.BLACK, PieceType.ROOK))
+            .put(7, 4, XiangqiPiece(Side.RED, PieceType.ROOK))
+            .put(9, 4, XiangqiPiece(Side.RED, PieceType.GENERAL))
+
+        assertFalse(
+            XiangqiRules.isLegalMove(
+                state,
+                XiangqiMove(7, 4, 7, 3),
+                Side.RED
+            )
+        )
+    }
+
+    @Test
+    fun checkmateWinsWithoutCapturingGeneral() {
+        val state = XiangqiState.empty()
+            .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+            .put(1, 4, XiangqiPiece(Side.BLACK, PieceType.SOLDIER))
+            .put(2, 3, XiangqiPiece(Side.RED, PieceType.ROOK))
+            .put(2, 4, XiangqiPiece(Side.RED, PieceType.ROOK))
+            .put(2, 5, XiangqiPiece(Side.RED, PieceType.ROOK))
+            .put(9, 4, XiangqiPiece(Side.RED, PieceType.GENERAL))
+        val mate = XiangqiMove(2, 4, 1, 4)
+
+        assertEquals(Side.RED, XiangqiRules.winnerAfterMove(state, mate))
+    }
+
+    @Test
+    fun robotChoosesCheckmateOverCapturingValuablePiece() {
+        val state = XiangqiState.empty()
+            .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+            .put(1, 4, XiangqiPiece(Side.BLACK, PieceType.SOLDIER))
+            .put(2, 0, XiangqiPiece(Side.BLACK, PieceType.ROOK))
+            .put(2, 3, XiangqiPiece(Side.RED, PieceType.ROOK))
+            .put(2, 4, XiangqiPiece(Side.RED, PieceType.ROOK))
+            .put(2, 5, XiangqiPiece(Side.RED, PieceType.ROOK))
+            .put(9, 4, XiangqiPiece(Side.RED, PieceType.GENERAL))
+
+        assertEquals(
+            XiangqiMove(2, 4, 1, 4),
+            XiangqiRules.robotMove(state, Side.RED)
+        )
+    }
+
+    @Test
+    fun robotAvoidsPawnCaptureThatImmediatelyLosesRook() {
+        val trappedCapture = XiangqiMove(4, 0, 4, 3)
+        val state = XiangqiState.empty()
+            .put(0, 4, XiangqiPiece(Side.BLACK, PieceType.GENERAL))
+            .put(3, 4, XiangqiPiece(Side.BLACK, PieceType.SOLDIER))
+            .put(4, 0, XiangqiPiece(Side.BLACK, PieceType.ROOK))
+            .put(4, 3, XiangqiPiece(Side.RED, PieceType.SOLDIER))
+            .put(5, 3, XiangqiPiece(Side.RED, PieceType.ROOK))
+            .put(9, 4, XiangqiPiece(Side.RED, PieceType.GENERAL))
+
+        assertNotEquals(trappedCapture, XiangqiRules.robotMove(state, Side.BLACK))
     }
 
     @Test

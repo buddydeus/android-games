@@ -77,6 +77,11 @@ data class XiangqiState(val board: List<List<XiangqiPiece?>>) {
 
 object XiangqiRules {
     fun isLegalMove(state: XiangqiState, move: XiangqiMove, side: Side): Boolean {
+        if (!isPseudoLegalMove(state, move, side)) return false
+        return !isInCheck(state.apply(move), side)
+    }
+
+    private fun isPseudoLegalMove(state: XiangqiState, move: XiangqiMove, side: Side): Boolean {
         if (move.toRow !in 0 until XiangqiState.ROWS || move.toCol !in 0 until XiangqiState.COLS) return false
         val piece = state.piece(move.fromRow, move.fromCol) ?: return false
         if (piece.side != side) return false
@@ -112,7 +117,7 @@ object XiangqiRules {
 
     fun robotMove(state: XiangqiState, side: Side): XiangqiMove? {
         return legalMoves(state, side)
-            .sortedWith(compareByDescending<XiangqiMove> { state.piece(it.toRow, it.toCol)?.type?.value ?: 0 }
+            .sortedWith(compareByDescending<XiangqiMove> { robotMoveScore(state, it, side) }
                 .thenBy { it.fromRow }
                 .thenBy { it.fromCol }
                 .thenBy { it.toRow }
@@ -123,7 +128,9 @@ object XiangqiRules {
     fun winnerAfterMove(state: XiangqiState, move: XiangqiMove): Side? {
         val mover = state.piece(move.fromRow, move.fromCol)?.side ?: return null
         val captured = state.piece(move.toRow, move.toCol)
-        return if (captured?.type == PieceType.GENERAL) mover else null
+        if (captured?.type == PieceType.GENERAL) return mover
+        val nextState = state.apply(move)
+        return if (legalMoves(nextState, mover.other()).isEmpty()) mover else null
     }
 
     fun isInCheck(state: XiangqiState, side: Side): Boolean {
@@ -133,10 +140,74 @@ object XiangqiRules {
             }
         }.firstOrNull() ?: return false
 
-        return legalMoves(state, side.other()).any { move ->
-            move.toRow == general.first && move.toCol == general.second
+        val opponent = side.other()
+        return state.board.anyIndexed { row, cells ->
+            cells.anyIndexed { col, piece ->
+                piece?.side == opponent &&
+                    isPseudoLegalMove(
+                        state,
+                        XiangqiMove(row, col, general.first, general.second),
+                        opponent
+                    )
+            }
         }
     }
+
+    private fun robotMoveScore(state: XiangqiState, move: XiangqiMove, side: Side): Int {
+        val captured = state.piece(move.toRow, move.toCol)
+        if (captured?.type == PieceType.GENERAL) return WIN_SCORE
+
+        val nextState = state.apply(move)
+        val opponent = side.other()
+        val opponentMoves = legalMoves(nextState, opponent)
+        if (opponentMoves.isEmpty()) return WIN_SCORE - 1
+
+        val captureScore = (captured?.type?.value ?: 0) * CAPTURE_WEIGHT
+        val checkScore = if (isInCheck(nextState, opponent)) CHECK_SCORE else 0
+        val materialScore = materialBalance(nextState, side) * MATERIAL_WEIGHT
+        val opponentThreat = opponentMoves.maxOf { reply ->
+            immediateReplyThreat(nextState, reply, opponent, side)
+        }
+        return captureScore + checkScore + materialScore - opponentThreat
+    }
+
+    private fun immediateReplyThreat(
+        state: XiangqiState,
+        move: XiangqiMove,
+        mover: Side,
+        targetSide: Side
+    ): Int {
+        val captured = state.piece(move.toRow, move.toCol)
+        if (captured?.type == PieceType.GENERAL) return WIN_SCORE
+        val nextState = state.apply(move)
+        val captureThreat = (captured?.type?.value ?: 0) * REPLY_CAPTURE_WEIGHT
+        val checkThreat = if (isInCheck(nextState, targetSide)) REPLY_CHECK_SCORE else 0
+        return captureThreat + checkThreat + materialBalance(nextState, mover)
+    }
+
+    private fun materialBalance(state: XiangqiState, side: Side): Int {
+        var score = 0
+        state.board.forEach { row ->
+            row.forEach { piece ->
+                if (piece != null) {
+                    score += if (piece.side == side) piece.type.value else -piece.type.value
+                }
+            }
+        }
+        return score
+    }
+
+    private inline fun <T> List<T>.anyIndexed(predicate: (Int, T) -> Boolean): Boolean {
+        forEachIndexed { index, value -> if (predicate(index, value)) return true }
+        return false
+    }
+
+    private const val WIN_SCORE = 1_000_000
+    private const val CHECK_SCORE = 4_000
+    private const val REPLY_CHECK_SCORE = 1_200
+    private const val CAPTURE_WEIGHT = 40
+    private const val REPLY_CAPTURE_WEIGHT = 45
+    private const val MATERIAL_WEIGHT = 4
 
     private fun screensBetween(state: XiangqiState, move: XiangqiMove): Int {
         val rowStep = move.toRow.compareTo(move.fromRow)

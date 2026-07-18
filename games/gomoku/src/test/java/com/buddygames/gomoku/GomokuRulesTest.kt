@@ -1,10 +1,26 @@
 package com.buddygames.gomoku
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GomokuRulesTest {
+    @Test
+    fun gameVersionAndMainMenuLabelStayAligned() {
+        assertEquals(2, GomokuPlugin.manifest.versionCode)
+        assertEquals("0.0.2", GomokuPlugin.manifest.versionName)
+        assertEquals("版本 0.0.2", gomokuVersionLabel(GomokuPlugin.manifest.versionName))
+    }
+
+    @Test
+    fun undoButtonHidesAfterEitherSideWins() {
+        assertTrue(shouldShowGomokuUndo(null))
+        assertFalse(shouldShowGomokuUndo(Stone.BLACK))
+        assertFalse(shouldShowGomokuUndo(Stone.WHITE))
+    }
+
     @Test
     fun menuUsesUnifiedGameModeLabels() {
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), gomokuMenuLabels())
@@ -25,9 +41,56 @@ class GomokuRulesTest {
     fun newRoundResetsBoardAndFirstTurn() {
         val round = newGomokuRound()
 
+        assertEquals(Stone.BLACK, round.playerStone)
         assertEquals(Stone.BLACK, round.turn)
         assertNull(round.winner)
         assertEquals(0, round.state.legalMoves().let { GomokuState.SIZE * GomokuState.SIZE - it.size })
+    }
+
+    @Test
+    fun singlePlayerVictorySwitchesSidesForNextRound() {
+        assertEquals(Stone.WHITE, nextGomokuPlayerStone(Stone.BLACK, Stone.BLACK))
+        assertEquals(Stone.BLACK, nextGomokuPlayerStone(Stone.WHITE, Stone.WHITE))
+    }
+
+    @Test
+    fun singlePlayerDefeatAlwaysRestartsAsFirstPlayer() {
+        assertEquals(Stone.BLACK, nextGomokuPlayerStone(Stone.BLACK, Stone.WHITE))
+        assertEquals(Stone.BLACK, nextGomokuPlayerStone(Stone.WHITE, Stone.BLACK))
+    }
+
+    @Test
+    fun whitePlayerRoundStartsAfterBlackRobotOpening() {
+        val round = newGomokuRound(Stone.WHITE)
+
+        assertEquals(Stone.WHITE, round.playerStone)
+        assertEquals(Stone.WHITE, round.turn)
+        assertEquals(Stone.BLACK, round.state.cell(7, 7))
+        assertEquals(
+            1,
+            GomokuState.SIZE * GomokuState.SIZE - round.state.legalMoves().size
+        )
+    }
+
+    @Test
+    fun undoRestoresLatestPositionIncludingScore() {
+        val first = GomokuSnapshot(
+            state = GomokuState.empty(),
+            turn = Stone.BLACK,
+            winner = null,
+            score = GomokuScore()
+        )
+        val second = first.copy(
+            state = first.state.place(7, 7, Stone.BLACK),
+            turn = Stone.WHITE,
+            score = GomokuScore(black = 2, white = 1)
+        )
+
+        val undo = undoGomoku(listOf(first, second))
+
+        assertEquals(second, undo?.snapshot)
+        assertEquals(listOf(first), undo?.remainingHistory)
+        assertNull(undoGomoku(emptyList()))
     }
 
     @Test

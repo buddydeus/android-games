@@ -35,6 +35,8 @@ internal fun homeGamePresentation(gameId: String): HomeGamePresentation = when (
     else -> HomeGamePresentation(HomeGameLogo.Generic, Int.MAX_VALUE)
 }
 
+internal fun gameCenterVersionLabel(versionName: String): String = "版本 $versionName"
+
 internal fun homeGameLayout(widthDp: Float, heightDp: Float): HomeGameLayout {
     if (widthDp < 600 || heightDp > widthDp) {
         return HomeGameLayout(

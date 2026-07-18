@@ -69,6 +69,7 @@ class OthelloPlugin : GamePlugin {
         }
         OthelloMenu(
             texture = texture,
+            versionName = context.gamePackage.manifest.versionName,
             onSingle = { context.startGame(GameMode.SINGLE_PLAYER) },
             onTwo = { context.startGame(GameMode.TWO_PLAYERS) },
             onExit = context::exitGame
@@ -83,35 +84,58 @@ class OthelloPlugin : GamePlugin {
         val initialRound = remember { newOthelloRound() }
         var state by remember { mutableStateOf(initialRound.state) }
         var turn by remember { mutableStateOf(initialRound.turn) }
+        var playerDisc by remember { mutableStateOf(initialRound.playerDisc) }
         var score by remember { mutableStateOf(OthelloScore()) }
+        var history by remember { mutableStateOf(emptyList<OthelloSnapshot>()) }
 
-        fun advanceAfterMove(nextState: OthelloState, nextTurn: Disc): Pair<OthelloState, Disc> {
-            if (mode == GameMode.SINGLE_PLAYER && nextTurn == Disc.WHITE && !OthelloRules.isGameOver(nextState)) {
-                val robot = OthelloRules.robotMove(nextState, Disc.WHITE)
-                val robotState = if (robot == null) nextState else OthelloRules.applyMove(nextState, robot, Disc.WHITE)
-                return robotState to Disc.BLACK
-            }
+        fun advanceTwoPlayer(nextState: OthelloState, nextTurn: Disc): OthelloTurnState {
             val legalForNext = OthelloRules.legalMoves(nextState, nextTurn)
-            return if (legalForNext.isEmpty() && !OthelloRules.isGameOver(nextState)) nextState to nextTurn.other() else nextState to nextTurn
+            val resolvedTurn = if (legalForNext.isEmpty() && !OthelloRules.isGameOver(nextState)) {
+                nextTurn.other()
+            } else {
+                nextTurn
+            }
+            return OthelloTurnState(nextState, resolvedTurn)
         }
 
         fun play(row: Int, col: Int) {
             if (OthelloRules.isGameOver(state)) return
+            if (mode == GameMode.SINGLE_PLAYER && turn != playerDisc) return
             val move = OthelloMove(row, col)
             if (move !in OthelloRules.legalMoves(state, turn)) return
+            history = history + OthelloSnapshot(state, turn, score)
             val nextState = OthelloRules.applyMove(state, move, turn)
-            val advanced = advanceAfterMove(nextState, turn.other())
-            state = advanced.first
-            turn = advanced.second
+            val advanced = if (mode == GameMode.SINGLE_PLAYER) {
+                advanceOthelloSinglePlayer(nextState, turn.other(), playerDisc)
+            } else {
+                advanceTwoPlayer(nextState, turn.other())
+            }
+            state = advanced.state
+            turn = advanced.turn
             if (OthelloRules.isGameOver(state)) {
                 score = score.record(OthelloRules.winner(state))
             }
         }
 
+        fun undo() {
+            val undo = undoOthello(history) ?: return
+            state = undo.snapshot.state
+            turn = undo.snapshot.turn
+            score = undo.snapshot.score
+            history = undo.remainingHistory
+        }
+
         fun restart() {
-            val round = newOthelloRound()
+            val nextPlayerDisc = if (mode == GameMode.SINGLE_PLAYER) {
+                nextOthelloPlayerDisc(playerDisc, OthelloRules.winner(state))
+            } else {
+                Disc.BLACK
+            }
+            val round = newOthelloRound(nextPlayerDisc)
             state = round.state
             turn = round.turn
+            playerDisc = round.playerDisc
+            history = emptyList()
         }
 
         val gameOver = OthelloRules.isGameOver(state)
@@ -119,11 +143,14 @@ class OthelloPlugin : GamePlugin {
             OthelloGameLayout(
                 state = state,
                 turn = turn,
-                status = statusText(state, turn, mode),
+                status = statusText(state, turn, playerDisc, mode),
                 score = score.displayText,
                 gameOver = gameOver,
+                canUndo = history.isNotEmpty(),
+                showUndo = shouldShowOthelloUndo(gameOver, OthelloRules.winner(state)),
                 showLegalMoveHints = showOthelloLegalMoveHints(mode),
                 onPlay = ::play,
+                onUndo = ::undo,
                 onRestart = ::restart,
                 onExit = context::exitGame,
                 texture = texture
@@ -131,7 +158,12 @@ class OthelloPlugin : GamePlugin {
         }
     }
 
-    private fun statusText(state: OthelloState, turn: Disc, mode: GameMode): String {
+    private fun statusText(
+        state: OthelloState,
+        turn: Disc,
+        playerDisc: Disc,
+        mode: GameMode
+    ): String {
         if (OthelloRules.isGameOver(state)) {
             return when (OthelloRules.winner(state)) {
                 Disc.BLACK -> "黑方胜"
@@ -140,7 +172,7 @@ class OthelloPlugin : GamePlugin {
             }
         }
         return if (mode == GameMode.SINGLE_PLAYER) {
-            "你的回合 · 执黑"
+            "你的回合 · 执${if (playerDisc == Disc.BLACK) "黑" else "白"}"
         } else {
             "当前回合：${if (turn == Disc.BLACK) "黑方" else "白方"}"
         }
@@ -150,8 +182,8 @@ class OthelloPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "othello",
             displayName = "黑白棋",
-            versionCode = 1,
-            versionName = "1.0.0",
+            versionCode = 2,
+            versionName = "0.0.2",
             entryClass = "com.buddygames.othello.OthelloPlugin",
             minShellApi = 1,
             icon = "assets/icon.txt"

@@ -56,19 +56,25 @@ private val Vermilion = Color(0xFFA2362B)
 private val Ivory = Color(0xFFF8F8F4)
 
 @Composable
-internal fun OthelloMenu(texture: ImageBitmap?, onSingle: () -> Unit, onTwo: () -> Unit, onExit: () -> Unit) {
+internal fun OthelloMenu(
+    texture: ImageBitmap?,
+    versionName: String,
+    onSingle: () -> Unit,
+    onTwo: () -> Unit,
+    onExit: () -> Unit
+) {
     GameBackdrop {
         BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
             if (maxWidth >= 900.dp) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     OthelloBoard(OthelloState.initial(), Disc.BLACK, { _, _ -> }, Modifier.weight(1f), texture, interactive = false)
                     Spacer(Modifier.width(34.dp))
-                    OthelloMenuPanel(onSingle, onTwo, onExit, Modifier.width(310.dp))
+                    OthelloMenuPanel(versionName, onSingle, onTwo, onExit, Modifier.width(310.dp))
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     OthelloBoard(OthelloState.initial(), Disc.BLACK, { _, _ -> }, Modifier.weight(1f), texture, interactive = false)
-                    OthelloMenuPanel(onSingle, onTwo, onExit, Modifier.fillMaxWidth())
+                    OthelloMenuPanel(versionName, onSingle, onTwo, onExit, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -76,13 +82,21 @@ internal fun OthelloMenu(texture: ImageBitmap?, onSingle: () -> Unit, onTwo: () 
 }
 
 @Composable
-private fun OthelloMenuPanel(onSingle: () -> Unit, onTwo: () -> Unit, onExit: () -> Unit, modifier: Modifier) {
+private fun OthelloMenuPanel(
+    versionName: String,
+    onSingle: () -> Unit,
+    onTwo: () -> Unit,
+    onExit: () -> Unit,
+    modifier: Modifier
+) {
     val labels = othelloMenuLabels()
     MaterialPanel(modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("黑白棋", color = Ink, fontFamily = FontFamily.Serif, fontSize = 44.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text("八路 · 反转棋", color = Green, fontSize = 15.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(othelloVersionLabel(versionName), color = Green, fontSize = 12.sp)
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             MenuButton(labels[0], Teal, Color.White, onSingle)
@@ -93,6 +107,9 @@ private fun OthelloMenuPanel(onSingle: () -> Unit, onTwo: () -> Unit, onExit: ()
 }
 
 internal fun othelloMenuLabels(): List<String> = listOf("单人模式", "双人对战", "退出游戏")
+internal fun othelloVersionLabel(versionName: String): String = "版本 $versionName"
+internal fun shouldShowOthelloUndo(gameOver: Boolean, winner: Disc?): Boolean =
+    !gameOver || winner == null
 
 @Composable
 internal fun OthelloGameLayout(
@@ -101,8 +118,11 @@ internal fun OthelloGameLayout(
     status: String,
     score: String,
     gameOver: Boolean,
+    canUndo: Boolean,
+    showUndo: Boolean,
     showLegalMoveHints: Boolean,
     onPlay: (Int, Int) -> Unit,
+    onUndo: () -> Unit,
     onRestart: () -> Unit,
     onExit: () -> Unit,
     texture: ImageBitmap?
@@ -120,7 +140,18 @@ internal fun OthelloGameLayout(
                         showLegalMoveHints = showLegalMoveHints
                     )
                     Spacer(Modifier.width(34.dp))
-                    OthelloInfoRail(state, score, status, gameOver, onRestart, onExit, Modifier.width(300.dp).fillMaxHeight(0.88f))
+                    OthelloInfoRail(
+                        state,
+                        score,
+                        status,
+                        gameOver,
+                        canUndo,
+                        showUndo,
+                        onUndo,
+                        onRestart,
+                        onExit,
+                        Modifier.width(300.dp).fillMaxHeight(0.88f)
+                    )
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -132,7 +163,18 @@ internal fun OthelloGameLayout(
                         texture,
                         showLegalMoveHints = showLegalMoveHints
                     )
-                    OthelloInfoRail(state, score, status, gameOver, onRestart, onExit, Modifier.fillMaxWidth())
+                    OthelloInfoRail(
+                        state,
+                        score,
+                        status,
+                        gameOver,
+                        canUndo,
+                        showUndo,
+                        onUndo,
+                        onRestart,
+                        onExit,
+                        Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
@@ -252,6 +294,9 @@ private fun OthelloInfoRail(
     score: String,
     status: String,
     gameOver: Boolean,
+    canUndo: Boolean,
+    showUndo: Boolean,
+    onUndo: () -> Unit,
     onRestart: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier
@@ -275,6 +320,9 @@ private fun OthelloInfoRail(
         HorizontalDivider(color = Color(0xFFB9C0BD))
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (gameOver) MenuButton("重新开始", Teal, Color.White, onRestart)
+            if (showUndo) {
+                MenuButton("悔棋", Color.Transparent, Ink, onUndo, outlined = true, enabled = canUndo)
+            }
             MenuButton("退出游戏", Color.Transparent, Ink, onExit, outlined = true)
         }
     }
@@ -304,13 +352,25 @@ private fun MaterialPanel(modifier: Modifier, content: @Composable ColumnScope.(
 }
 
 @Composable
-private fun MenuButton(label: String, container: Color, content: Color, onClick: () -> Unit, outlined: Boolean = false) {
+private fun MenuButton(
+    label: String,
+    container: Color,
+    content: Color,
+    onClick: () -> Unit,
+    outlined: Boolean = false,
+    enabled: Boolean = true
+) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth().height(54.dp),
         shape = RoundedCornerShape(7.dp),
         colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = content),
-        border = if (outlined) BorderStroke(1.dp, content.copy(alpha = 0.42f)) else null
+        border = if (outlined) {
+            BorderStroke(1.dp, content.copy(alpha = if (enabled) 0.42f else 0.16f))
+        } else {
+            null
+        }
     ) { Text(label, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
 }
 

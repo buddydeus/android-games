@@ -5,6 +5,11 @@ import org.junit.Test
 
 class HomeGamePresentationTest {
     @Test
+    fun gameCenterVersionUsesReadableHomeLabel() {
+        assertEquals("版本 0.0.1", gameCenterVersionLabel("0.0.1"))
+    }
+
+    @Test
     fun builtInGamesUseDesignOrderAndVectorLogos() {
         assertEquals(HomeGameLogo.Gomoku, homeGamePresentation("gomoku").logo)
         assertEquals(0, homeGamePresentation("gomoku").order)

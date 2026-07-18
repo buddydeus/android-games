@@ -82,6 +82,7 @@ class XiangqiPlugin : GamePlugin {
         }
         XiangqiMenu(
             texture = texture,
+            versionName = context.gamePackage.manifest.versionName,
             onSingle = { context.startGame(GameMode.SINGLE_PLAYER) },
             onTwo = { context.startGame(GameMode.TWO_PLAYERS) },
             onExit = context::exitGame
@@ -98,7 +99,9 @@ class XiangqiPlugin : GamePlugin {
         var turn by remember { mutableStateOf(initialRound.turn) }
         var selected by remember { mutableStateOf(initialRound.selected) }
         var winner by remember { mutableStateOf(initialRound.winner) }
+        var playerSide by remember { mutableStateOf(initialRound.playerSide) }
         var score by remember { mutableStateOf(XiangqiScore()) }
+        var history by remember { mutableStateOf(emptyList<XiangqiSnapshot>()) }
 
         fun applyMove(move: XiangqiMove) {
             winner = XiangqiRules.winnerAfterMove(state, move)
@@ -106,13 +109,14 @@ class XiangqiPlugin : GamePlugin {
             selected = null
             if (winner != null) score = score.record(winner)
             if (winner == null && mode == GameMode.SINGLE_PLAYER) {
-                val robot = XiangqiRules.robotMove(state, Side.BLACK)
+                val robotSide = playerSide.other()
+                val robot = XiangqiRules.robotMove(state, robotSide)
                 if (robot != null) {
                     winner = XiangqiRules.winnerAfterMove(state, robot)
                     state = state.apply(robot)
                     if (winner != null) score = score.record(winner)
                 }
-                turn = Side.RED
+                turn = playerSide
             } else if (winner == null) {
                 turn = turn.other()
             }
@@ -120,6 +124,7 @@ class XiangqiPlugin : GamePlugin {
 
         fun tap(row: Int, col: Int) {
             if (winner != null) return
+            if (mode == GameMode.SINGLE_PLAYER && turn != playerSide) return
             val piece = state.piece(row, col)
             val currentSelection = selected
             if (currentSelection == null) {
@@ -128,18 +133,36 @@ class XiangqiPlugin : GamePlugin {
             }
             val move = XiangqiMove(currentSelection.first, currentSelection.second, row, col)
             if (XiangqiRules.isLegalMove(state, move, turn)) {
+                history = history + XiangqiSnapshot(state, turn, winner, score)
                 applyMove(move)
             } else {
                 selected = if (piece?.side == turn) row to col else null
             }
         }
 
+        fun undo() {
+            val undo = undoXiangqi(history) ?: return
+            state = undo.snapshot.state
+            turn = undo.snapshot.turn
+            selected = null
+            winner = undo.snapshot.winner
+            score = undo.snapshot.score
+            history = undo.remainingHistory
+        }
+
         fun restart() {
-            val round = newXiangqiRound()
+            val nextPlayerSide = if (mode == GameMode.SINGLE_PLAYER) {
+                nextXiangqiPlayerSide(playerSide, winner)
+            } else {
+                Side.RED
+            }
+            val round = newXiangqiRound(nextPlayerSide)
             state = round.state
             turn = round.turn
             selected = round.selected
             winner = round.winner
+            playerSide = round.playerSide
+            history = emptyList()
         }
 
         val inCheck = winner == null && XiangqiRules.isInCheck(state, turn)
@@ -147,12 +170,15 @@ class XiangqiPlugin : GamePlugin {
             XiangqiGameLayout(
                 state = state,
                 selected = selected,
-                status = statusText(winner, turn, mode),
+                status = statusText(winner, turn, playerSide, mode),
                 turn = turn,
                 score = score.displayText,
                 gameOver = winner != null,
                 inCheck = inCheck,
+                canUndo = history.isNotEmpty(),
+                showUndo = shouldShowXiangqiUndo(winner),
                 onTap = ::tap,
+                onUndo = ::undo,
                 onRestart = ::restart,
                 onExit = context::exitGame,
                 texture = texture
@@ -160,10 +186,15 @@ class XiangqiPlugin : GamePlugin {
         }
     }
 
-    private fun statusText(winner: Side?, turn: Side, mode: GameMode): String {
+    private fun statusText(
+        winner: Side?,
+        turn: Side,
+        playerSide: Side,
+        mode: GameMode
+    ): String {
         winner?.let { return if (it == Side.RED) "红方胜" else "黑方胜" }
         return if (mode == GameMode.SINGLE_PLAYER) {
-            "你的回合 · 执红"
+            "你的回合 · 执${if (playerSide == Side.RED) "红" else "黑"}"
         } else {
             "当前回合：${if (turn == Side.RED) "红方" else "黑方"}"
         }
@@ -173,8 +204,8 @@ class XiangqiPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "xiangqi",
             displayName = "象棋",
-            versionCode = 1,
-            versionName = "1.0.0",
+            versionCode = 2,
+            versionName = "0.0.2",
             entryClass = "com.buddygames.xiangqi.XiangqiPlugin",
             minShellApi = 1,
             icon = "assets/icon.txt"

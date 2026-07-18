@@ -68,6 +68,7 @@ import com.buddygames.api.GameContext
 import com.buddygames.api.GameMode
 import com.buddygames.api.GamePackage
 import com.buddygames.api.GamePlugin
+import com.buddygames.center.BuildConfig
 import com.buddygames.center.loader.DexGamePluginLoader
 import com.buddygames.center.packages.GamePackageRepository
 import java.io.File
@@ -233,7 +234,11 @@ private fun GameCenterHome(
         }
 
         Column(Modifier.fillMaxSize()) {
-            HomeTopBar(onImport = onImport, compact = compact)
+            HomeTopBar(
+                versionName = BuildConfig.VERSION_NAME,
+                onImport = onImport,
+                compact = compact
+            )
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -282,6 +287,7 @@ private fun GameCenterHome(
 
 @Composable
 private fun HomeTopBar(
+    versionName: String,
     onImport: () -> Unit,
     compact: Boolean
 ) {
@@ -296,12 +302,19 @@ private fun HomeTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "游戏中心",
-            color = Ink,
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = "游戏中心",
+                color = Ink,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = gameCenterVersionLabel(versionName),
+                color = MutedInk,
+                fontSize = 12.sp
+            )
+        }
         ImportButton(
             label = if (compact) "导入" else "导入游戏包",
             onClick = onImport

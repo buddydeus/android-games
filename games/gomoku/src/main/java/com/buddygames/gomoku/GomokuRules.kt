@@ -54,6 +54,7 @@ object GomokuRules {
         openFourCreatingMove(state, robot.other())?.let { return it }
         return state.legalMoves()
             .sortedWith(compareByDescending<GomokuMove> { neighborCount(state, it) }
+                .thenBy { centerDistance(it) }
                 .thenBy { it.row }
                 .thenBy { it.col })
             .first()
@@ -112,5 +113,10 @@ object GomokuRules {
             if (state.cell(move.row + dr, move.col + dc) != null) count++
         }
         return count
+    }
+
+    private fun centerDistance(move: GomokuMove): Int {
+        val center = GomokuState.SIZE / 2
+        return kotlin.math.abs(move.row - center) + kotlin.math.abs(move.col - center)
     }
 }

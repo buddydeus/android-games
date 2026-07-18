@@ -16,6 +16,19 @@ Each game implements `GamePlugin`:
 
 Manifest validation lives in `GameManifest.isValidForShell()`. Required fields: `gameId` (lowercase slug), `displayName`, `versionCode`, `versionName`, `entryClass`, `minShellApi <= CURRENT_SHELL_API`, `orientation = "landscape"`.
 
+## Game versions
+
+Each game has an independent version beginning at `versionCode = 1` and `versionName = "0.0.1"`. `MainScreen` must display the plugin manifest's `versionName`.
+
+For every update to a game's rules, robot, UI, or package assets:
+
+1. Increment that game's integer `versionCode`.
+2. Increment its semantic `versionName`.
+3. Keep the values in the `*Plugin.manifest` and `games/<name>/package/manifest.json` identical.
+4. Update the game's version regression test and build the game package.
+
+Shell-only changes do not increment game versions. Never reuse an older `versionCode`; the package repository rejects downgrades.
+
 ## Package layout
 
 Each game module has a source tree plus a static package directory:

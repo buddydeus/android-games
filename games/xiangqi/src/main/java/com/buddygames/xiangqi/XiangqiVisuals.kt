@@ -62,6 +62,7 @@ private val Ivory = Color(0xFFF9FAF7)
 @Composable
 internal fun XiangqiMenu(
     texture: ImageBitmap?,
+    versionName: String,
     onSingle: () -> Unit,
     onTwo: () -> Unit,
     onExit: () -> Unit
@@ -72,12 +73,12 @@ internal fun XiangqiMenu(
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     XiangqiBoard(XiangqiState.initial(), null, { _, _ -> }, Modifier.weight(1f), texture, false)
                     Spacer(Modifier.width(34.dp))
-                    XiangqiMenuPanel(onSingle, onTwo, onExit, Modifier.width(310.dp))
+                    XiangqiMenuPanel(versionName, onSingle, onTwo, onExit, Modifier.width(310.dp))
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     XiangqiBoard(XiangqiState.initial(), null, { _, _ -> }, Modifier.weight(1f), texture, false)
-                    XiangqiMenuPanel(onSingle, onTwo, onExit, Modifier.fillMaxWidth())
+                    XiangqiMenuPanel(versionName, onSingle, onTwo, onExit, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -86,6 +87,7 @@ internal fun XiangqiMenu(
 
 @Composable
 private fun XiangqiMenuPanel(
+    versionName: String,
     onSingle: () -> Unit,
     onTwo: () -> Unit,
     onExit: () -> Unit,
@@ -97,6 +99,8 @@ private fun XiangqiMenuPanel(
             Text("象棋", color = Ink, fontFamily = FontFamily.Serif, fontSize = 44.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text("楚河 · 漢界", color = Cinnabar, fontSize = 15.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(xiangqiVersionLabel(versionName), color = Cinnabar, fontSize = 12.sp)
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             MenuButton(labels[0], Cinnabar, Color.White, onSingle)
@@ -107,6 +111,8 @@ private fun XiangqiMenuPanel(
 }
 
 internal fun xiangqiMenuLabels(): List<String> = listOf("单人模式", "双人对战", "退出游戏")
+internal fun xiangqiVersionLabel(versionName: String): String = "版本 $versionName"
+internal fun shouldShowXiangqiUndo(winner: Side?): Boolean = winner == null
 
 @Composable
 internal fun XiangqiGameLayout(
@@ -117,7 +123,10 @@ internal fun XiangqiGameLayout(
     score: String,
     gameOver: Boolean,
     inCheck: Boolean,
+    canUndo: Boolean,
+    showUndo: Boolean,
     onTap: (Int, Int) -> Unit,
+    onUndo: () -> Unit,
     onRestart: () -> Unit,
     onExit: () -> Unit,
     texture: ImageBitmap?
@@ -134,6 +143,9 @@ internal fun XiangqiGameLayout(
                         turn,
                         gameOver,
                         inCheck,
+                        canUndo,
+                        showUndo,
+                        onUndo,
                         onRestart,
                         onExit,
                         Modifier.width(300.dp).fillMaxHeight(0.88f)
@@ -142,7 +154,19 @@ internal fun XiangqiGameLayout(
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     XiangqiBoard(state, selected, onTap, Modifier.weight(1f), texture)
-                    XiangqiInfoRail(score, status, turn, gameOver, inCheck, onRestart, onExit, Modifier.fillMaxWidth())
+                    XiangqiInfoRail(
+                        score,
+                        status,
+                        turn,
+                        gameOver,
+                        inCheck,
+                        canUndo,
+                        showUndo,
+                        onUndo,
+                        onRestart,
+                        onExit,
+                        Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
@@ -325,6 +349,9 @@ private fun XiangqiInfoRail(
     turn: Side,
     gameOver: Boolean,
     inCheck: Boolean,
+    canUndo: Boolean,
+    showUndo: Boolean,
+    onUndo: () -> Unit,
     onRestart: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier
@@ -376,6 +403,9 @@ private fun XiangqiInfoRail(
         HorizontalDivider(color = Color(0xFFB9C0BD))
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (gameOver) MenuButton("重新开始", Cinnabar, Color.White, onRestart)
+            if (showUndo) {
+                MenuButton("悔棋", Color.Transparent, Ink, onUndo, outlined = true, enabled = canUndo)
+            }
             ExitButton(onExit)
         }
     }
@@ -430,13 +460,25 @@ private fun MaterialPanel(modifier: Modifier, content: @Composable ColumnScope.(
 }
 
 @Composable
-private fun MenuButton(label: String, container: Color, content: Color, onClick: () -> Unit, outlined: Boolean = false) {
+private fun MenuButton(
+    label: String,
+    container: Color,
+    content: Color,
+    onClick: () -> Unit,
+    outlined: Boolean = false,
+    enabled: Boolean = true
+) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth().height(54.dp),
         shape = RoundedCornerShape(7.dp),
         colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = content),
-        border = if (outlined) BorderStroke(1.dp, content.copy(alpha = 0.42f)) else null
+        border = if (outlined) {
+            BorderStroke(1.dp, content.copy(alpha = if (enabled) 0.42f else 0.16f))
+        } else {
+            null
+        }
     ) { Text(label, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
 }
 

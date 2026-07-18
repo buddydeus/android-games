@@ -10,11 +10,22 @@ Gradle multi-module layout: `app` (shell), `game-api` (shell↔game contract), `
 
 Current game behavior:
 
+- The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
+- The game-center shell has an independent Android version starting at `versionCode = 1` and `versionName = 0.0.1`; the home top bar displays `BuildConfig.VERSION_NAME`.
 - All game menus use `单人模式`, `双人对战`, and `退出游戏`.
+- Every game owns an independent version starting at `0.0.1`, and its main menu displays `GameManifest.versionName`.
 - All games own their rules, robot, UI, score state, and restart flow inside their game module.
+- All game side rails expose `悔棋` while no winner exists, and hide it after either side wins; an Othello draw keeps the undo action. Single-player undo restores the snapshot before the player's last move and the following robot response; two-player undo restores one move. Undo also restores score and winner state, while restart clears the history.
+- In single-player mode, a player win swaps sides for the next round, a player loss restores the player to the first-moving side, and the robot opens immediately when the player becomes second. A draw keeps the current side; two-player restart behavior stays fixed-first.
 - Gomoku uses a 15×15 intersection board. Its robot priority is: win immediately, block an immediate five (including closed four), block moves that create at least two immediate winning points (continuous or broken open three), then use the positional fallback.
 - Othello hides robot hint points in two-player mode.
-- Xiangqi uses intersection placement, colors the active side in the turn display, and shows `将军` in the side panel when applicable.
+- Xiangqi uses intersection placement, filters moves that expose the moving side's general, recognizes capture and checkmate wins, colors the active side in the turn display, and shows `将军` in the side panel when applicable. Its robot prioritizes immediate wins and checks, then discounts captures that allow a stronger immediate reply.
+
+Current design direction:
+
+- `designs/specs/android-games-home.md` defines the light mineral-grey, matte-porcelain home screen with three equal-size game buttons and code-drawn game marks.
+- `designs/specs/android-games-family-versus-logo.md` records the approved game-center brand Logo: two face-to-face players around a shared game table. Root `logo.svg` and all launcher resources must preserve the user-selected 1254×1254 artwork without cropping or reinterpretation.
+- The approved app-icon artwork is a 1254×1254 source embedded byte-for-byte in root `logo.svg`; `AppIconResourcesTest` guards its SHA-256 plus legacy/adaptive launcher resource wiring.
 
 ## Environment
 
@@ -63,8 +74,14 @@ Run from repository root:
 ### Always do
 
 - Run `npm run verify` before claiming work complete (unless change is docs-only).
+- Increment `app/build.gradle.kts` `versionCode` and semantic `versionName` for every game-center shell feature, UI, resource, package-management, or loader update. Game-only changes do not increment the shell version.
 - Scope game logic/UI to the relevant `games/<name>/` module.
+- Increment only the touched game's `versionCode` and semantic `versionName` for every rules, robot, UI, or package-asset update. Keep the plugin manifest and `games/<name>/package/manifest.json` exactly aligned.
 - Keep robot strategy and its regression tests in the same game module; threat-priority changes must include deterministic board-state tests.
+- Xiangqi AI changes must preserve safe-move filtering and cover immediate general capture, checkmate preference, and poisoned-capture avoidance.
+- Keep single-player side-selection and opening-turn rules in each game's session model; restart behavior changes must cover player win, player loss, and robot opening as second-player tests.
+- Record undo snapshots immediately before legal player actions, include score and terminal state in each snapshot, and keep the initial robot opening outside undo history.
+- Keep undo-button visibility separate from undo availability: hide it only when a winner exists, and keep Othello draws undoable.
 - Keep `game-api` backward-compatible or update every `games/*` plugin in the same change.
 - Run targeted unit tests for touched modules (see Commands).
 - Match existing Kotlin + Compose style in neighboring files.
@@ -111,10 +128,14 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md) | Product scope, architecture, non-goals |
 | [docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md](docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md) | MVP task breakdown and file map |
 | [docs/agents/game-plugins.md](docs/agents/game-plugins.md) | GamePlugin contract, zip layout, adding a game |
+| [designs/specs/android-games-home.md](designs/specs/android-games-home.md) | Current home-screen visual SSOT |
+| [designs/specs/android-games-family-versus-logo.md](designs/specs/android-games-family-versus-logo.md) | Approved family-versus Logo and launcher-icon SSOT |
 
 ## Done checklist
 
 - [ ] Targeted module unit tests pass
 - [ ] `npm run verify` passes
 - [ ] No secrets or build artifacts staged
+- [ ] If `app/` changed, the game-center `versionCode` and `versionName` were incremented together
+- [ ] Each touched game has matching, incremented versions in plugin code and `package/manifest.json`
 - [ ] If `game-api` changed, all three games still build and load

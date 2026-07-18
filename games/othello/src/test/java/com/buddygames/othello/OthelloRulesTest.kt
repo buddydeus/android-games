@@ -3,10 +3,26 @@ package com.buddygames.othello
 import com.buddygames.api.GameMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OthelloRulesTest {
+    @Test
+    fun gameVersionAndMainMenuLabelStayAligned() {
+        assertEquals(2, OthelloPlugin.manifest.versionCode)
+        assertEquals("0.0.2", OthelloPlugin.manifest.versionName)
+        assertEquals("版本 0.0.2", othelloVersionLabel(OthelloPlugin.manifest.versionName))
+    }
+
+    @Test
+    fun undoButtonHidesAfterWinButRemainsForDraw() {
+        assertTrue(shouldShowOthelloUndo(gameOver = false, winner = Disc.BLACK))
+        assertFalse(shouldShowOthelloUndo(gameOver = true, winner = Disc.BLACK))
+        assertFalse(shouldShowOthelloUndo(gameOver = true, winner = Disc.WHITE))
+        assertTrue(shouldShowOthelloUndo(gameOver = true, winner = null))
+    }
+
     @Test
     fun menuUsesUnifiedGameModeLabels() {
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), othelloMenuLabels())
@@ -33,8 +49,52 @@ class OthelloRulesTest {
     fun newRoundRestoresInitialBoardAndBlackTurn() {
         val round = newOthelloRound()
 
+        assertEquals(Disc.BLACK, round.playerDisc)
         assertEquals(Disc.BLACK, round.turn)
         assertEquals(OthelloState.initial(), round.state)
+    }
+
+    @Test
+    fun singlePlayerVictorySwitchesSidesForNextRound() {
+        assertEquals(Disc.WHITE, nextOthelloPlayerDisc(Disc.BLACK, Disc.BLACK))
+        assertEquals(Disc.BLACK, nextOthelloPlayerDisc(Disc.WHITE, Disc.WHITE))
+    }
+
+    @Test
+    fun singlePlayerDefeatAlwaysRestartsAsFirstPlayer() {
+        assertEquals(Disc.BLACK, nextOthelloPlayerDisc(Disc.BLACK, Disc.WHITE))
+        assertEquals(Disc.BLACK, nextOthelloPlayerDisc(Disc.WHITE, Disc.BLACK))
+    }
+
+    @Test
+    fun whitePlayerRoundStartsAfterBlackRobotOpening() {
+        val round = newOthelloRound(Disc.WHITE)
+
+        assertEquals(Disc.WHITE, round.playerDisc)
+        assertEquals(Disc.WHITE, round.turn)
+        assertEquals(4, round.state.count(Disc.BLACK))
+        assertEquals(1, round.state.count(Disc.WHITE))
+    }
+
+    @Test
+    fun undoRestoresLatestPositionIncludingScore() {
+        val first = OthelloSnapshot(
+            state = OthelloState.initial(),
+            turn = Disc.BLACK,
+            score = OthelloScore()
+        )
+        val moved = OthelloRules.applyMove(first.state, OthelloMove(2, 3), Disc.BLACK)
+        val second = first.copy(
+            state = moved,
+            turn = Disc.WHITE,
+            score = OthelloScore(black = 3, white = 2)
+        )
+
+        val undo = undoOthello(listOf(first, second))
+
+        assertEquals(second, undo?.snapshot)
+        assertEquals(listOf(first), undo?.remainingHistory)
+        assertNull(undoOthello(emptyList()))
     }
 
     @Test

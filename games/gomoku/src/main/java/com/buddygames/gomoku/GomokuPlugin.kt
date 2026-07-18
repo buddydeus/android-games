@@ -72,6 +72,7 @@ class GomokuPlugin : GamePlugin {
         }
         GomokuMenu(
             texture = texture,
+            versionName = context.gamePackage.manifest.versionName,
             onSingle = { context.startGame(GameMode.SINGLE_PLAYER) },
             onTwo = { context.startGame(GameMode.TWO_PLAYERS) },
             onExit = context::exitGame
@@ -87,40 +88,64 @@ class GomokuPlugin : GamePlugin {
         var state by remember { mutableStateOf(initialRound.state) }
         var turn by remember { mutableStateOf(initialRound.turn) }
         var winner by remember { mutableStateOf(initialRound.winner) }
+        var playerStone by remember { mutableStateOf(initialRound.playerStone) }
         var score by remember { mutableStateOf(GomokuScore()) }
+        var history by remember { mutableStateOf(emptyList<GomokuSnapshot>()) }
 
         fun play(row: Int, col: Int) {
             if (winner != null || state.legalMoves().isEmpty() || state.cell(row, col) != null) return
+            if (mode == GameMode.SINGLE_PLAYER && turn != playerStone) return
+            history = history + GomokuSnapshot(state, turn, winner, score)
             state = state.place(row, col, turn)
             winner = GomokuRules.winner(state)
             if (winner != null) {
                 score = score.record(winner)
             } else if (state.legalMoves().isNotEmpty() && mode == GameMode.SINGLE_PLAYER) {
-                val robot = GomokuRules.robotMove(state, Stone.WHITE)
-                state = state.place(robot.row, robot.col, Stone.WHITE)
+                val robotStone = playerStone.other()
+                val robot = GomokuRules.robotMove(state, robotStone)
+                state = state.place(robot.row, robot.col, robotStone)
                 winner = GomokuRules.winner(state)
                 if (winner != null) score = score.record(winner)
-                turn = Stone.BLACK
+                turn = playerStone
             } else if (winner == null) {
                 turn = turn.other()
             }
         }
 
+        fun undo() {
+            val undo = undoGomoku(history) ?: return
+            state = undo.snapshot.state
+            turn = undo.snapshot.turn
+            winner = undo.snapshot.winner
+            score = undo.snapshot.score
+            history = undo.remainingHistory
+        }
+
         fun restart() {
-            val round = newGomokuRound()
+            val nextPlayerStone = if (mode == GameMode.SINGLE_PLAYER) {
+                nextGomokuPlayerStone(playerStone, winner)
+            } else {
+                Stone.BLACK
+            }
+            val round = newGomokuRound(nextPlayerStone)
             state = round.state
             turn = round.turn
             winner = round.winner
+            playerStone = round.playerStone
+            history = emptyList()
         }
 
         val gameOver = winner != null || state.legalMoves().isEmpty()
         Surface(Modifier.fillMaxSize(), color = GomokuPaper) {
             GomokuGameLayout(
                 state = state,
-                status = statusText(winner, turn, mode, gameOver),
+                status = statusText(winner, turn, playerStone, mode, gameOver),
                 score = score.displayText,
                 gameOver = gameOver,
+                canUndo = history.isNotEmpty(),
+                showUndo = shouldShowGomokuUndo(winner),
                 onPlay = ::play,
+                onUndo = ::undo,
                 onRestart = ::restart,
                 onExit = context::exitGame,
                 texture = texture
@@ -128,11 +153,17 @@ class GomokuPlugin : GamePlugin {
         }
     }
 
-    private fun statusText(winner: Stone?, turn: Stone, mode: GameMode, gameOver: Boolean): String {
+    private fun statusText(
+        winner: Stone?,
+        turn: Stone,
+        playerStone: Stone,
+        mode: GameMode,
+        gameOver: Boolean
+    ): String {
         winner?.let { return if (it == Stone.BLACK) "黑方胜" else "白方胜" }
         if (gameOver) return "平局"
         return if (mode == GameMode.SINGLE_PLAYER) {
-            "你的回合 · 执黑"
+            "你的回合 · 执${if (playerStone == Stone.BLACK) "黑" else "白"}"
         } else {
             "当前回合：${if (turn == Stone.BLACK) "黑方" else "白方"}"
         }
@@ -142,8 +173,8 @@ class GomokuPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "gomoku",
             displayName = "五子棋",
-            versionCode = 1,
-            versionName = "1.0.0",
+            versionCode = 2,
+            versionName = "0.0.2",
             entryClass = "com.buddygames.gomoku.GomokuPlugin",
             minShellApi = 1,
             icon = "assets/icon.txt"
