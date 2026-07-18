@@ -35,6 +35,21 @@ class ChessSearchEngineTest {
         assertEquals(listOf(6, 5, 4, 3, 1, 1, 1, 1, 1, 1), configs.map { it.candidatePool })
         assertEquals(listOf(60, 45, 30, 15, 0, 0, 0, 0, 0, 0), configs.map { it.suboptimalPercent })
         assertEquals(listOf(0, 0, 0, 1, 1, 1, 2, 2, 3, 4), configs.map { it.quiescenceDepth })
+        assertEquals(
+            listOf(
+                ChessEvaluationProfile.MATERIAL,
+                ChessEvaluationProfile.PIECE_SQUARE,
+                ChessEvaluationProfile.ACTIVITY,
+                ChessEvaluationProfile.FULL,
+                ChessEvaluationProfile.FULL,
+                ChessEvaluationProfile.FULL,
+                ChessEvaluationProfile.FULL,
+                ChessEvaluationProfile.FULL_WITH_QUIESCENCE,
+                ChessEvaluationProfile.FULL_WITH_QUIESCENCE,
+                ChessEvaluationProfile.FULL_WITH_QUIESCENCE
+            ),
+            configs.map { it.evaluationProfile }
+        )
         assertTrue(configs.zipWithNext().all { (lower, higher) ->
             lower.maxDepth <= higher.maxDepth &&
                 lower.nodeBudget <= higher.nodeBudget &&
@@ -156,6 +171,90 @@ class ChessSearchEngineTest {
     }
 
     @Test
+    fun cancellationWinsOverImmediateMateScan() {
+        val mateInOne = ChessState.empty()
+            .put("f6", white(ChessPieceType.KING))
+            .put("g6", white(ChessPieceType.QUEEN))
+            .put("h8", black(ChessPieceType.KING))
+
+        val cancelled = ChessAi.search(
+            mateInOne,
+            level = 10,
+            limits = ChessSearchLimits(Int.MAX_VALUE, Long.MAX_VALUE),
+            shouldStop = { true }
+        )
+
+        assertEquals(ChessSearchStopReason.CANCELLED, cancelled.stats.stopReason)
+        assertTrue(cancelled.move in ChessRules.legalMoves(mateInOne))
+    }
+
+    @Test
+    fun interruptedSearchPreservesLastCompletedIteration() {
+        val result = ChessAi.search(
+            ChessState.initial(),
+            level = 8,
+            limits = ChessSearchLimits(2_000, Long.MAX_VALUE)
+        )
+
+        assertEquals(ChessSearchStopReason.NODE_BUDGET, result.stats.stopReason)
+        assertTrue(result.stats.completedDepth >= 1)
+        assertTrue(result.move in ChessRules.legalMoves(ChessState.initial()))
+    }
+
+    @Test
+    fun searchHashSeparatesFiftyMoveClockAndRestoresNestedSpecialMoves() {
+        val base = ChessState.empty(
+            castlingRights = ChessCastlingRights(whiteKingSide = true),
+            enPassantSquare = chessSquare("d6")
+        )
+            .put("e1", white(ChessPieceType.KING))
+            .put("h1", white(ChessPieceType.ROOK))
+            .put("e8", black(ChessPieceType.KING))
+            .put("e5", white(ChessPieceType.PAWN))
+            .put("d5", black(ChessPieceType.PAWN))
+        assertNotEquals(
+            ChessSearchPosition.from(base).hash,
+            ChessSearchPosition.from(base.copy(halfMoveClock = 99)).hash
+        )
+
+        val position = ChessSearchPosition.from(base)
+        val initialHash = position.hash
+        val initialState = position.toState()
+        val enPassantUndo = position.makeMove(ChessMove.fromUci("e5d6"))
+        val afterEnPassant = position.toState()
+        val blackKingUndo = position.makeMove(ChessMove.fromUci("e8f7"))
+        position.unmakeMove(blackKingUndo)
+        assertEquals(afterEnPassant, position.toState())
+        position.unmakeMove(enPassantUndo)
+        assertEquals(initialState, position.toState())
+        assertEquals(initialHash, position.hash)
+
+        val promotion = ChessState.empty()
+            .put("e1", white(ChessPieceType.KING))
+            .put("e8", black(ChessPieceType.KING))
+            .put("a7", white(ChessPieceType.PAWN))
+        val promotionPosition = ChessSearchPosition.from(promotion)
+        val promotionHash = promotionPosition.hash
+        val promotionUndo = promotionPosition.makeMove(ChessMove.fromUci("a7a8q"))
+        promotionPosition.unmakeMove(promotionUndo)
+        assertEquals(promotion, promotionPosition.toState())
+        assertEquals(promotionHash, promotionPosition.hash)
+    }
+
+    @Test
+    fun automaticDrawStatesAreVisibleToTheSearchPosition() {
+        val kingsOnly = ChessState.empty()
+            .put("e1", white(ChessPieceType.KING))
+            .put("e8", black(ChessPieceType.KING))
+        val fiftyMove = kingsOnly
+            .put("a1", white(ChessPieceType.ROOK))
+            .copy(halfMoveClock = 100)
+
+        assertTrue(ChessSearchPosition.from(kingsOnly).isAutomaticDraw())
+        assertTrue(ChessSearchPosition.from(fiftyMove).isAutomaticDraw())
+    }
+
+    @Test
     fun searchPositionMatchesRulesAndEvaluationIsSymmetric() {
         val states = listOf(
             ChessState.initial(),
@@ -177,6 +276,7 @@ class ChessSearchEngineTest {
         states.forEach { state ->
             val position = ChessSearchPosition.from(state)
             assertEquals(ChessRules.legalMoves(state).toSet(), position.legalMoves().toSet())
+            assertEquals(state, position.toState())
             ChessEvaluationProfile.entries.forEach { profile ->
                 assertEquals(
                     position.evaluate(ChessSide.WHITE, profile),

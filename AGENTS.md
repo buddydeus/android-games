@@ -8,7 +8,7 @@ Offline Android Pad game center (Kotlin + Jetpack Compose). The `app` module is 
 
 Gradle multi-module layout: `app` (shell), `game-api` (shell↔game contract), `games/*` (per-game modules + package assets).
 
-The approved International Chess design is `docs/superpowers/specs/2026-07-18-international-chess-game-design.md`. Its package uses complete standard legal moves, legal-only public state application with internal unchecked search transitions, and deterministic player-score-driven 1-10 iterative-deepening Negamax with alpha-beta pruning, bounded transposition storage, mature move ordering, and quiescence. It follows Xiangqi-family session behavior and has no external runtime dependency.
+The approved International Chess design is `docs/superpowers/specs/2026-07-18-international-chess-game-design.md`. Its package uses complete standard legal moves, legal-only public state application with internal unchecked search transitions, and deterministic player-score-driven 1-10 iterative-deepening Negamax with alpha-beta pruning, a primitive incremental make/unmake position, bounded transposition storage, mature move ordering, and draw-aware quiescence. It follows Xiangqi-family session behavior and has no external runtime dependency.
 
 Current game behavior:
 

@@ -77,12 +77,21 @@ internal class ChessSearchEngine(
 
     fun search(): ChessSearchResult {
         val startedAt = System.nanoTime()
+        if (position.isAutomaticDraw()) {
+            return result(null, 0, startedAt, ChessSearchStopReason.COMPLETED)
+        }
         var rootMoves = orderedMoves(ply = 0)
         if (rootMoves.isEmpty()) {
             return result(null, 0, startedAt, ChessSearchStopReason.COMPLETED)
         }
+        if (context.shouldAbort()) {
+            return result(rootMoves.first(), 0, startedAt, context.stopReason)
+        }
         findImmediateMate(rootMoves)?.let {
             return result(it, 0, startedAt, ChessSearchStopReason.COMPLETED)
+        }
+        if (context.aborted) {
+            return result(rootMoves.first(), 0, startedAt, context.stopReason)
         }
 
         var bestMove = rootMoves.first()
@@ -107,13 +116,16 @@ internal class ChessSearchEngine(
         return result(bestMove, completedDepth, startedAt, reason)
     }
 
-    private fun findImmediateMate(moves: List<ChessMove>): ChessMove? = moves.firstOrNull { move ->
-        val undo = position.makeMove(move)
-        val opponent = position.state.sideToMove
-        val mate = ChessRules.isInCheck(position.state, opponent) &&
-            position.legalMoves().isEmpty()
-        position.unmakeMove(undo)
-        mate
+    private fun findImmediateMate(moves: List<ChessMove>): ChessMove? {
+        for (move in moves) {
+            if (context.enterNode()) return null
+            val undo = position.makeMove(move)
+            val opponent = position.sideToMove
+            val mate = position.isInCheck(opponent) && position.legalMoves().isEmpty()
+            position.unmakeMove(undo)
+            if (mate) return move
+        }
+        return null
     }
 
     private fun searchRoot(
@@ -139,33 +151,35 @@ internal class ChessSearchEngine(
 
     private fun negamax(depth: Int, alpha: Int, beta: Int, ply: Int): Int {
         if (context.shouldAbort()) return 0
-        val side = position.state.sideToMove
+        if (position.isAutomaticDraw()) return 0
+        val side = position.sideToMove
         if (depth <= 0) {
             return quiescence(alpha, beta, ply, config.quiescenceDepth)
         }
 
         val originalAlpha = alpha
+        val originalBeta = beta
         var currentAlpha = alpha
+        var currentBeta = beta
         val hash = position.hash
         val cached = transposition.probe(hash)
         if (cached != null && cached.depth >= depth) {
             when (cached.bound) {
                 ChessBound.EXACT -> return cached.score
                 ChessBound.LOWER -> currentAlpha = maxOf(currentAlpha, cached.score)
-                ChessBound.UPPER -> if (cached.score <= currentAlpha) return cached.score
+                ChessBound.UPPER -> currentBeta = minOf(currentBeta, cached.score)
             }
-            if (currentAlpha >= beta) return cached.score
+            if (currentAlpha >= currentBeta) return cached.score
         }
 
         val moves = orderedMoves(ply, cached?.bestMove)
         if (moves.isEmpty()) {
-            return if (ChessRules.isInCheck(position.state, side)) {
+            return if (position.isInCheck(side)) {
                 -MATE_SCORE + ply
             } else {
                 0
             }
         }
-        if (position.state.halfMoveClock >= 100) return 0
 
         var best = -INFINITY
         var bestMove: ChessMove? = null
@@ -173,7 +187,7 @@ internal class ChessSearchEngine(
             if (context.enterNode()) return 0
             val capture = position.capturedPieceValue(move) > 0
             val undo = position.makeMove(move)
-            val score = -negamax(depth - 1, -beta, -currentAlpha, ply + 1)
+            val score = -negamax(depth - 1, -currentBeta, -currentAlpha, ply + 1)
             position.unmakeMove(undo)
             if (context.aborted) return 0
             if (score > best) {
@@ -181,7 +195,7 @@ internal class ChessSearchEngine(
                 bestMove = move
             }
             if (score > currentAlpha) currentAlpha = score
-            if (currentAlpha >= beta) {
+            if (currentAlpha >= currentBeta) {
                 if (!capture) {
                     recordKiller(move, ply)
                     history[move.from * 64 + move.to] += depth * depth
@@ -196,7 +210,7 @@ internal class ChessSearchEngine(
                 score = best,
                 bound = when {
                     best <= originalAlpha -> ChessBound.UPPER
-                    best >= beta -> ChessBound.LOWER
+                    best >= originalBeta -> ChessBound.LOWER
                     else -> ChessBound.EXACT
                 },
                 bestMove = bestMove
@@ -207,8 +221,9 @@ internal class ChessSearchEngine(
 
     private fun quiescence(alpha: Int, beta: Int, ply: Int, remainingDepth: Int): Int {
         if (context.shouldAbort()) return 0
-        val side = position.state.sideToMove
-        val inCheck = ChessRules.isInCheck(position.state, side)
+        if (position.isAutomaticDraw()) return 0
+        val side = position.sideToMove
+        val inCheck = position.isInCheck(side)
         var currentAlpha = alpha
         if (!inCheck) {
             val standPat = position.evaluate(side, config.evaluationProfile)
