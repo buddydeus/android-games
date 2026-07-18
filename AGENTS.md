@@ -4,9 +4,11 @@ For humans: start with [README.md](README.md). The approved product and architec
 
 ## Project
 
-Offline Android Pad game center (Kotlin + Jetpack Compose). The `app` module is a stable loading shell; each game ships as a zip package with dex plugin code loaded via `DexClassLoader`. MVP games: Gomoku, Othello, Xiangqi.
+Offline Android Pad game center (Kotlin + Jetpack Compose). The `app` module is a stable loading shell; each game ships as a zip package with dex plugin code loaded via `DexClassLoader`. Built-in games: Gomoku, Othello, Xiangqi, and International Chess.
 
 Gradle multi-module layout: `app` (shell), `game-api` (shell↔game contract), `games/*` (per-game modules + package assets).
+
+The approved International Chess design is `docs/superpowers/specs/2026-07-18-international-chess-game-design.md`. Its package uses complete standard legal moves, player-score-driven 1-10 offline Negamax AI, Xiangqi-family session behavior, and no external runtime dependency.
 
 Current game behavior:
 
@@ -138,6 +140,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [docs/superpowers/plans/2026-07-18-xiangqi-ai-search-calibration.md](docs/superpowers/plans/2026-07-18-xiangqi-ai-search-calibration.md) | TDD implementation plan for the optimized Xiangqi search position, observable effective depth, and calibrated level ladder |
 | [docs/superpowers/specs/2026-07-18-xiangqi-intelligence-gradient-design.md](docs/superpowers/specs/2026-07-18-xiangqi-intelligence-gradient-design.md) | Xiangqi ten-level offline intelligence gradient, score mapping, search boundary, and calibration |
 | [docs/superpowers/specs/2026-07-18-xiangqi-ai-search-calibration-design.md](docs/superpowers/specs/2026-07-18-xiangqi-ai-search-calibration-design.md) | Xiangqi search-position optimization, effective-depth observability, and statistical level-calibration gates |
+| [docs/superpowers/specs/2026-07-18-international-chess-game-design.md](docs/superpowers/specs/2026-07-18-international-chess-game-design.md) | International Chess rules, session behavior, UI, packaging, and offline 1-10 AI |
 | [docs/agents/game-plugins.md](docs/agents/game-plugins.md) | GamePlugin contract, zip layout, adding a game |
 | [designs/specs/android-games-home.md](designs/specs/android-games-home.md) | Current home-screen visual SSOT |
 | [designs/specs/android-games-family-versus-logo.md](designs/specs/android-games-family-versus-logo.md) | Approved family-versus Logo and launcher-icon SSOT |
