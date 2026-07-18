@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class ChessRulesTest {
@@ -92,6 +93,16 @@ class ChessRulesTest {
     }
 
     @Test
+    fun enPassantRequiresAnEnemyPawnBehindTheTarget() {
+        val invalid = ChessState.empty(enPassantSquare = chessSquare("d6"))
+            .put("e1", white(ChessPieceType.KING))
+            .put("e8", black(ChessPieceType.KING))
+            .put("e5", white(ChessPieceType.PAWN))
+
+        assertFalse(ChessMove.fromUci("e5d6") in ChessRules.legalMoves(invalid))
+    }
+
+    @Test
     fun promotionGeneratesAllStandardPieceChoices() {
         val state = ChessState.empty()
             .put("e1", white(ChessPieceType.KING))
@@ -110,6 +121,90 @@ class ChessRulesTest {
                 .mapNotNull { it.promotion }
                 .toSet()
         )
+    }
+
+    @Test
+    fun promotionDefaultsToQueenAndRejectsInvalidPieceTypes() {
+        val state = ChessState.empty()
+            .put("e1", white(ChessPieceType.KING))
+            .put("e8", black(ChessPieceType.KING))
+            .put("a7", white(ChessPieceType.PAWN))
+
+        assertEquals(
+            white(ChessPieceType.QUEEN),
+            state.apply(ChessMove.fromUci("a7a8")).pieceAt("a8")
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            state.apply(
+                ChessMove(
+                    chessSquare("a7"),
+                    chessSquare("a8"),
+                    ChessPieceType.KING
+                )
+            )
+        }
+    }
+
+    @Test
+    fun applyRejectsWrongTurnAndIllegalGeometry() {
+        val initial = ChessState.initial()
+
+        assertThrows(IllegalArgumentException::class.java) {
+            initial.apply(ChessMove.fromUci("e7e5"))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            initial.apply(ChessMove.fromUci("e2e5"))
+        }
+    }
+
+    @Test
+    fun movingKingOrRookAndCapturingHomeRookUpdateCastlingRights() {
+        val whiteKingMoved = ChessState.empty(
+            castlingRights = ChessCastlingRights(
+                whiteKingSide = true,
+                whiteQueenSide = true
+            )
+        )
+            .put("e1", white(ChessPieceType.KING))
+            .put("a1", white(ChessPieceType.ROOK))
+            .put("h1", white(ChessPieceType.ROOK))
+            .put("e8", black(ChessPieceType.KING))
+            .apply(ChessMove.fromUci("e1f1"))
+        assertFalse(whiteKingMoved.castlingRights.whiteKingSide)
+        assertFalse(whiteKingMoved.castlingRights.whiteQueenSide)
+
+        val whiteRookMoved = ChessState.empty(
+            castlingRights = ChessCastlingRights(whiteQueenSide = true)
+        )
+            .put("e1", white(ChessPieceType.KING))
+            .put("a1", white(ChessPieceType.ROOK))
+            .put("e8", black(ChessPieceType.KING))
+            .apply(ChessMove.fromUci("a1a2"))
+        assertFalse(whiteRookMoved.castlingRights.whiteQueenSide)
+
+        val captured = ChessState.empty(
+            sideToMove = ChessSide.BLACK,
+            castlingRights = ChessCastlingRights(whiteQueenSide = true)
+        )
+            .put("e1", white(ChessPieceType.KING))
+            .put("a1", white(ChessPieceType.ROOK))
+            .put("e8", black(ChessPieceType.KING))
+            .put("a8", black(ChessPieceType.ROOK))
+            .apply(ChessMove.fromUci("a8a1"))
+        assertFalse(captured.castlingRights.whiteQueenSide)
+    }
+
+    @Test
+    fun halfMoveAndFullMoveCountersFollowChessTurns() {
+        val afterWhite = ChessState.initial().apply(ChessMove.fromUci("g1f3"))
+        val afterBlack = afterWhite.apply(ChessMove.fromUci("g8f6"))
+        val afterPawn = afterBlack.apply(ChessMove.fromUci("e2e4"))
+
+        assertEquals(1, afterWhite.halfMoveClock)
+        assertEquals(1, afterWhite.fullMoveNumber)
+        assertEquals(2, afterBlack.halfMoveClock)
+        assertEquals(2, afterBlack.fullMoveNumber)
+        assertEquals(0, afterPawn.halfMoveClock)
     }
 
     @Test

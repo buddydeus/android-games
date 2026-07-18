@@ -94,6 +94,11 @@ data class ChessState(
     fun put(name: String, piece: ChessPiece?): ChessState = put(chessSquare(name), piece)
 
     fun apply(move: ChessMove): ChessState {
+        val legalMove = ChessRules.resolveLegalMove(this, move)
+        return applyUnchecked(legalMove)
+    }
+
+    internal fun applyUnchecked(move: ChessMove): ChessState {
         require(move.from in 0 until BOARD_SQUARES && move.to in 0 until BOARD_SQUARES)
         val moving = requireNotNull(board[move.from]) { "No piece at ${chessSquareName(move.from)}" }
         val nextBoard = board.toMutableList()
@@ -109,12 +114,8 @@ data class ChessState(
             nextBoard[capturedSquare] = null
         }
 
-        val placed = if (
-            moving.type == ChessPieceType.PAWN &&
-            rankOf(move.to) in setOf(0, 7) &&
-            move.promotion != null
-        ) {
-            ChessPiece(moving.side, move.promotion)
+        val placed = if (moving.type == ChessPieceType.PAWN && rankOf(move.to) in setOf(0, 7)) {
+            ChessPiece(moving.side, move.promotion ?: ChessPieceType.QUEEN)
         } else {
             moving
         }
@@ -240,7 +241,29 @@ object ChessRules {
     fun legalMoves(state: ChessState): List<ChessMove> {
         val side = state.sideToMove
         return pseudoLegalMoves(state, side).filter { move ->
-            !isInCheck(state.apply(move), side)
+            !isInCheck(state.applyUnchecked(move), side)
+        }
+    }
+
+    internal fun resolveLegalMove(state: ChessState, requested: ChessMove): ChessMove {
+        require(requested.from in 0 until BOARD_SQUARES && requested.to in 0 until BOARD_SQUARES) {
+            "Move squares must be on the board"
+        }
+        require(requested.promotion == null || requested.promotion in PROMOTION_TYPES) {
+            "Promotion must be queen, rook, bishop, or knight"
+        }
+        val moving = state.board[requested.from]
+        val normalized = if (
+            moving?.type == ChessPieceType.PAWN &&
+            rankOf(requested.to) in setOf(0, 7) &&
+            requested.promotion == null
+        ) {
+            requested.copy(promotion = ChessPieceType.QUEEN)
+        } else {
+            requested
+        }
+        return requireNotNull(legalMoves(state).firstOrNull { it == normalized }) {
+            "Illegal chess move: ${requested.toUci()}"
         }
     }
 
@@ -368,9 +391,13 @@ object ChessRules {
                 if (toFile !in 0..7) continue
                 val to = oneRank * 8 + toFile
                 val target = state.board[to]
+                val enPassantPawnSquare = to + if (piece.side == ChessSide.WHITE) -8 else 8
+                val validEnPassant = to == state.enPassantSquare &&
+                    state.board[enPassantPawnSquare] ==
+                    ChessPiece(piece.side.other(), ChessPieceType.PAWN)
                 if (
                     (target != null && target.side != piece.side && target.type != ChessPieceType.KING) ||
-                    to == state.enPassantSquare
+                    validEnPassant
                 ) {
                     addPawnDestination(from, to, moves)
                 }
