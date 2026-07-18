@@ -52,6 +52,10 @@ internal fun HomeGameLogoMark(
                 glyphSizeSp = xiangqiGlyphSizeSp(logoSizeDp),
                 modifier = Modifier.fillMaxSize()
             )
+            HomeGameLogo.Chess -> ChessLogo(
+                glyphSizeSp = (logoSizeDp * 0.58f).toInt().coerceIn(30, 64),
+                modifier = Modifier.fillMaxSize()
+            )
             HomeGameLogo.Othello -> OthelloLogo(Modifier.fillMaxSize())
             HomeGameLogo.Generic -> Text(
                 text = fallbackSymbol.trim().take(1).ifEmpty { "游" },
@@ -60,6 +64,22 @@ internal fun HomeGameLogoMark(
                 fontWeight = FontWeight.Bold
             )
         }
+    }
+}
+
+@Composable
+private fun ChessLogo(
+    glyphSizeSp: Int,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Text(
+            text = "♞",
+            color = LogoInk,
+            fontSize = glyphSizeSp.sp,
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 

@@ -6,7 +6,7 @@ import org.junit.Test
 class HomeGamePresentationTest {
     @Test
     fun gameCenterVersionUsesReadableHomeLabel() {
-        assertEquals("版本 0.0.1", gameCenterVersionLabel("0.0.1"))
+        assertEquals("版本 0.0.2", gameCenterVersionLabel("0.0.2"))
     }
 
     @Test
@@ -15,8 +15,10 @@ class HomeGamePresentationTest {
         assertEquals(0, homeGamePresentation("gomoku").order)
         assertEquals(HomeGameLogo.Xiangqi, homeGamePresentation("xiangqi").logo)
         assertEquals(1, homeGamePresentation("xiangqi").order)
+        assertEquals(HomeGameLogo.Chess, homeGamePresentation("chess").logo)
+        assertEquals(2, homeGamePresentation("chess").order)
         assertEquals(HomeGameLogo.Othello, homeGamePresentation("othello").logo)
-        assertEquals(2, homeGamePresentation("othello").order)
+        assertEquals(3, homeGamePresentation("othello").order)
         assertEquals(HomeGameLogo.Generic, homeGamePresentation("sudoku").logo)
         assertEquals(Int.MAX_VALUE, homeGamePresentation("sudoku").order)
     }
@@ -28,8 +30,9 @@ class HomeGamePresentationTest {
                 mode = HomeGameLayoutMode.SquareRow,
                 horizontalPaddingDp = 32,
                 gapDp = 28,
-                buttonSizeDp = 264,
-                buttonHeightDp = 264,
+                maxColumns = 4,
+                buttonSizeDp = 240,
+                buttonHeightDp = 240,
                 logoSizeDp = 112
             ),
             homeGameLayout(widthDp = 1200f, heightDp = 800f)
@@ -37,15 +40,16 @@ class HomeGamePresentationTest {
     }
 
     @Test
-    fun mediumTabletUsesThreeEqualAdaptiveSquares() {
+    fun mediumTabletUsesFourEqualAdaptiveSquares() {
         assertEquals(
             HomeGameLayout(
                 mode = HomeGameLayoutMode.SquareRow,
                 horizontalPaddingDp = 24,
                 gapDp = 20,
-                buttonSizeDp = 237,
-                buttonHeightDp = 237,
-                logoSizeDp = 96
+                maxColumns = 4,
+                buttonSizeDp = 173,
+                buttonHeightDp = 173,
+                logoSizeDp = 72
             ),
             homeGameLayout(widthDp = 800f, heightDp = 600f)
         )
@@ -57,6 +61,7 @@ class HomeGamePresentationTest {
             mode = HomeGameLayoutMode.CompactColumn,
             horizontalPaddingDp = 24,
             gapDp = 16,
+            maxColumns = 1,
             buttonSizeDp = null,
             buttonHeightDp = 112,
             logoSizeDp = 64
@@ -74,6 +79,7 @@ class HomeGamePresentationTest {
                 mode = HomeGameLayoutMode.CompactColumn,
                 horizontalPaddingDp = 24,
                 gapDp = 16,
+                maxColumns = 1,
                 buttonSizeDp = null,
                 buttonHeightDp = 112,
                 logoSizeDp = 64
@@ -89,12 +95,20 @@ class HomeGamePresentationTest {
             homeGameLayout(widthDp = 600f, heightDp = 600f).mode
         )
         assertEquals(
-            240,
+            212,
             homeGameLayout(widthDp = 959.9f, heightDp = 600f).buttonSizeDp
         )
         assertEquals(
-            264,
+            213,
             homeGameLayout(widthDp = 960f, heightDp = 600f).buttonSizeDp
+        )
+        assertEquals(
+            240,
+            homeGameLayout(widthDp = 1107.9f, heightDp = 700f).buttonSizeDp
+        )
+        assertEquals(
+            240,
+            homeGameLayout(widthDp = 1108f, heightDp = 700f).buttonSizeDp
         )
     }
 

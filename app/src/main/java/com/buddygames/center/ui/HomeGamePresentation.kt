@@ -5,6 +5,7 @@ import kotlin.math.roundToInt
 internal enum class HomeGameLogo {
     Gomoku,
     Xiangqi,
+    Chess,
     Othello,
     Generic
 }
@@ -23,6 +24,7 @@ internal data class HomeGameLayout(
     val mode: HomeGameLayoutMode,
     val horizontalPaddingDp: Int,
     val gapDp: Int,
+    val maxColumns: Int,
     val buttonSizeDp: Int?,
     val buttonHeightDp: Int,
     val logoSizeDp: Int
@@ -31,7 +33,8 @@ internal data class HomeGameLayout(
 internal fun homeGamePresentation(gameId: String): HomeGamePresentation = when (gameId) {
     "gomoku" -> HomeGamePresentation(HomeGameLogo.Gomoku, 0)
     "xiangqi" -> HomeGamePresentation(HomeGameLogo.Xiangqi, 1)
-    "othello" -> HomeGamePresentation(HomeGameLogo.Othello, 2)
+    "chess" -> HomeGamePresentation(HomeGameLogo.Chess, 2)
+    "othello" -> HomeGamePresentation(HomeGameLogo.Othello, 3)
     else -> HomeGamePresentation(HomeGameLogo.Generic, Int.MAX_VALUE)
 }
 
@@ -43,30 +46,29 @@ internal fun homeGameLayout(widthDp: Float, heightDp: Float): HomeGameLayout {
             mode = HomeGameLayoutMode.CompactColumn,
             horizontalPaddingDp = 24,
             gapDp = 16,
+            maxColumns = 1,
             buttonSizeDp = null,
             buttonHeightDp = 112,
             logoSizeDp = 64
         )
     }
 
-    val wide = widthDp >= 960
+    val wide = widthDp >= 1108
     val horizontalPadding = if (wide) 32 else 24
     val gap = if (wide) 28 else 20
-    val buttonSize = if (wide) {
-        264
-    } else {
-        ((widthDp - horizontalPadding * 2 - gap * 2) / 3f)
-            .toInt()
-            .coerceAtMost(240)
-    }
+    val maxColumns = 4
+    val buttonSize = ((widthDp - horizontalPadding * 2 - gap * (maxColumns - 1)) / maxColumns)
+        .toInt()
+        .coerceAtMost(240)
 
     return HomeGameLayout(
         mode = HomeGameLayoutMode.SquareRow,
         horizontalPaddingDp = horizontalPadding,
         gapDp = gap,
+        maxColumns = maxColumns,
         buttonSizeDp = buttonSize,
         buttonHeightDp = buttonSize,
-        logoSizeDp = if (wide) 112 else 96
+        logoSizeDp = if (wide) 112 else 72
     )
 }
 

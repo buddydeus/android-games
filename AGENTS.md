@@ -13,7 +13,7 @@ The approved International Chess design is `docs/superpowers/specs/2026-07-18-in
 Current game behavior:
 
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
-- The game-center shell has an independent Android version starting at `versionCode = 1` and `versionName = 0.0.1`; the home top bar displays `BuildConfig.VERSION_NAME`.
+- The game-center shell currently uses `versionCode = 2` and `versionName = 0.0.2`; the home top bar displays `BuildConfig.VERSION_NAME`.
 - All game menus use `单人模式`, `双人对战`, and `退出游戏`.
 - Every game owns an independent version starting at `0.0.1`, and its main menu displays `GameManifest.versionName`.
 - All games own their rules, robot, UI, score state, and restart flow inside their game module.
@@ -27,7 +27,7 @@ Current game behavior:
 
 Current design direction:
 
-- `designs/specs/android-games-home.md` defines the light mineral-grey, matte-porcelain home screen with three equal-size game buttons and code-drawn game marks.
+- `designs/specs/android-games-home.md` defines the light mineral-grey, matte-porcelain home screen with four equal-size landscape game buttons and code-drawn game marks; its wide style starts only when four 240dp buttons fit without a breakpoint shrink.
 - `designs/specs/android-games-family-versus-logo.md` records the approved game-center brand Logo: two face-to-face players around a shared game table. Root `logo.svg` and all launcher resources must preserve the user-selected 1254×1254 artwork without cropping or reinterpretation.
 - The approved app-icon artwork is a 1254×1254 source embedded byte-for-byte in root `logo.svg`; `AppIconResourcesTest` guards its SHA-256 plus legacy/adaptive launcher resource wiring.
 
@@ -44,13 +44,14 @@ Current design direction:
 Run from repository root:
 
 - `npm run test` — all unit tests (`./gradlew test`)
-- `npm run verify` — full MVP gate: tests + three game packages + debug APK
+- `npm run verify` — full MVP gate: tests + four game packages + debug APK
 - `npm run build` — build debug APK and all game package zips
 - `npm run build:apk` — `./gradlew :app:assembleDebug` (also copies built-in game zips into assets)
-- `npm run build:game` — build all three game package zips
+- `npm run build:game` — build all four game package zips
 - `npm run build:game:gomoku` — `./gradlew packageGomokuGame`
 - `npm run build:game:othello` — `./gradlew packageOthelloGame`
 - `npm run build:game:xiangqi` — `./gradlew packageXiangqiGame`
+- `npm run build:game:chess` — `./gradlew packageChessGame`
 - `npm start` — boot emulator (if needed), build APK, install, launch `com.buddygames.center/.MainActivity`
 - `./gradlew :game-api:testDebugUnitTest` — game-api manifest/contract tests only
 - `./gradlew :app:testDebugUnitTest` — shell runtime tests only
@@ -90,7 +91,7 @@ Run from repository root:
 - Keep single-player side-selection and opening-turn rules in each game's session model; restart behavior changes must cover player win, player loss, and robot opening as second-player tests.
 - Record undo snapshots immediately before legal player actions, include score and terminal state in each snapshot, and keep the initial robot opening outside undo history.
 - Keep the last-move marker in each game's session and undo snapshot. Othello marks only the newly placed disc, Xiangqi marks the destination coordinate after perspective mapping, and robot moves replace the preceding player marker.
-- Keep last-move marker geometry and color constants aligned across all three game packages; marker scale must remain below one cell so adjacent pieces are unaffected.
+- Keep last-move marker geometry and color constants aligned across all four game packages; marker scale must remain below one cell so adjacent pieces are unaffected.
 - Keep undo-button visibility separate from undo availability: hide it only when a winner exists, and keep Othello draws undoable.
 - Keep `game-api` backward-compatible or update every `games/*` plugin in the same change.
 - Run targeted unit tests for touched modules (see Commands).
@@ -155,4 +156,4 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 - [ ] No secrets or build artifacts staged
 - [ ] If `app/` changed, the game-center `versionCode` and `versionName` were incremented together
 - [ ] Each touched game has matching, incremented versions in plugin code and `package/manifest.json`
-- [ ] If `game-api` changed, all three games still build and load
+- [ ] If `game-api` changed, all four games still build and load

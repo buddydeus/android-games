@@ -11,11 +11,11 @@ import org.junit.Test
 
 class AppIconResourcesTest {
     @Test
-    fun gameCenterStartsAtIndependentInitialVersion() {
+    fun gameCenterUsesCurrentIndependentVersion() {
         val buildScript = repositoryRoot().resolve("app/build.gradle.kts").readText()
 
-        assertTrue(buildScript.contains("""versionCode = 1"""))
-        assertTrue(buildScript.contains("""versionName = "0.0.1""""))
+        assertTrue(buildScript.contains("""versionCode = 2"""))
+        assertTrue(buildScript.contains("""versionName = "0.0.2""""))
     }
 
     @Test

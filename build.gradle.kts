@@ -49,3 +49,4 @@ fun registerGamePackageTask(taskName: String, gameDir: String) {
 registerGamePackageTask("packageGomokuGame", "gomoku")
 registerGamePackageTask("packageOthelloGame", "othello")
 registerGamePackageTask("packageXiangqiGame", "xiangqi")
+registerGamePackageTask("packageChessGame", "chess")

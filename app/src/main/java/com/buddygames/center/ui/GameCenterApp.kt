@@ -330,7 +330,7 @@ private fun SquareGameButtons(
 ) {
     val buttonSize = requireNotNull(layout.buttonSizeDp).dp
     Column(verticalArrangement = Arrangement.spacedBy(layout.gapDp.dp)) {
-        packages.chunked(3).forEach { rowPackages ->
+        packages.chunked(layout.maxColumns).forEach { rowPackages ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(
