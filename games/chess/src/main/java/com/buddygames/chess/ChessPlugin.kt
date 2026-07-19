@@ -220,8 +220,8 @@ class ChessPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "chess",
             displayName = "国际象棋",
-            versionCode = 8,
-            versionName = "0.0.8",
+            versionCode = 9,
+            versionName = "0.0.9",
             entryClass = "com.buddygames.chess.ChessPlugin",
             minShellApi = 1,
             icon = "assets/icon.png"

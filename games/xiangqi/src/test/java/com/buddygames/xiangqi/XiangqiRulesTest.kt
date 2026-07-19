@@ -11,9 +11,9 @@ import org.junit.Test
 class XiangqiRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(8, XiangqiPlugin.manifest.versionCode)
-        assertEquals("0.0.8", XiangqiPlugin.manifest.versionName)
-        assertEquals("版本 0.0.8", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+        assertEquals(9, XiangqiPlugin.manifest.versionCode)
+        assertEquals("0.0.9", XiangqiPlugin.manifest.versionName)
+        assertEquals("版本 0.0.9", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
     }
 
     @Test
@@ -35,8 +35,9 @@ class XiangqiRulesTest {
     @Test
     fun undoButtonHidesAfterEitherSideWins() {
         assertTrue(shouldShowXiangqiUndo(null))
-        assertFalse(shouldShowXiangqiUndo(Side.RED))
-        assertFalse(shouldShowXiangqiUndo(Side.BLACK))
+        assertFalse(shouldShowXiangqiUndo(XiangqiResult.RED_WIN))
+        assertFalse(shouldShowXiangqiUndo(XiangqiResult.BLACK_WIN))
+        assertTrue(shouldShowXiangqiUndo(XiangqiResult.DRAW))
     }
 
     @Test
@@ -47,9 +48,9 @@ class XiangqiRulesTest {
     @Test
     fun twoPlayerScoreRecordsRedAndBlackWins() {
         val score = XiangqiScore()
-            .record(Side.RED, GameMode.TWO_PLAYERS, Side.RED)
-            .record(Side.BLACK, GameMode.TWO_PLAYERS, Side.RED)
-            .record(Side.RED, GameMode.TWO_PLAYERS, Side.RED)
+            .record(XiangqiResult.RED_WIN, GameMode.TWO_PLAYERS, Side.RED)
+            .record(XiangqiResult.BLACK_WIN, GameMode.TWO_PLAYERS, Side.RED)
+            .record(XiangqiResult.RED_WIN, GameMode.TWO_PLAYERS, Side.RED)
 
         assertEquals(XiangqiScore(red = 2, black = 1), score)
         assertEquals("2 : 1", score.displayText(GameMode.TWO_PLAYERS))
@@ -58,14 +59,33 @@ class XiangqiRulesTest {
     @Test
     fun singlePlayerScoreFollowsPlayerIdentityAcrossSideSwaps() {
         val score = XiangqiScore()
-            .record(Side.RED, GameMode.SINGLE_PLAYER, Side.RED)
-            .record(Side.RED, GameMode.SINGLE_PLAYER, Side.BLACK)
-            .record(Side.BLACK, GameMode.SINGLE_PLAYER, Side.BLACK)
+            .record(XiangqiResult.RED_WIN, GameMode.SINGLE_PLAYER, Side.RED)
+            .record(XiangqiResult.RED_WIN, GameMode.SINGLE_PLAYER, Side.BLACK)
+            .record(XiangqiResult.BLACK_WIN, GameMode.SINGLE_PLAYER, Side.BLACK)
 
         assertEquals(2, score.player)
         assertEquals(1, score.robot)
         assertEquals("2 : 1", score.displayText(GameMode.SINGLE_PLAYER))
         assertEquals(3, score.intelligenceLevel)
+    }
+
+    @Test
+    fun drawKeepsScoreIntelligenceAndPlayerSide() {
+        val score = XiangqiScore(player = 5, robot = 4)
+
+        assertEquals(
+            score,
+            score.record(XiangqiResult.DRAW, GameMode.SINGLE_PLAYER, Side.BLACK)
+        )
+        assertEquals(
+            6,
+            score.record(XiangqiResult.DRAW, GameMode.SINGLE_PLAYER, Side.BLACK)
+                .intelligenceLevel
+        )
+        assertEquals(
+            Side.BLACK,
+            nextXiangqiPlayerSide(Side.BLACK, XiangqiResult.DRAW)
+        )
     }
 
     @Test
@@ -153,20 +173,20 @@ class XiangqiRulesTest {
         assertEquals(Side.RED, round.turn)
         assertEquals(XiangqiState.initial(), round.state)
         assertEquals(null, round.selected)
-        assertEquals(null, round.winner)
+        assertEquals(null, round.result)
         assertEquals(null, round.lastMove)
     }
 
     @Test
     fun singlePlayerVictorySwitchesSidesForNextRound() {
-        assertEquals(Side.BLACK, nextXiangqiPlayerSide(Side.RED, Side.RED))
-        assertEquals(Side.RED, nextXiangqiPlayerSide(Side.BLACK, Side.BLACK))
+        assertEquals(Side.BLACK, nextXiangqiPlayerSide(Side.RED, XiangqiResult.RED_WIN))
+        assertEquals(Side.RED, nextXiangqiPlayerSide(Side.BLACK, XiangqiResult.BLACK_WIN))
     }
 
     @Test
     fun singlePlayerDefeatAlwaysRestartsAsFirstPlayer() {
-        assertEquals(Side.RED, nextXiangqiPlayerSide(Side.RED, Side.BLACK))
-        assertEquals(Side.RED, nextXiangqiPlayerSide(Side.BLACK, Side.RED))
+        assertEquals(Side.RED, nextXiangqiPlayerSide(Side.RED, XiangqiResult.BLACK_WIN))
+        assertEquals(Side.RED, nextXiangqiPlayerSide(Side.BLACK, XiangqiResult.RED_WIN))
     }
 
     @Test
@@ -177,14 +197,14 @@ class XiangqiRulesTest {
         assertEquals(Side.RED, round.turn)
         assertEquals(XiangqiState.initial(), round.state)
         assertEquals(null, round.selected)
-        assertEquals(null, round.winner)
+        assertEquals(null, round.result)
         assertNull(round.lastMove)
         assertTrue(
             needsXiangqiRobotTurn(
                 GameMode.SINGLE_PLAYER,
                 round.turn,
                 round.playerSide,
-                round.winner
+                round.result
             )
         )
         assertFalse(
@@ -192,7 +212,7 @@ class XiangqiRulesTest {
                 GameMode.TWO_PLAYERS,
                 round.turn,
                 round.playerSide,
-                round.winner
+                round.result
             )
         )
     }
@@ -208,7 +228,7 @@ class XiangqiRulesTest {
         val first = XiangqiSnapshot(
             state = XiangqiState.initial(),
             turn = Side.RED,
-            winner = null,
+            result = null,
             score = XiangqiScore(),
             lastMove = null
         )
@@ -491,7 +511,7 @@ class XiangqiRulesTest {
                 requestedState,
                 Side.RED,
                 3,
-                Side.BLACK
+                XiangqiResult.BLACK_WIN
             )
         )
     }

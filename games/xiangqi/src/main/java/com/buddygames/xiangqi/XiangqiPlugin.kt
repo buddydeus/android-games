@@ -102,7 +102,7 @@ class XiangqiPlugin : GamePlugin {
         var state by remember { mutableStateOf(initialRound.state) }
         var turn by remember { mutableStateOf(initialRound.turn) }
         var selected by remember { mutableStateOf(initialRound.selected) }
-        var winner by remember { mutableStateOf(initialRound.winner) }
+        var result by remember { mutableStateOf(initialRound.result) }
         var playerSide by remember { mutableStateOf(initialRound.playerSide) }
         var lastMove by remember { mutableStateOf(initialRound.lastMove) }
         var score by remember { mutableStateOf(XiangqiScore()) }
@@ -110,21 +110,21 @@ class XiangqiPlugin : GamePlugin {
         var searchGeneration by remember { mutableStateOf(0) }
 
         fun applyMove(move: XiangqiMove) {
-            winner = XiangqiRules.winnerAfterMove(state, move)
+            result = XiangqiRules.winnerAfterMove(state, move)?.let(XiangqiResult::fromWinner)
             state = state.apply(move)
             lastMove = move
             selected = null
-            if (winner != null) score = score.record(winner, mode, playerSide)
-            if (winner == null && mode == GameMode.SINGLE_PLAYER) {
+            if (result != null) score = score.record(result, mode, playerSide)
+            if (result == null && mode == GameMode.SINGLE_PLAYER) {
                 turn = playerSide.other()
-            } else if (winner == null) {
+            } else if (result == null) {
                 turn = turn.other()
             }
         }
 
         fun tap(row: Int, col: Int) {
-            if (winner != null) return
-            if (needsXiangqiRobotTurn(mode, turn, playerSide, winner)) return
+            if (result != null) return
+            if (needsXiangqiRobotTurn(mode, turn, playerSide, result)) return
             val piece = state.piece(row, col)
             val currentSelection = selected
             if (currentSelection == null) {
@@ -133,7 +133,7 @@ class XiangqiPlugin : GamePlugin {
             }
             val move = XiangqiMove(currentSelection.first, currentSelection.second, row, col)
             if (XiangqiRules.isLegalMove(state, move, turn)) {
-                history = history + XiangqiSnapshot(state, turn, winner, score, lastMove)
+                history = history + XiangqiSnapshot(state, turn, result, score, lastMove)
                 applyMove(move)
             } else {
                 selected = if (piece?.side == turn) row to col else null
@@ -146,7 +146,7 @@ class XiangqiPlugin : GamePlugin {
             state = undo.snapshot.state
             turn = undo.snapshot.turn
             selected = null
-            winner = undo.snapshot.winner
+            result = undo.snapshot.result
             score = undo.snapshot.score
             lastMove = undo.snapshot.lastMove
             history = undo.remainingHistory
@@ -155,7 +155,7 @@ class XiangqiPlugin : GamePlugin {
         fun restart() {
             searchGeneration++
             val nextPlayerSide = if (mode == GameMode.SINGLE_PLAYER) {
-                nextXiangqiPlayerSide(playerSide, winner)
+                nextXiangqiPlayerSide(playerSide, result)
             } else {
                 Side.RED
             }
@@ -163,24 +163,24 @@ class XiangqiPlugin : GamePlugin {
             state = round.state
             turn = round.turn
             selected = round.selected
-            winner = round.winner
+            result = round.result
             playerSide = round.playerSide
             lastMove = round.lastMove
             history = emptyList()
         }
 
-        val robotThinking = needsXiangqiRobotTurn(mode, turn, playerSide, winner)
+        val robotThinking = needsXiangqiRobotTurn(mode, turn, playerSide, result)
         val intelligenceLevel = score.intelligenceLevel
         LaunchedEffect(
             state,
             turn,
             playerSide,
-            winner,
+            result,
             intelligenceLevel,
             mode,
             searchGeneration
         ) {
-            if (!needsXiangqiRobotTurn(mode, turn, playerSide, winner)) return@LaunchedEffect
+            if (!needsXiangqiRobotTurn(mode, turn, playerSide, result)) return@LaunchedEffect
             val requestedState = state
             val requestedSide = turn
             val requestedGeneration = searchGeneration
@@ -201,33 +201,33 @@ class XiangqiPlugin : GamePlugin {
                     state,
                     turn,
                     searchGeneration,
-                    winner
+                    result
                 )
             ) {
                 return@LaunchedEffect
             }
-            winner = XiangqiRules.winnerAfterMove(state, robot)
+            result = XiangqiRules.winnerAfterMove(state, robot)?.let(XiangqiResult::fromWinner)
             state = state.apply(robot)
             lastMove = robot
             selected = null
-            if (winner != null) score = score.record(winner, mode, playerSide)
+            if (result != null) score = score.record(result, mode, playerSide)
             turn = playerSide
         }
 
-        val inCheck = winner == null && XiangqiRules.isInCheck(state, turn)
+        val inCheck = result == null && XiangqiRules.isInCheck(state, turn)
         Surface(Modifier.fillMaxSize(), color = XiangqiPaper) {
             XiangqiGameLayout(
                 state = state,
                 selected = selected,
                 lastMove = lastMove,
-                status = statusText(winner, turn, playerSide, mode, robotThinking, intelligenceLevel),
+                status = statusText(result, turn, playerSide, mode, robotThinking, intelligenceLevel),
                 turn = turn,
                 score = score.displayText(mode),
                 intelligenceLevel = if (mode == GameMode.SINGLE_PLAYER) intelligenceLevel else null,
-                gameOver = winner != null,
+                gameOver = result != null,
                 inCheck = inCheck,
                 canUndo = history.isNotEmpty(),
-                showUndo = shouldShowXiangqiUndo(winner),
+                showUndo = shouldShowXiangqiUndo(result),
                 rotateBoard = shouldRotateXiangqiBoard(mode, playerSide),
                 onTap = ::tap,
                 onUndo = ::undo,
@@ -239,14 +239,20 @@ class XiangqiPlugin : GamePlugin {
     }
 
     private fun statusText(
-        winner: Side?,
+        result: XiangqiResult?,
         turn: Side,
         playerSide: Side,
         mode: GameMode,
         robotThinking: Boolean,
         intelligenceLevel: Int
     ): String {
-        winner?.let { return if (it == Side.RED) "红方胜" else "黑方胜" }
+        result?.let {
+            return when (it) {
+                XiangqiResult.RED_WIN -> "红方胜"
+                XiangqiResult.BLACK_WIN -> "黑方胜"
+                XiangqiResult.DRAW -> "和棋"
+            }
+        }
         return if (mode == GameMode.SINGLE_PLAYER) {
             if (robotThinking) {
                 "智能思考中 · 等级 $intelligenceLevel"
@@ -262,8 +268,8 @@ class XiangqiPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "xiangqi",
             displayName = "象棋",
-            versionCode = 8,
-            versionName = "0.0.8",
+            versionCode = 9,
+            versionName = "0.0.9",
             entryClass = "com.buddygames.xiangqi.XiangqiPlugin",
             minShellApi = 1,
             icon = "assets/icon.png"

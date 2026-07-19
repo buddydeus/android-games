@@ -114,7 +114,7 @@ private fun XiangqiMenuPanel(
 
 internal fun xiangqiMenuLabels(): List<String> = listOf("单人模式", "双人对战", "退出游戏")
 internal fun xiangqiVersionLabel(versionName: String): String = "版本 $versionName"
-internal fun shouldShowXiangqiUndo(winner: Side?): Boolean = winner == null
+internal fun shouldShowXiangqiUndo(result: XiangqiResult?): Boolean = result?.winner == null
 internal fun shouldRotateXiangqiBoard(mode: GameMode, playerSide: Side): Boolean =
     mode == GameMode.SINGLE_PLAYER && playerSide == Side.BLACK
 

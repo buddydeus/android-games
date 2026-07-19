@@ -10,9 +10,9 @@ import org.junit.Test
 class ChessSessionTest {
     @Test
     fun gameVersionAndUnifiedMenuLabelsStayAligned() {
-        assertEquals(8, ChessPlugin.manifest.versionCode)
-        assertEquals("0.0.8", ChessPlugin.manifest.versionName)
-        assertEquals("版本 0.0.8", chessVersionLabel(ChessPlugin.manifest.versionName))
+        assertEquals(9, ChessPlugin.manifest.versionCode)
+        assertEquals("0.0.9", ChessPlugin.manifest.versionName)
+        assertEquals("版本 0.0.9", chessVersionLabel(ChessPlugin.manifest.versionName))
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), chessMenuLabels())
     }
 
@@ -28,6 +28,23 @@ class ChessSessionTest {
         assertEquals(1, score.robot)
         assertEquals("2 : 1", score.displayText(GameMode.SINGLE_PLAYER))
         assertEquals(3, score.intelligenceLevel)
+    }
+
+    @Test
+    fun everyDrawKeepsScoreIntelligenceAndPlayerSide() {
+        val score = ChessScore(player = 5, robot = 4)
+        val draws = listOf(
+            ChessResult.DRAW_STALEMATE,
+            ChessResult.DRAW_FIFTY_MOVE,
+            ChessResult.DRAW_REPETITION,
+            ChessResult.DRAW_INSUFFICIENT_MATERIAL
+        )
+
+        draws.forEach { draw ->
+            assertEquals(score, score.record(draw, GameMode.SINGLE_PLAYER, ChessSide.BLACK))
+            assertEquals(6, score.record(draw, GameMode.SINGLE_PLAYER, ChessSide.BLACK).intelligenceLevel)
+            assertEquals(ChessSide.BLACK, nextChessPlayerSide(ChessSide.BLACK, draw))
+        }
     }
 
     @Test
