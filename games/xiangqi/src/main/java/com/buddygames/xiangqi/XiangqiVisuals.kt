@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -51,19 +52,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.buddygames.api.GameMode
 
-private val PaperTop = Color(0xFFF3F7F6)
-private val PaperBottom = Color(0xFFD7E3E4)
-private val Ink = Color(0xFF252B2B)
-private val Teal = Color(0xFF123F48)
-private val Cinnabar = Color(0xFFA7372B)
-private val LacquerBlack = Color(0xFF171B1B)
-private val Gold = Color(0xFFC79645)
-private val PaleGold = Color(0xFFFFD58B)
-private val Ivory = Color(0xFFF9FAF7)
+private val StageTable = Color(0xFF18201F)
+private val StageEdge = Color(0xFF0C1110)
+private val Paper = Color(0xFFEEE6D2)
+private val Ink = Color(0xFF292720)
+private val MutedInk = Color(0xFF756C5A)
+private val Verdigris = Color(0xFF426B61)
+private val Brass = Color(0xFFA77A34)
+private val Cinnabar = Color(0xFFA3332B)
+private val LacquerBlack = Color(0xFF252622)
+private val Ivory = Color(0xFFF6F0E2)
 
 @Composable
 internal fun XiangqiMenu(
-    texture: ImageBitmap?,
+    textures: XiangqiTextureSet,
     versionName: String,
     onSingle: () -> Unit,
     onTwo: () -> Unit,
@@ -73,13 +75,27 @@ internal fun XiangqiMenu(
         BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
             if (maxWidth >= 900.dp) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                    XiangqiBoard(XiangqiState.initial(), null, { _, _ -> }, Modifier.weight(1f), texture, false)
+                    XiangqiBoard(
+                        XiangqiState.initial(),
+                        null,
+                        { _, _ -> },
+                        Modifier.weight(1f),
+                        textures,
+                        false
+                    )
                     Spacer(Modifier.width(34.dp))
                     XiangqiMenuPanel(versionName, onSingle, onTwo, onExit, Modifier.width(310.dp))
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    XiangqiBoard(XiangqiState.initial(), null, { _, _ -> }, Modifier.weight(1f), texture, false)
+                    XiangqiBoard(
+                        XiangqiState.initial(),
+                        null,
+                        { _, _ -> },
+                        Modifier.weight(1f),
+                        textures,
+                        false
+                    )
                     XiangqiMenuPanel(versionName, onSingle, onTwo, onExit, Modifier.fillMaxWidth())
                 }
             }
@@ -102,11 +118,11 @@ private fun XiangqiMenuPanel(
             Spacer(Modifier.height(6.dp))
             Text("楚河 · 漢界", color = Cinnabar, fontSize = 15.sp)
             Spacer(Modifier.height(4.dp))
-            Text(xiangqiVersionLabel(versionName), color = Cinnabar, fontSize = 12.sp)
+            Text(xiangqiVersionLabel(versionName), color = MutedInk, fontSize = 12.sp)
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             MenuButton(labels[0], Cinnabar, Color.White, onSingle)
-            MenuButton(labels[1], Ivory, Ink, onTwo, outlined = true)
+            MenuButton(labels[1], Color.Transparent, Verdigris, onTwo, outlined = true)
             MenuButton(labels[2], Color.Transparent, Cinnabar, onExit, outlined = true)
         }
     }
@@ -160,7 +176,7 @@ internal fun XiangqiGameLayout(
     onUndo: () -> Unit,
     onRestart: () -> Unit,
     onExit: () -> Unit,
-    texture: ImageBitmap?
+    textures: XiangqiTextureSet
 ) {
     GameBackdrop {
         BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
@@ -171,7 +187,7 @@ internal fun XiangqiGameLayout(
                         selected,
                         onTap,
                         Modifier.weight(1f),
-                        texture,
+                        textures,
                         rotated = rotateBoard,
                         lastMove = lastMove
                     )
@@ -198,7 +214,7 @@ internal fun XiangqiGameLayout(
                         selected,
                         onTap,
                         Modifier.weight(1f),
-                        texture,
+                        textures,
                         rotated = rotateBoard,
                         lastMove = lastMove
                     )
@@ -228,7 +244,7 @@ private fun XiangqiBoard(
     selected: Pair<Int, Int>?,
     onTap: (Int, Int) -> Unit,
     modifier: Modifier,
-    texture: ImageBitmap?,
+    textures: XiangqiTextureSet,
     interactive: Boolean = true,
     rotated: Boolean = false,
     lastMove: XiangqiMove? = null
@@ -237,69 +253,86 @@ private fun XiangqiBoard(
         val board = xiangqiBoardSize(maxWidth.value - 8f, maxHeight.value - 8f)
         val boardWidth = board.width.dp
         val boardHeight = board.height.dp
-        val surfaceWidth = boardWidth - 48.dp
-        val surfaceHeight = boardHeight - 48.dp
-        val hitWidth = surfaceWidth - 20.dp
-        val hitHeight = surfaceHeight - 16.dp
-        val stepX = hitWidth / XiangqiState.COLS.toFloat()
-        val stepY = hitHeight / XiangqiState.ROWS.toFloat()
+        val gridLeft = boardWidth * XIANGQI_GRID_LEFT_FRACTION
+        val gridTop = boardHeight * XIANGQI_GRID_TOP_FRACTION
+        val gridWidth =
+            boardWidth * (XIANGQI_GRID_RIGHT_FRACTION - XIANGQI_GRID_LEFT_FRACTION)
+        val gridHeight =
+            boardHeight * (XIANGQI_GRID_BOTTOM_FRACTION - XIANGQI_GRID_TOP_FRACTION)
+        val stepX = gridWidth / (XiangqiState.COLS - 1).toFloat()
+        val stepY = gridHeight / (XiangqiState.ROWS - 1).toFloat()
+        val touchWidth = stepX * XiangqiState.COLS.toFloat()
+        val touchHeight = stepY * XiangqiState.ROWS.toFloat()
+        val touchLeft = gridLeft - stepX / 2f
+        val touchTop = gridTop - stepY / 2f
+        val cellSize = minOf(stepX.value, stepY.value).dp
         val lastMoveCell = xiangqiLastMoveCell(lastMove)
 
         Box(
             Modifier
                 .size(boardWidth, boardHeight)
-                .shadow(20.dp, RoundedCornerShape(7.dp), clip = false)
-                .clip(RoundedCornerShape(7.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF7A5432), Color(0xFF3A2415))))
-                .border(2.dp, Color(0xFF29180E), RoundedCornerShape(7.dp))
-                .padding(15.dp)
         ) {
+            if (textures.board != null) {
+                Image(
+                    bitmap = textures.board,
+                    contentDescription = "象棋棋盘",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.FillBounds
+                )
+            } else {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .shadow(18.dp, RoundedCornerShape(7.dp), clip = false)
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(Color(0xFFB9864E))
+                        .border(5.dp, Color(0xFF52341F), RoundedCornerShape(7.dp))
+                )
+            }
+
             Box(
                 Modifier
-                    .fillMaxSize()
-                    .border(3.dp, Color(0xFF2B190F))
-                    .background(Color(0xFF95633A))
-                    .padding(9.dp),
-                contentAlignment = Alignment.Center
+                    .offset(x = touchLeft, y = touchTop)
+                    .size(touchWidth, touchHeight)
             ) {
-                Box(Modifier.size(surfaceWidth, surfaceHeight).background(Color(0xFFD3A15E)), contentAlignment = Alignment.Center) {
-                    if (texture != null) {
-                        Image(texture, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.93f)
-                    }
-                    Box(Modifier.size(hitWidth, hitHeight)) {
+                if (textures.board == null) {
+                    Box(Modifier.fillMaxSize()) {
                         XiangqiGrid(stepX, stepY)
                         RiverLabels(stepX, stepY, rotated)
-                        Column(Modifier.fillMaxSize()) {
-                            repeat(XiangqiState.ROWS) { row ->
-                                Row {
-                                    repeat(XiangqiState.COLS) { col ->
-                                        val (modelRow, modelCol) =
-                                            xiangqiBoardCoordinate(row, col, rotated)
-                                        val piece = state.piece(modelRow, modelCol)
-                                        val isSelected = selected == modelRow to modelCol
-                                        val isLastMove = lastMoveCell == modelRow to modelCol
-                                        Box(
-                                            modifier = Modifier
-                                                .size(stepX, stepY)
-                                                .semantics {
-                                                    contentDescription =
-                                                        "第${modelRow + 1}行第${modelCol + 1}列" +
-                                                            if (isLastMove) "，最后一步" else ""
-                                                }
-                                                .clickable(enabled = interactive) {
-                                                    onTap(modelRow, modelCol)
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            if (isSelected) SelectionHalo(stepY * 0.90f)
-                                            if (piece != null) XiangqiPieceView(piece, stepY * 0.82f)
-                                            if (isLastMove) {
-                                                LastMoveMarker(
-                                                    minOf(stepX.value, stepY.value).dp *
-                                                        LAST_MOVE_MARKER_SCALE
-                                                )
-                                            }
+                    }
+                }
+                Column(Modifier.fillMaxSize()) {
+                    repeat(XiangqiState.ROWS) { row ->
+                        Row {
+                            repeat(XiangqiState.COLS) { col ->
+                                val (modelRow, modelCol) =
+                                    xiangqiBoardCoordinate(row, col, rotated)
+                                val piece = state.piece(modelRow, modelCol)
+                                val isSelected = selected == modelRow to modelCol
+                                val isLastMove = lastMoveCell == modelRow to modelCol
+                                Box(
+                                    modifier = Modifier
+                                        .size(stepX, stepY)
+                                        .semantics {
+                                            contentDescription =
+                                                "第${modelRow + 1}行第${modelCol + 1}列" +
+                                                    if (isLastMove) "，最后一步" else ""
                                         }
+                                        .clickable(enabled = interactive) {
+                                            onTap(modelRow, modelCol)
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) SelectionHalo(cellSize * 0.90f)
+                                    if (piece != null) {
+                                        XiangqiPieceView(
+                                            piece = piece,
+                                            diameter = cellSize * XIANGQI_PIECE_TEXTURE_SCALE,
+                                            texture = textures.pieces[piece]
+                                        )
+                                    }
+                                    if (isLastMove) {
+                                        LastMoveMarker(cellSize * LAST_MOVE_MARKER_SCALE)
                                     }
                                 }
                             }
@@ -404,15 +437,28 @@ private fun LastMoveMarker(size: Dp) {
 }
 
 @Composable
-private fun XiangqiPieceView(piece: XiangqiPiece, diameter: Dp) {
+private fun XiangqiPieceView(
+    piece: XiangqiPiece,
+    diameter: Dp,
+    texture: ImageBitmap?
+) {
     Box(Modifier.size(diameter), contentAlignment = Alignment.Center) {
+        if (texture != null) {
+            Image(
+                bitmap = texture,
+                contentDescription = piece.displayLabel(),
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+            return@Box
+        }
         Canvas(Modifier.fillMaxSize()) {
             val radius = size.minDimension * 0.43f
             val center = Offset(size.width / 2f, size.height / 2f - radius * 0.03f)
             drawCircle(Color(0x66000000), radius, center + Offset(radius * 0.10f, radius * 0.16f))
             drawCircle(
                 brush = Brush.radialGradient(
-                    listOf(Color(0xFFF8D58E), Gold, Color(0xFF674016)),
+                    listOf(Color(0xFFF3D49B), Brass, Color(0xFF674016)),
                     center = center - Offset(radius * 0.25f, radius * 0.32f),
                     radius = radius * 1.30f
                 ),
@@ -434,12 +480,12 @@ private fun XiangqiPieceView(piece: XiangqiPiece, diameter: Dp) {
                 center = center
             )
             drawCircle(Color(0xFF38210D), radius * 0.88f, center, style = Stroke(1.2f))
-            drawCircle(PaleGold.copy(alpha = 0.52f), radius * 0.73f, center, style = Stroke(1.05f))
+            drawCircle(Ivory.copy(alpha = 0.52f), radius * 0.73f, center, style = Stroke(1.05f))
             drawCircle(Color.White.copy(alpha = 0.18f), radius * 0.12f, center - Offset(radius * 0.30f, radius * 0.36f))
         }
         Text(
             piece.displayLabel(),
-            color = PaleGold,
+            color = Ivory,
             fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.Bold,
             fontSize = 22.sp
@@ -482,7 +528,7 @@ private fun XiangqiInfoRail(
                 )
             }
         }
-        HorizontalDivider(color = Color(0xFFB9C0BD))
+        HorizontalDivider(color = Verdigris.copy(alpha = 0.42f))
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -520,7 +566,7 @@ private fun XiangqiInfoRail(
                 }
             }
         }
-        HorizontalDivider(color = Color(0xFFB9C0BD))
+        HorizontalDivider(color = Verdigris.copy(alpha = 0.42f))
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (gameOver) MenuButton("重新开始", Cinnabar, Color.White, onRestart)
             if (showUndo) {
@@ -537,8 +583,8 @@ private fun ExitButton(onClick: () -> Unit) {
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().height(54.dp),
         shape = RoundedCornerShape(7.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Ink),
-        border = BorderStroke(1.dp, Ink.copy(alpha = 0.42f))
+        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Cinnabar),
+        border = BorderStroke(1.dp, Cinnabar.copy(alpha = 0.58f))
     ) {
         ExitGlyph()
         Spacer(Modifier.width(10.dp))
@@ -549,7 +595,7 @@ private fun ExitButton(onClick: () -> Unit) {
 @Composable
 private fun ExitGlyph() {
     Canvas(Modifier.size(24.dp)) {
-        val color = Ink
+        val color = Cinnabar
         drawRoundRect(
             color = color,
             topLeft = Offset(2f, 3f),
@@ -568,10 +614,10 @@ private fun ExitGlyph() {
 private fun MaterialPanel(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = modifier
-            .shadow(13.dp, RoundedCornerShape(8.dp), clip = false)
-            .clip(RoundedCornerShape(8.dp))
-            .background(Brush.verticalGradient(listOf(Color(0xFFFDFEFD), Color(0xFFE9EEEC))))
-            .border(1.dp, Color(0xFFBAC3C0), RoundedCornerShape(8.dp))
+            .shadow(14.dp, RoundedCornerShape(6.dp), clip = false)
+            .clip(RoundedCornerShape(6.dp))
+            .background(Paper)
+            .border(2.dp, Verdigris.copy(alpha = 0.72f), RoundedCornerShape(6.dp))
             .padding(horizontal = 28.dp, vertical = 34.dp),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -604,5 +650,19 @@ private fun MenuButton(
 
 @Composable
 private fun GameBackdrop(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(PaperTop, PaperBottom)))) { content() }
+    Box(Modifier.fillMaxSize().background(StageTable)) {
+        Canvas(Modifier.fillMaxSize()) {
+            drawRect(StageTable)
+            repeat(18) { index ->
+                val y = size.height * (index + 1) / 19f
+                drawLine(
+                    color = StageEdge.copy(alpha = if (index % 3 == 0) 0.38f else 0.22f),
+                    start = Offset(0f, y),
+                    end = Offset(size.width, y + (index % 2) * 2f),
+                    strokeWidth = if (index % 4 == 0) 3f else 1.5f
+                )
+            }
+        }
+        content()
+    }
 }

@@ -1,63 +1,24 @@
 package com.buddygames.xiangqi
 
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.buddygames.api.GameContext
 import com.buddygames.api.GameManifest
 import com.buddygames.api.GameMode
 import com.buddygames.api.GamePlugin
-import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 private val XiangqiPaper = Color(0xFFF1E7D5)
-private val XiangqiBoard = Color(0xFFD2AC73)
-private val XiangqiWood = Color(0xFF745936)
-private val XiangqiInk = Color(0xFF2B2722)
-private val XiangqiIvory = Color(0xFFFFFFFC)
-private val XiangqiVermilion = Color(0xFF9B2F2F)
-private val XiangqiGold = Color(0xFFB88438)
 
 internal fun xiangqiFileFraction(column: Int): Float {
     require(column in 0 until XiangqiState.COLS)
@@ -72,8 +33,12 @@ internal fun xiangqiRankFraction(row: Int): Float {
 internal data class XiangqiBoardSize(val width: Float, val height: Float)
 
 internal fun xiangqiBoardSize(availableWidth: Float, availableHeight: Float): XiangqiBoardSize {
-    val height = minOf(availableHeight, availableWidth / 1.03f, 820f).coerceAtLeast(360f)
-    return XiangqiBoardSize(width = height * 1.03f, height = height)
+    val height = minOf(
+        availableHeight.coerceAtLeast(1f),
+        availableWidth.coerceAtLeast(1f) / XIANGQI_BOARD_ASPECT_RATIO,
+        820f
+    )
+    return XiangqiBoardSize(width = height * XIANGQI_BOARD_ASPECT_RATIO, height = height)
 }
 
 class XiangqiPlugin : GamePlugin {
@@ -81,11 +46,11 @@ class XiangqiPlugin : GamePlugin {
 
     @Composable
     override fun MainScreen(context: GameContext) {
-        val texture = remember(context.gamePackage.assetsDir) {
-            loadXiangqiTexture(context.gamePackage.assetsDir.resolve("textures/xiangqi-shelf.png"))
+        val textures = remember(context.gamePackage.assetsDir) {
+            loadXiangqiTextures(context.gamePackage.assetsDir)
         }
         XiangqiMenu(
-            texture = texture,
+            textures = textures,
             versionName = context.gamePackage.manifest.versionName,
             onSingle = { context.startGame(GameMode.SINGLE_PLAYER) },
             onTwo = { context.startGame(GameMode.TWO_PLAYERS) },
@@ -95,8 +60,8 @@ class XiangqiPlugin : GamePlugin {
 
     @Composable
     override fun GameScreen(context: GameContext, mode: GameMode) {
-        val texture = remember(context.gamePackage.assetsDir) {
-            loadXiangqiTexture(context.gamePackage.assetsDir.resolve("textures/xiangqi-shelf.png"))
+        val textures = remember(context.gamePackage.assetsDir) {
+            loadXiangqiTextures(context.gamePackage.assetsDir)
         }
         val initialRound = remember { newXiangqiRound() }
         var state by remember { mutableStateOf(initialRound.state) }
@@ -233,7 +198,7 @@ class XiangqiPlugin : GamePlugin {
                 onUndo = ::undo,
                 onRestart = ::restart,
                 onExit = context::exitGame,
-                texture = texture
+                textures = textures
             )
         }
     }
@@ -268,8 +233,8 @@ class XiangqiPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "xiangqi",
             displayName = "象棋",
-            versionCode = 9,
-            versionName = "0.0.9",
+            versionCode = 10,
+            versionName = "0.0.10",
             entryClass = "com.buddygames.xiangqi.XiangqiPlugin",
             minShellApi = 1,
             icon = "assets/icon.png"
@@ -288,7 +253,3 @@ internal fun XiangqiPiece.displayLabel(): String {
         PieceType.SOLDIER -> if (side == Side.RED) "兵" else "卒"
     }
 }
-
-private fun loadXiangqiTexture(file: File): ImageBitmap? = runCatching {
-    requireNotNull(BitmapFactory.decodeFile(file.absolutePath)).asImageBitmap()
-}.getOrNull()
