@@ -40,6 +40,7 @@ Current design direction:
 - `designs/specs/android-game-package-logos.md` defines the four package-owned circular PNG logos and their shared cool-porcelain medallion style.
 - `designs/specs/android-games-family-versus-logo.md` records the approved game-center brand Logo: two face-to-face players around a shared game table. Root `logo.svg` and all launcher resources must preserve the user-selected 1254×1254 artwork without cropping or reinterpretation.
 - The approved app-icon artwork is a 1254×1254 source embedded byte-for-byte in root `logo.svg`; `AppIconResourcesTest` guards its SHA-256 plus legacy/adaptive launcher resource wiring.
+- `designs/specs/xiangqi-ui.md` defines the proposed bright porcelain-and-celadon Xiangqi interface, complete-board PNG geometry, and 14-piece transparent PNG family. Do not replace the current package assets until its Designer user gate selects Option 1.
 
 ## Environment
 
@@ -163,6 +164,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [designs/specs/android-games-home.md](designs/specs/android-games-home.md) | Current home-screen visual SSOT |
 | [designs/specs/android-games-family-versus-logo.md](designs/specs/android-games-family-versus-logo.md) | Approved family-versus Logo and launcher-icon SSOT |
 | [designs/specs/xiangqi-antique-ui.md](designs/specs/xiangqi-antique-ui.md) | Antique Xiangqi board, piece texture, menu, match, and interaction SSOT |
+| [designs/specs/xiangqi-ui.md](designs/specs/xiangqi-ui.md) | Proposed bright, simple Chinese Xiangqi UI and board/piece texture SSOT |
 
 ## Done checklist
 
