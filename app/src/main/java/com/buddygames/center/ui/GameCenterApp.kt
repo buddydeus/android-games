@@ -94,6 +94,7 @@ fun GameCenterApp() {
     val androidContext = LocalContext.current
     val repository = remember { GamePackageRepository(androidContext.filesDir) }
     val pluginLoader = remember { DexGamePluginLoader(androidContext.codeCacheDir) }
+    val usageStore = remember { GameUsageStore(androidContext) }
     var packages by remember {
         mutableStateOf(
             run {
@@ -102,6 +103,7 @@ fun GameCenterApp() {
             }
         )
     }
+    var usageCounts by remember { mutableStateOf(usageStore.readCounts()) }
     var activePackage by remember { mutableStateOf<GamePackage?>(null) }
     var activePlugin by remember { mutableStateOf<GamePlugin?>(null) }
     var activeMode by remember { mutableStateOf<GameMode?>(null) }
@@ -140,12 +142,17 @@ fun GameCenterApp() {
             if (currentPackage == null || currentPlugin == null) {
                 GameCenterHome(
                     packages = packages,
+                    usageCounts = usageCounts,
                     message = message,
                     onImport = { launcher.launch(arrayOf("application/zip", "application/octet-stream")) },
                     onOpen = { gamePackage ->
                         runCatching {
                             pluginLoader.load(gamePackage)
                         }.onSuccess { plugin ->
+                            val gameId = gamePackage.manifest.gameId
+                            usageCounts = usageCounts + (
+                                gameId to usageStore.recordSuccessfulLaunch(gameId)
+                            )
                             activePackage = gamePackage
                             activePlugin = plugin
                             activeMode = null
@@ -195,6 +202,7 @@ private fun installBundledGames(androidContext: android.content.Context, reposit
 @Composable
 private fun GameCenterHome(
     packages: List<GamePackage>,
+    usageCounts: Map<String, Int>,
     message: String?,
     onImport: () -> Unit,
     onOpen: (GamePackage) -> Unit
@@ -213,13 +221,8 @@ private fun GameCenterHome(
                 heightDp = maxHeight.value
             )
         }
-        val sortedPackages = remember(packages) {
-            packages.sortedWith(
-                compareBy<GamePackage>(
-                    { homeGamePresentation(it.manifest.gameId).order },
-                    { it.manifest.displayName }
-                )
-            )
+        val sortedPackages = remember(packages, usageCounts) {
+            rankGamePackages(packages, usageCounts)
         }
         val compact = layout.mode == HomeGameLayoutMode.CompactColumn
 
@@ -384,7 +387,6 @@ private fun GameSelectionButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val presentation = homeGamePresentation(gamePackage.manifest.gameId)
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val focused by interactionSource.collectIsFocusedAsState()
@@ -465,8 +467,7 @@ private fun GameSelectionButton(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         HomeGameLogoMark(
-                            logo = presentation.logo,
-                            fallbackSymbol = gamePackage.manifest.displayName,
+                            gamePackage = gamePackage,
                             logoSizeDp = logoSizeDp,
                             modifier = Modifier.size(logoSizeDp.dp)
                         )
@@ -490,8 +491,7 @@ private fun GameSelectionButton(
                         verticalArrangement = Arrangement.Center
                     ) {
                         HomeGameLogoMark(
-                            logo = presentation.logo,
-                            fallbackSymbol = gamePackage.manifest.displayName,
+                            gamePackage = gamePackage,
                             logoSizeDp = logoSizeDp,
                             modifier = Modifier.size(logoSizeDp.dp)
                         )

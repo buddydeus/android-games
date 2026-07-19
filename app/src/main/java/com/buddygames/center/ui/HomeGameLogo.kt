@@ -1,6 +1,7 @@
 package com.buddygames.center.ui
 
-import androidx.compose.foundation.Canvas
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -9,33 +10,75 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.buddygames.api.GamePackage
+import java.io.File
+import java.util.Locale
 
 private val LogoWell = Color(0xFFE5ECE9)
 private val LogoBorder = Color(0xFFAEBDB9)
 private val LogoRim = Color.White.copy(alpha = 0.72f)
 private val LogoInk = Color(0xFF242A2C)
-private val LogoPorcelain = Color(0xFFF5F2E9)
-private val XiangqiRed = Color(0xFFA33B33)
-private val PieceShadow = Color(0xFF2F4243).copy(alpha = 0.18f)
+private const val MAX_TEXT_LOGO_BYTES = 16 * 1024
+private const val MAX_TEXT_LOGO_CHARACTERS = 6
+private const val MAX_DECODED_LOGO_DIMENSION = 512
+
+internal sealed interface HomeGameLogoContent {
+    data class Text(val value: String) : HomeGameLogoContent
+    data class BitmapFile(val file: File) : HomeGameLogoContent
+}
+
+internal fun loadHomeGameLogo(gamePackage: GamePackage): HomeGameLogoContent {
+    val fallback = HomeGameLogoContent.Text(
+        gamePackage.manifest.displayName.trim().take(1).ifEmpty { "游" }
+    )
+    val iconPath = gamePackage.manifest.icon?.trim()?.takeIf { it.isNotEmpty() }
+        ?: return fallback
+
+    return runCatching {
+        val packageRoot = gamePackage.rootDir.canonicalFile
+        val iconFile = packageRoot.resolve(iconPath).canonicalFile
+        if (!iconFile.toPath().startsWith(packageRoot.toPath()) || !iconFile.isFile) {
+            return fallback
+        }
+
+        when (iconFile.extension.lowercase(Locale.ROOT)) {
+            "txt" -> {
+                if (iconFile.length() > MAX_TEXT_LOGO_BYTES) {
+                    return fallback
+                }
+                val text = iconFile.readText().trim().take(MAX_TEXT_LOGO_CHARACTERS)
+                if (text.isEmpty()) fallback else HomeGameLogoContent.Text(text)
+            }
+            "png", "webp", "jpg", "jpeg" -> HomeGameLogoContent.BitmapFile(iconFile)
+            else -> fallback
+        }
+    }.getOrDefault(fallback)
+}
 
 @Composable
 internal fun HomeGameLogoMark(
-    logo: HomeGameLogo,
-    fallbackSymbol: String,
+    gamePackage: GamePackage,
     logoSizeDp: Int,
     modifier: Modifier = Modifier
 ) {
+    val logoContent = remember(
+        gamePackage.rootDir,
+        gamePackage.manifest.icon,
+        gamePackage.manifest.versionCode
+    ) {
+        loadHomeGameLogo(gamePackage)
+    }
+
     Box(
         modifier = modifier
             .clip(CircleShape)
@@ -46,139 +89,69 @@ internal fun HomeGameLogoMark(
             .padding(8.dp),
         contentAlignment = Alignment.Center
     ) {
-        when (logo) {
-            HomeGameLogo.Gomoku -> GomokuLogo(Modifier.fillMaxSize())
-            HomeGameLogo.Xiangqi -> XiangqiLogo(
-                glyphSizeSp = xiangqiGlyphSizeSp(logoSizeDp),
-                modifier = Modifier.fillMaxSize()
+        when (logoContent) {
+            is HomeGameLogoContent.Text -> TextLogo(
+                text = logoContent.value,
+                logoSizeDp = logoSizeDp
             )
-            HomeGameLogo.Chess -> ChessLogo(
-                glyphSizeSp = (logoSizeDp * 0.58f).toInt().coerceIn(30, 64),
-                modifier = Modifier.fillMaxSize()
-            )
-            HomeGameLogo.Othello -> OthelloLogo(Modifier.fillMaxSize())
-            HomeGameLogo.Generic -> Text(
-                text = fallbackSymbol.trim().take(1).ifEmpty { "游" },
-                color = LogoInk,
-                fontSize = xiangqiGlyphSizeSp(logoSizeDp).sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-private fun ChessLogo(
-    glyphSizeSp: Int,
-    modifier: Modifier = Modifier
-) {
-    Box(modifier, contentAlignment = Alignment.Center) {
-        Text(
-            text = "♞",
-            color = LogoInk,
-            fontSize = glyphSizeSp.sp,
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
-private fun GomokuLogo(modifier: Modifier = Modifier) {
-    Canvas(modifier) {
-        val radius = size.minDimension * 0.105f
-        val outline = 1.4.dp.toPx()
-        val shadowOffset = 1.4.dp.toPx()
-        val centers = listOf(
-            Offset(size.width * 0.18f, size.height * 0.78f),
-            Offset(size.width * 0.34f, size.height * 0.63f),
-            Offset(size.width * 0.50f, size.height * 0.50f),
-            Offset(size.width * 0.66f, size.height * 0.35f),
-            Offset(size.width * 0.82f, size.height * 0.20f)
-        )
-
-        centers.forEachIndexed { index, center ->
-            drawCircle(
-                color = PieceShadow,
-                radius = radius,
-                center = center + Offset(shadowOffset, shadowOffset)
-            )
-            if (index % 2 == 0) {
-                drawCircle(color = LogoInk, radius = radius, center = center)
-            } else {
-                drawCircle(color = LogoInk, radius = radius + outline, center = center)
-                drawCircle(color = LogoPorcelain, radius = radius, center = center)
+            is HomeGameLogoContent.BitmapFile -> {
+                val bitmap = remember(
+                    logoContent.file.path,
+                    logoContent.file.lastModified(),
+                    logoContent.file.length()
+                ) {
+                    decodePackageLogo(logoContent.file)
+                }
+                if (bitmap == null) {
+                    TextLogo(
+                        text = gamePackage.manifest.displayName.trim().take(1).ifEmpty { "游" },
+                        logoSizeDp = logoSizeDp
+                    )
+                } else {
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun XiangqiLogo(
-    glyphSizeSp: Int,
-    modifier: Modifier = Modifier
-) {
-    Box(modifier, contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) {
-            val radius = size.minDimension * 0.39f
-            drawCircle(
-                color = XiangqiRed,
-                radius = radius,
-                style = Stroke(width = 3.dp.toPx())
-            )
-            drawCircle(
-                color = XiangqiRed,
-                radius = radius * 0.82f,
-                style = Stroke(width = 1.5.dp.toPx())
-            )
-        }
-        Text(
-            text = "象",
-            color = XiangqiRed,
-            fontSize = glyphSizeSp.sp,
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.Bold
-        )
+private fun TextLogo(text: String, logoSizeDp: Int) {
+    val scale = when (text.length) {
+        1 -> 0.48f
+        2, 3 -> 0.34f
+        else -> 0.16f
     }
+    Text(
+        text = text,
+        color = LogoInk,
+        fontSize = (logoSizeDp * scale).toInt().coerceIn(10, 54).sp,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1
+    )
 }
 
-@Composable
-private fun OthelloLogo(modifier: Modifier = Modifier) {
-    Canvas(modifier) {
-        val radius = size.minDimension * 0.215f
-        val outline = 1.5.dp.toPx()
-        val shadowOffset = 1.2.dp.toPx()
-        val blackCenter = Offset(size.width * 0.31f, size.height * 0.45f)
-        val whiteCenter = Offset(size.width * 0.53f, size.height * 0.52f)
-        val splitCenter = Offset(size.width * 0.72f, size.height * 0.59f)
-
-        listOf(blackCenter, whiteCenter, splitCenter).forEach { center ->
-            drawCircle(
-                color = PieceShadow,
-                radius = radius,
-                center = center + Offset(shadowOffset, shadowOffset)
-            )
-        }
-
-        drawCircle(color = LogoInk, radius = radius, center = blackCenter)
-
-        drawCircle(color = LogoInk, radius = radius + outline, center = whiteCenter)
-        drawCircle(color = LogoPorcelain, radius = radius, center = whiteCenter)
-
-        drawCircle(color = LogoPorcelain, radius = radius, center = splitCenter)
-        drawArc(
-            color = LogoInk,
-            startAngle = -90f,
-            sweepAngle = 180f,
-            useCenter = true,
-            topLeft = Offset(splitCenter.x - radius, splitCenter.y - radius),
-            size = Size(radius * 2f, radius * 2f)
-        )
-        drawCircle(
-            color = LogoInk,
-            radius = radius,
-            center = splitCenter,
-            style = Stroke(width = outline)
-        )
+private fun decodePackageLogo(file: File) = runCatching {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(file.path, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+        return@runCatching null
     }
-}
+
+    var sampleSize = 1
+    while (
+        bounds.outWidth / sampleSize > MAX_DECODED_LOGO_DIMENSION ||
+        bounds.outHeight / sampleSize > MAX_DECODED_LOGO_DIMENSION
+    ) {
+        sampleSize *= 2
+    }
+    BitmapFactory.decodeFile(
+        file.path,
+        BitmapFactory.Options().apply { inSampleSize = sampleSize }
+    )?.asImageBitmap()
+}.getOrNull()

@@ -14,7 +14,9 @@ Each game implements `GamePlugin`:
 
 `GameContext` callbacks: `startGame`, `exitGame`, `returnToGameMain`, `log`.
 
-Manifest validation lives in `GameManifest.isValidForShell()`. Required fields: `gameId` (lowercase slug), `displayName`, `versionCode`, `versionName`, `entryClass`, `minShellApi <= CURRENT_SHELL_API`, `orientation = "landscape"`.
+Manifest validation lives in `GameManifest.isValidForShell()`. Required fields: `gameId` (lowercase slug), `displayName`, `versionCode`, `versionName`, `entryClass`, `minShellApi <= CURRENT_SHELL_API`, `orientation = "landscape"`. The shell displays `displayName` directly and does not map known game IDs to names.
+
+`icon` is an optional package-relative path. The home screen supports PNG, WebP, JPEG, and UTF-8 text files; text content is rendered as a compact mark of up to six characters inside the shared logo well. Bitmap decoding is sampled to a bounded display size. Missing, empty, unsupported, or unreadable icons fall back to the first character of `displayName`. Keep all icon paths inside the game package and never use absolute paths or `..`.
 
 ## Game versions
 
@@ -53,6 +55,8 @@ Built zip contents (produced by Gradle, not hand-edited):
 
 Installed on device under: `<filesDir>/Games/<gameId>/` (see `GamePackageRepository`).
 
+The shell discovers every valid installed directory without a per-game registry. Home order is based on the persisted successful-launch count, descending, with `displayName` and `gameId` as deterministic tie breakers. A newly imported game therefore appears automatically and starts with count zero.
+
 ## Build pipeline
 
 Root `build.gradle.kts` registers per-game tasks:
@@ -76,9 +80,9 @@ From repo root:
 
 Swap `gomoku` for `othello`, `xiangqi`, or `chess`.
 
-## Adding a new game (checklist)
+## Adding a new built-in game module (checklist)
 
-Ask first — touches Gradle modules and shell built-in asset copy.
+This checklist is only for adding game source and bundling its zip into this repository's APK. A compatible zip built elsewhere can be imported and discovered without changing or rebuilding the shell.
 
 1. Create `games/<gameId>/` Android library module (Compose + `game-api` dependency).
 2. Add `*Plugin` class implementing `GamePlugin` with public no-arg constructor.

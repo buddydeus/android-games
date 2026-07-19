@@ -1,26 +1,49 @@
 package com.buddygames.center.ui
 
+import com.buddygames.api.GameManifest
+import com.buddygames.api.GamePackage
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.io.File
 
 class HomeGamePresentationTest {
     @Test
     fun gameCenterVersionUsesReadableHomeLabel() {
-        assertEquals("版本 0.0.2", gameCenterVersionLabel("0.0.2"))
+        assertEquals("版本 0.0.3", gameCenterVersionLabel("0.0.3"))
     }
 
     @Test
-    fun builtInGamesUseDesignOrderAndVectorLogos() {
-        assertEquals(HomeGameLogo.Gomoku, homeGamePresentation("gomoku").logo)
-        assertEquals(0, homeGamePresentation("gomoku").order)
-        assertEquals(HomeGameLogo.Xiangqi, homeGamePresentation("xiangqi").logo)
-        assertEquals(1, homeGamePresentation("xiangqi").order)
-        assertEquals(HomeGameLogo.Chess, homeGamePresentation("chess").logo)
-        assertEquals(2, homeGamePresentation("chess").order)
-        assertEquals(HomeGameLogo.Othello, homeGamePresentation("othello").logo)
-        assertEquals(3, homeGamePresentation("othello").order)
-        assertEquals(HomeGameLogo.Generic, homeGamePresentation("sudoku").logo)
-        assertEquals(Int.MAX_VALUE, homeGamePresentation("sudoku").order)
+    fun gamesAreRankedBySuccessfulLaunchCount() {
+        val games = listOf(
+            gamePackage("gomoku", "五子棋"),
+            gamePackage("xiangqi", "象棋"),
+            gamePackage("othello", "黑白棋")
+        )
+
+        assertEquals(
+            listOf("xiangqi", "othello", "gomoku"),
+            rankGamePackages(
+                packages = games,
+                usageCounts = mapOf("xiangqi" to 7, "othello" to 3, "gomoku" to 1)
+            ).map { it.manifest.gameId }
+        )
+    }
+
+    @Test
+    fun gamesWithEqualUsageUsePackageNameAndIdForStableOrder() {
+        val games = listOf(
+            gamePackage("beta", "A Game"),
+            gamePackage("alpha", "A Game"),
+            gamePackage("chess", "B Game")
+        )
+
+        assertEquals(
+            listOf("alpha", "beta", "chess"),
+            rankGamePackages(
+                packages = games,
+                usageCounts = mapOf("alpha" to 2, "beta" to 2, "chess" to 2)
+            ).map { it.manifest.gameId }
+        )
     }
 
     @Test
@@ -115,10 +138,20 @@ class HomeGamePresentationTest {
         assertEquals(112, atWideBreakpoint.logoSizeDp)
     }
 
-    @Test
-    fun xiangqiGlyphScalesDownInsideCompactLogo() {
-        assertEquals(27, xiangqiGlyphSizeSp(64))
-        assertEquals(42, xiangqiGlyphSizeSp(96))
-        assertEquals(42, xiangqiGlyphSizeSp(112))
+    private fun gamePackage(gameId: String, displayName: String): GamePackage {
+        val root = File("build/test-games/$gameId")
+        return GamePackage(
+            manifest = GameManifest(
+                gameId = gameId,
+                displayName = displayName,
+                versionCode = 1,
+                versionName = "0.0.1",
+                entryClass = "example.Plugin",
+                minShellApi = 1
+            ),
+            rootDir = root,
+            pluginApk = root.resolve("plugin.apk"),
+            assetsDir = root.resolve("assets")
+        )
     }
 }

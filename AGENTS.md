@@ -13,7 +13,9 @@ The approved International Chess design is `docs/superpowers/specs/2026-07-18-in
 Current game behavior:
 
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
-- The game-center shell currently uses `versionCode = 2` and `versionName = 0.0.2`; the home top bar displays `BuildConfig.VERSION_NAME`.
+- The game-center shell currently uses `versionCode = 3` and `versionName = 0.0.3`; the home top bar displays `BuildConfig.VERSION_NAME`.
+- Home game names and logos come only from each installed package's `displayName` and `icon` manifest fields. The shell supports bounded package-local PNG, WebP, JPEG, and compact text icon files and must not branch on known game IDs for presentation.
+- The home game order is the descending persisted count of successful plugin loads. Equal counts use package display name and then game ID for deterministic, package-agnostic ordering.
 - All game menus use `单人模式`, `双人对战`, and `退出游戏`.
 - Every game owns an independent version starting at `0.0.1`, and its main menu displays `GameManifest.versionName`.
 - All games own their rules, robot, UI, score state, and restart flow inside their game module.
@@ -32,7 +34,7 @@ Current game behavior:
 
 Current design direction:
 
-- `designs/specs/android-games-home.md` defines the light mineral-grey, matte-porcelain home screen with four equal-size landscape game buttons and code-drawn game marks; its wide style starts only when four 240dp buttons fit without a breakpoint shrink.
+- `designs/specs/android-games-home.md` defines the light mineral-grey, matte-porcelain home screen with equal-size package-driven game buttons and no game-specific shell styling; its wide style starts only when four 240dp buttons fit without a breakpoint shrink.
 - `designs/specs/android-games-family-versus-logo.md` records the approved game-center brand Logo: two face-to-face players around a shared game table. Root `logo.svg` and all launcher resources must preserve the user-selected 1254×1254 artwork without cropping or reinterpretation.
 - The approved app-icon artwork is a 1254×1254 source embedded byte-for-byte in root `logo.svg`; `AppIconResourcesTest` guards its SHA-256 plus legacy/adaptive launcher resource wiring.
 
@@ -101,6 +103,7 @@ Run from repository root:
 - Keep last-move marker geometry and color constants aligned across all four game packages; marker scale must remain below one cell so adjacent pieces are unaffected.
 - Keep undo-button visibility separate from undo availability: hide it only when a winner exists, and keep Othello draws undoable.
 - Keep `game-api` backward-compatible or update every `games/*` plugin in the same change.
+- Keep home presentation package-agnostic: read names and icons from the manifest and rank by successful-launch count without adding game ID branches.
 - Run targeted unit tests for touched modules (see Commands).
 - Match existing Kotlin + Compose style in neighboring files.
 - After completing and verifying any repository change, automatically create a scoped local commit unless the user explicitly asks not to. Never push unless the user asks in the same turn.

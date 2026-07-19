@@ -1,19 +1,6 @@
 package com.buddygames.center.ui
 
-import kotlin.math.roundToInt
-
-internal enum class HomeGameLogo {
-    Gomoku,
-    Xiangqi,
-    Chess,
-    Othello,
-    Generic
-}
-
-internal data class HomeGamePresentation(
-    val logo: HomeGameLogo,
-    val order: Int
-)
+import com.buddygames.api.GamePackage
 
 internal enum class HomeGameLayoutMode {
     SquareRow,
@@ -30,13 +17,14 @@ internal data class HomeGameLayout(
     val logoSizeDp: Int
 )
 
-internal fun homeGamePresentation(gameId: String): HomeGamePresentation = when (gameId) {
-    "gomoku" -> HomeGamePresentation(HomeGameLogo.Gomoku, 0)
-    "xiangqi" -> HomeGamePresentation(HomeGameLogo.Xiangqi, 1)
-    "chess" -> HomeGamePresentation(HomeGameLogo.Chess, 2)
-    "othello" -> HomeGamePresentation(HomeGameLogo.Othello, 3)
-    else -> HomeGamePresentation(HomeGameLogo.Generic, Int.MAX_VALUE)
-}
+internal fun rankGamePackages(
+    packages: List<GamePackage>,
+    usageCounts: Map<String, Int>
+): List<GamePackage> = packages.sortedWith(
+    compareByDescending<GamePackage> { usageCounts[it.manifest.gameId] ?: 0 }
+        .thenBy { it.manifest.displayName }
+        .thenBy { it.manifest.gameId }
+)
 
 internal fun gameCenterVersionLabel(versionName: String): String = "版本 $versionName"
 
@@ -71,8 +59,3 @@ internal fun homeGameLayout(widthDp: Float, heightDp: Float): HomeGameLayout {
         logoSizeDp = if (wide) 112 else 72
     )
 }
-
-internal fun xiangqiGlyphSizeSp(logoSizeDp: Int): Int =
-    ((logoSizeDp - 8) * 0.48f)
-        .roundToInt()
-        .coerceIn(24, 42)
