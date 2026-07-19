@@ -140,6 +140,14 @@ internal fun chooseChessPromotion(
     type: ChessPieceType
 ): ChessMove? = candidates.firstOrNull { it.promotion == type }
 
+internal fun chessTapCandidates(
+    state: ChessState,
+    selected: Int,
+    tapped: Int
+): List<ChessMove> = ChessRules.legalMoves(state).filter { move ->
+    move.from == selected && move.to == tapped
+}
+
 internal fun shouldRotateChessBoard(mode: GameMode, playerSide: ChessSide): Boolean =
     mode == GameMode.SINGLE_PLAYER && playerSide == ChessSide.BLACK
 

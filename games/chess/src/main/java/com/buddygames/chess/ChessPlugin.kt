@@ -91,7 +91,7 @@ class ChessPlugin : GamePlugin {
                 if (piece?.side == state.sideToMove) selected = square
                 return
             }
-            val candidates = legalMoves.filter { it.from == currentSelection && it.to == square }
+            val candidates = chessTapCandidates(state, currentSelection, square)
             if (chessPromotionChoices(candidates).size > 1) {
                 pendingPromotionMoves = candidates
             } else if (candidates.isNotEmpty()) {
@@ -215,8 +215,8 @@ class ChessPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "chess",
             displayName = "国际象棋",
-            versionCode = 5,
-            versionName = "0.0.5",
+            versionCode = 6,
+            versionName = "0.0.6",
             entryClass = "com.buddygames.chess.ChessPlugin",
             minShellApi = 1,
             icon = "assets/icon.png"

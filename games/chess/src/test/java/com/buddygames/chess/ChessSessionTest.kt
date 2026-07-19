@@ -10,9 +10,9 @@ import org.junit.Test
 class ChessSessionTest {
     @Test
     fun gameVersionAndUnifiedMenuLabelsStayAligned() {
-        assertEquals(5, ChessPlugin.manifest.versionCode)
-        assertEquals("0.0.5", ChessPlugin.manifest.versionName)
-        assertEquals("版本 0.0.5", chessVersionLabel(ChessPlugin.manifest.versionName))
+        assertEquals(6, ChessPlugin.manifest.versionCode)
+        assertEquals("0.0.6", ChessPlugin.manifest.versionName)
+        assertEquals("版本 0.0.6", chessVersionLabel(ChessPlugin.manifest.versionName))
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), chessMenuLabels())
     }
 
@@ -120,6 +120,25 @@ class ChessSessionTest {
         assertEquals(chessSquare("h1"), chessModelSquare(0, 0, rotated = true))
         assertEquals(chessSquare("a1"), chessModelSquare(7, 0, rotated = false))
         assertEquals(chessSquare("h8"), chessModelSquare(7, 0, rotated = true))
+    }
+
+    @Test
+    fun tapResolutionUsesCurrentPositionAfterRobotRepliesAndAllowsCapture() {
+        val afterFirstRobotReply = ChessState.initial()
+            .apply(ChessMove.fromUci("b1c3"))
+            .apply(ChessMove.fromUci("a7a5"))
+        assertEquals(
+            listOf(ChessMove.fromUci("c3b5")),
+            chessTapCandidates(afterFirstRobotReply, chessSquare("c3"), chessSquare("b5"))
+        )
+
+        val afterSecondRobotReply = afterFirstRobotReply
+            .apply(ChessMove.fromUci("c3b5"))
+            .apply(ChessMove.fromUci("h7h6"))
+        assertEquals(
+            listOf(ChessMove.fromUci("b5c7")),
+            chessTapCandidates(afterSecondRobotReply, chessSquare("b5"), chessSquare("c7"))
+        )
     }
 
     @Test
