@@ -63,6 +63,62 @@ class XiangqiPieceAssetsTest {
         }
     }
 
+    @Test
+    fun boardUsesTheApprovedBrightPorcelainAndCeladonPalette() {
+        val board = readPng(
+            repositoryRoot()
+                .resolve("games/xiangqi/package/assets")
+                .resolve(XIANGQI_BOARD_TEXTURE_PATH)
+        )
+
+        assertColorNear(
+            "porcelain field",
+            board.getRGB(650, 500),
+            expected = 0xFFF5F1E8.toInt(),
+            tolerance = 24
+        )
+        assertColorNear(
+            "celadon rim",
+            board.getRGB(72, 800),
+            expected = 0xFFA9C7BE.toInt(),
+            tolerance = 26
+        )
+        assertColorNear(
+            "celadon river",
+            board.getRGB(720, 784),
+            expected = 0xFFD9E9E4.toInt(),
+            tolerance = 24
+        )
+    }
+
+    @Test
+    fun pieceTexturesShareOneCenteredDiscGeometry() {
+        val pieceDirectory = repositoryRoot().resolve("games/xiangqi/package/assets/pieces")
+        val bounds = PIECE_FILES.map { fileName ->
+            fileName to visibleBounds(readPng(pieceDirectory.resolve(fileName)))
+        }
+        val reference = bounds.first().second
+
+        bounds.forEach { (fileName, current) ->
+            assertTrue(
+                "$fileName left bound ${current.left} differs from ${reference.left}",
+                kotlin.math.abs(current.left - reference.left) <= BOUNDS_TOLERANCE
+            )
+            assertTrue(
+                "$fileName top bound ${current.top} differs from ${reference.top}",
+                kotlin.math.abs(current.top - reference.top) <= BOUNDS_TOLERANCE
+            )
+            assertTrue(
+                "$fileName right bound ${current.right} differs from ${reference.right}",
+                kotlin.math.abs(current.right - reference.right) <= BOUNDS_TOLERANCE
+            )
+            assertTrue(
+                "$fileName bottom bound ${current.bottom} differs from ${reference.bottom}",
+                kotlin.math.abs(current.bottom - reference.bottom) <= BOUNDS_TOLERANCE
+            )
+        }
+    }
+
     private fun readPng(file: File): BufferedImage {
         assertTrue("${file.path} must exist", file.isFile)
         val image = ImageIO.read(file)
@@ -95,6 +151,40 @@ class XiangqiPieceAssetsTest {
         assertTrue("$fileName coverage $coverage is too large", coverage <= MAX_COVERAGE)
     }
 
+    private fun assertColorNear(
+        label: String,
+        actual: Int,
+        expected: Int,
+        tolerance: Int
+    ) {
+        listOf(16, 8, 0).forEach { shift ->
+            val actualChannel = actual ushr shift and 0xff
+            val expectedChannel = expected ushr shift and 0xff
+            assertTrue(
+                "$label channel $shift expected $expectedChannel but was $actualChannel",
+                kotlin.math.abs(actualChannel - expectedChannel) <= tolerance
+            )
+        }
+    }
+
+    private fun visibleBounds(image: BufferedImage): Bounds {
+        var left = image.width
+        var top = image.height
+        var right = -1
+        var bottom = -1
+        for (y in 0 until image.height) {
+            for (x in 0 until image.width) {
+                if (image.getRGB(x, y) ushr 24 <= ALPHA_THRESHOLD) continue
+                left = minOf(left, x)
+                top = minOf(top, y)
+                right = maxOf(right, x)
+                bottom = maxOf(bottom, y)
+            }
+        }
+        assertTrue("texture must contain visible pixels", right >= left && bottom >= top)
+        return Bounds(left, top, right, bottom)
+    }
+
     private tailrec fun repositoryRoot(
         directory: File = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile
     ): File {
@@ -110,6 +200,8 @@ class XiangqiPieceAssetsTest {
         const val SAMPLE_STEP = 4
         const val MIN_COVERAGE = 0.25f
         const val MAX_COVERAGE = 0.65f
+        const val ALPHA_THRESHOLD = 32
+        const val BOUNDS_TOLERANCE = 3
 
         val PIECE_FILES = listOf(
             "red-general.png",
@@ -128,4 +220,11 @@ class XiangqiPieceAssetsTest {
             "black-soldier.png"
         )
     }
+
+    private data class Bounds(
+        val left: Int,
+        val top: Int,
+        val right: Int,
+        val bottom: Int
+    )
 }

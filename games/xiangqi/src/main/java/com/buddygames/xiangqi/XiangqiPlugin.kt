@@ -18,7 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
-private val XiangqiPaper = Color(0xFFF1E7D5)
+private val XiangqiPaper = Color(0xFFEAF1EF)
 
 internal fun xiangqiFileFraction(column: Int): Float {
     require(column in 0 until XiangqiState.COLS)
@@ -233,8 +233,8 @@ class XiangqiPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "xiangqi",
             displayName = "象棋",
-            versionCode = 10,
-            versionName = "0.0.10",
+            versionCode = 11,
+            versionName = "0.0.11",
             entryClass = "com.buddygames.xiangqi.XiangqiPlugin",
             minShellApi = 1,
             icon = "assets/icon.png"

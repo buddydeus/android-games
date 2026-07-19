@@ -11,9 +11,21 @@ import org.junit.Test
 class XiangqiRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(10, XiangqiPlugin.manifest.versionCode)
-        assertEquals("0.0.10", XiangqiPlugin.manifest.versionName)
-        assertEquals("版本 0.0.10", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+        assertEquals(11, XiangqiPlugin.manifest.versionCode)
+        assertEquals("0.0.11", XiangqiPlugin.manifest.versionName)
+        assertEquals("版本 0.0.11", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+    }
+
+    @Test
+    fun xiangqiPorcelainUiTokensStayAligned() {
+        assertEquals(0xFFEAF1EFL, XIANGQI_CANVAS_ARGB)
+        assertEquals(0xFFD3E0DCL, XIANGQI_CANVAS_LINE_ARGB)
+        assertEquals(0xFFFBFCFAL, XIANGQI_RAIL_ARGB)
+        assertEquals(0xFF213431L, XIANGQI_INK_ARGB)
+        assertEquals(0xFF61736FL, XIANGQI_MUTED_INK_ARGB)
+        assertEquals(0xFFA9C7BEL, XIANGQI_CELADON_ARGB)
+        assertEquals(0xFFB83A32L, XIANGQI_CINNABAR_ARGB)
+        assertEquals(0xFF263C42L, XIANGQI_BLUE_BLACK_ARGB)
     }
 
     @Test

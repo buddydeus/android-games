@@ -52,16 +52,27 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.buddygames.api.GameMode
 
-private val StageTable = Color(0xFF18201F)
-private val StageEdge = Color(0xFF0C1110)
-private val Paper = Color(0xFFEEE6D2)
-private val Ink = Color(0xFF292720)
-private val MutedInk = Color(0xFF756C5A)
-private val Verdigris = Color(0xFF426B61)
-private val Brass = Color(0xFFA77A34)
-private val Cinnabar = Color(0xFFA3332B)
-private val LacquerBlack = Color(0xFF252622)
-private val Ivory = Color(0xFFF6F0E2)
+internal const val XIANGQI_CANVAS_ARGB = 0xFFEAF1EFL
+internal const val XIANGQI_CANVAS_LINE_ARGB = 0xFFD3E0DCL
+internal const val XIANGQI_RAIL_ARGB = 0xFFFBFCFAL
+internal const val XIANGQI_INK_ARGB = 0xFF213431L
+internal const val XIANGQI_MUTED_INK_ARGB = 0xFF61736FL
+internal const val XIANGQI_CELADON_ARGB = 0xFFA9C7BEL
+internal const val XIANGQI_CINNABAR_ARGB = 0xFFB83A32L
+internal const val XIANGQI_BLUE_BLACK_ARGB = 0xFF263C42L
+
+private val CanvasColor = Color(XIANGQI_CANVAS_ARGB)
+private val CanvasLine = Color(XIANGQI_CANVAS_LINE_ARGB)
+private val RailSurface = Color(XIANGQI_RAIL_ARGB)
+private val Ink = Color(XIANGQI_INK_ARGB)
+private val MutedInk = Color(XIANGQI_MUTED_INK_ARGB)
+private val Celadon = Color(XIANGQI_CELADON_ARGB)
+private val CeladonEdge = Color(0xFF6E9489)
+private val Cinnabar = Color(XIANGQI_CINNABAR_ARGB)
+private val BlueBlack = Color(XIANGQI_BLUE_BLACK_ARGB)
+private val FocusBlue = Color(0xFF08758A)
+private val PieceBody = Color(0xFFF3E7CE)
+private val PieceEdge = Color(0xFFB89B6D)
 
 @Composable
 internal fun XiangqiMenu(
@@ -84,7 +95,13 @@ internal fun XiangqiMenu(
                         false
                     )
                     Spacer(Modifier.width(34.dp))
-                    XiangqiMenuPanel(versionName, onSingle, onTwo, onExit, Modifier.width(310.dp))
+                    XiangqiMenuPanel(
+                        versionName,
+                        onSingle,
+                        onTwo,
+                        onExit,
+                        Modifier.width(310.dp).fillMaxHeight(0.88f)
+                    )
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -114,15 +131,15 @@ private fun XiangqiMenuPanel(
     val labels = xiangqiMenuLabels()
     MaterialPanel(modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("象棋", color = Ink, fontFamily = FontFamily.Serif, fontSize = 44.sp, fontWeight = FontWeight.Bold)
+            Text("象棋", color = Ink, fontFamily = FontFamily.Serif, fontSize = 42.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
-            Text("楚河 · 漢界", color = Cinnabar, fontSize = 15.sp)
+            Text("楚河 · 漢界", color = MutedInk, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(4.dp))
             Text(xiangqiVersionLabel(versionName), color = MutedInk, fontSize = 12.sp)
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             MenuButton(labels[0], Cinnabar, Color.White, onSingle)
-            MenuButton(labels[1], Color.Transparent, Verdigris, onTwo, outlined = true)
+            MenuButton(labels[1], Color.Transparent, MutedInk, onTwo, outlined = true)
             MenuButton(labels[2], Color.Transparent, Cinnabar, onExit, outlined = true)
         }
     }
@@ -204,7 +221,7 @@ internal fun XiangqiGameLayout(
                         onUndo,
                         onRestart,
                         onExit,
-                        Modifier.width(300.dp).fillMaxHeight(0.88f)
+                        Modifier.width(300.dp).fillMaxHeight(0.94f)
                     )
                 }
             } else {
@@ -285,8 +302,8 @@ private fun XiangqiBoard(
                         .fillMaxSize()
                         .shadow(18.dp, RoundedCornerShape(7.dp), clip = false)
                         .clip(RoundedCornerShape(7.dp))
-                        .background(Color(0xFFB9864E))
-                        .border(5.dp, Color(0xFF52341F), RoundedCornerShape(7.dp))
+                        .background(Color(0xFFF5F1E8))
+                        .border(5.dp, CeladonEdge, RoundedCornerShape(7.dp))
                 )
             }
 
@@ -353,7 +370,7 @@ private fun XiangqiGrid(stepX: Dp, stepY: Dp) {
         val right = size.width - dx / 2f
         val top = dy / 2f
         val bottom = size.height - dy / 2f
-        val line = Color(0xDD252016)
+        val line = Color(0xEE263C38)
         val stroke = 1.55f
 
         repeat(XiangqiState.ROWS) { row ->
@@ -379,7 +396,7 @@ private fun RiverLabels(stepX: Dp, stepY: Dp, rotated: Boolean) {
     Text(
         leftLabel,
         modifier = Modifier.offset(x = stepX * 1.30f, y = stepY * 5f - 17.dp),
-        color = Color(0xFF292117),
+        color = Ink,
         fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Bold,
         fontSize = 23.sp
@@ -387,7 +404,7 @@ private fun RiverLabels(stepX: Dp, stepY: Dp, rotated: Boolean) {
     Text(
         rightLabel,
         modifier = Modifier.offset(x = stepX * 5.25f, y = stepY * 5f - 17.dp),
-        color = Color(0xFF292117),
+        color = Ink,
         fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Bold,
         fontSize = 23.sp
@@ -396,7 +413,7 @@ private fun RiverLabels(stepX: Dp, stepY: Dp, rotated: Boolean) {
 
 @Composable
 private fun SelectionHalo(diameter: Dp) {
-    Box(Modifier.size(diameter).border(3.dp, Color(0xFFF4D27D), CircleShape))
+    Box(Modifier.size(diameter).border(3.dp, FocusBlue.copy(alpha = 0.84f), CircleShape))
 }
 
 @Composable
@@ -455,37 +472,23 @@ private fun XiangqiPieceView(
         Canvas(Modifier.fillMaxSize()) {
             val radius = size.minDimension * 0.43f
             val center = Offset(size.width / 2f, size.height / 2f - radius * 0.03f)
-            drawCircle(Color(0x66000000), radius, center + Offset(radius * 0.10f, radius * 0.16f))
             drawCircle(
                 brush = Brush.radialGradient(
-                    listOf(Color(0xFFF3D49B), Brass, Color(0xFF674016)),
+                    listOf(Color(0xFFFFFBF1), PieceBody, PieceEdge),
                     center = center - Offset(radius * 0.25f, radius * 0.32f),
                     radius = radius * 1.30f
                 ),
                 radius = radius,
                 center = center
             )
-            val lacquer = if (piece.side == Side.RED) {
-                listOf(Color(0xFFC94A35), Cinnabar, Color(0xFF661C17))
-            } else {
-                listOf(Color(0xFF555B58), LacquerBlack, Color(0xFF050707))
-            }
-            drawCircle(
-                brush = Brush.radialGradient(
-                    lacquer,
-                    center = center - Offset(radius * 0.25f, radius * 0.32f),
-                    radius = radius * 1.22f
-                ),
-                radius = radius * 0.78f,
-                center = center
-            )
-            drawCircle(Color(0xFF38210D), radius * 0.88f, center, style = Stroke(1.2f))
-            drawCircle(Ivory.copy(alpha = 0.52f), radius * 0.73f, center, style = Stroke(1.05f))
+            val sideColor = if (piece.side == Side.RED) Cinnabar else BlueBlack
+            drawCircle(PieceEdge, radius * 0.88f, center, style = Stroke(1.2f))
+            drawCircle(sideColor.copy(alpha = 0.72f), radius * 0.73f, center, style = Stroke(1.05f))
             drawCircle(Color.White.copy(alpha = 0.18f), radius * 0.12f, center - Offset(radius * 0.30f, radius * 0.36f))
         }
         Text(
             piece.displayLabel(),
-            color = Ivory,
+            color = if (piece.side == Side.RED) Cinnabar else BlueBlack,
             fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.Bold,
             fontSize = 22.sp
@@ -528,7 +531,7 @@ private fun XiangqiInfoRail(
                 )
             }
         }
-        HorizontalDivider(color = Verdigris.copy(alpha = 0.42f))
+        HorizontalDivider(color = Celadon.copy(alpha = 0.72f))
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -539,7 +542,7 @@ private fun XiangqiInfoRail(
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("当前回合：", color = Ink, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
-                    val sideColor = if (turn == Side.RED) Cinnabar else LacquerBlack
+                    val sideColor = if (turn == Side.RED) Cinnabar else BlueBlack
                     Text(
                         if (turn == Side.RED) "红方" else "黑方",
                         modifier = Modifier
@@ -557,16 +560,16 @@ private fun XiangqiInfoRail(
                         "将军",
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Cinnabar)
+                            .border(1.dp, Cinnabar, RoundedCornerShape(6.dp))
                             .padding(horizontal = 18.dp, vertical = 7.dp),
-                        color = Color.White,
+                        color = Cinnabar,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
-        HorizontalDivider(color = Verdigris.copy(alpha = 0.42f))
+        HorizontalDivider(color = Celadon.copy(alpha = 0.72f))
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (gameOver) MenuButton("重新开始", Cinnabar, Color.White, onRestart)
             if (showUndo) {
@@ -584,7 +587,7 @@ private fun ExitButton(onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().height(54.dp),
         shape = RoundedCornerShape(7.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Cinnabar),
-        border = BorderStroke(1.dp, Cinnabar.copy(alpha = 0.58f))
+        border = BorderStroke(1.dp, Cinnabar.copy(alpha = 0.76f))
     ) {
         ExitGlyph()
         Spacer(Modifier.width(10.dp))
@@ -614,10 +617,9 @@ private fun ExitGlyph() {
 private fun MaterialPanel(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = modifier
-            .shadow(14.dp, RoundedCornerShape(6.dp), clip = false)
             .clip(RoundedCornerShape(6.dp))
-            .background(Paper)
-            .border(2.dp, Verdigris.copy(alpha = 0.72f), RoundedCornerShape(6.dp))
+            .background(RailSurface)
+            .border(1.dp, Celadon.copy(alpha = 0.82f), RoundedCornerShape(6.dp))
             .padding(horizontal = 28.dp, vertical = 34.dp),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -641,7 +643,7 @@ private fun MenuButton(
         shape = RoundedCornerShape(7.dp),
         colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = content),
         border = if (outlined) {
-            BorderStroke(1.dp, content.copy(alpha = if (enabled) 0.42f else 0.16f))
+            BorderStroke(1.dp, content.copy(alpha = if (enabled) 0.78f else 0.16f))
         } else {
             null
         }
@@ -650,16 +652,16 @@ private fun MenuButton(
 
 @Composable
 private fun GameBackdrop(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().background(StageTable)) {
+    Box(Modifier.fillMaxSize().background(CanvasColor)) {
         Canvas(Modifier.fillMaxSize()) {
-            drawRect(StageTable)
-            repeat(18) { index ->
-                val y = size.height * (index + 1) / 19f
+            drawRect(CanvasColor)
+            repeat(3) { index ->
+                val y = size.height * (index + 1) / 4f
                 drawLine(
-                    color = StageEdge.copy(alpha = if (index % 3 == 0) 0.38f else 0.22f),
+                    color = CanvasLine.copy(alpha = 0.70f),
                     start = Offset(0f, y),
-                    end = Offset(size.width, y + (index % 2) * 2f),
-                    strokeWidth = if (index % 4 == 0) 3f else 1.5f
+                    end = Offset(size.width, y),
+                    strokeWidth = 1.5f
                 )
             }
         }
