@@ -10,9 +10,9 @@ import org.junit.Test
 class ChessSessionTest {
     @Test
     fun gameVersionAndUnifiedMenuLabelsStayAligned() {
-        assertEquals(6, ChessPlugin.manifest.versionCode)
-        assertEquals("0.0.6", ChessPlugin.manifest.versionName)
-        assertEquals("版本 0.0.6", chessVersionLabel(ChessPlugin.manifest.versionName))
+        assertEquals(7, ChessPlugin.manifest.versionCode)
+        assertEquals("0.0.7", ChessPlugin.manifest.versionName)
+        assertEquals("版本 0.0.7", chessVersionLabel(ChessPlugin.manifest.versionName))
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), chessMenuLabels())
     }
 
