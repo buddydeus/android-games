@@ -2,9 +2,11 @@ package com.buddygames.chess
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
@@ -30,15 +32,22 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -49,17 +58,21 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val CanvasTop = Color(0xFFF1F5F3)
-private val CanvasBottom = Color(0xFFD7E3E1)
-private val Ink = Color(0xFF202827)
-private val MutedInk = Color(0xFF596866)
-private val DeepGreen = Color(0xFF315B4C)
-private val LightSquare = Color(0xFFE6DFC9)
-private val DarkSquare = Color(0xFF63806B)
-private val BoardRim = Color(0xFF3A2D20)
-private val Ivory = Color(0xFFF8F4E8)
-private val Brass = Color(0xFFC49A4B)
-private val CheckRed = Color(0xFFAA3B32)
+private val CanvasTop = Color(0xFFE6ECEA)
+private val CanvasBottom = Color(0xFFCDD9D6)
+private val Ink = Color(0xFF1D2927)
+private val MutedInk = Color(0xFF5B6966)
+private val DeepGreen = Color(0xFF344842)
+private val LightSquare = Color(0xFFD8D4C6)
+private val DarkSquare = Color(0xFF557161)
+private val BoardRim = Color(0xFF344842)
+private val BoardRimEdge = Color(0xFF1F2E2A)
+private val Ivory = Color(0xFFF2EEE2)
+private val RailSurface = Color(0xFFF7F9F7)
+private val RailOutline = Color(0xFFAAB8B4)
+private val Brass = Color(0xFFB38A45)
+private val CheckRed = Color(0xFFB0443D)
+private val FocusTeal = Color(0xFF08758A)
 private val BrightBlue = Color(CHESS_LAST_MOVE_MARKER_HIGHLIGHT_ARGB)
 
 internal fun chessModelSquare(displayRow: Int, displayCol: Int, rotated: Boolean): Int {
@@ -79,6 +92,7 @@ internal fun chessUsesSideBySideLayout(
 @Composable
 internal fun ChessMenu(
     versionName: String,
+    pieceTextures: Map<ChessPiece, ImageBitmap>,
     onSingle: () -> Unit,
     onTwo: () -> Unit,
     onExit: () -> Unit
@@ -86,6 +100,7 @@ internal fun ChessMenu(
     ChessBackdrop {
         BoxWithConstraints(Modifier.fillMaxSize().padding(24.dp)) {
             if (chessUsesSideBySideLayout(maxWidth.value, maxHeight.value)) {
+                val panelWidth = (maxWidth * 0.34f).coerceIn(250.dp, 330.dp)
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     ChessBoard(
                         state = ChessState.initial(),
@@ -95,16 +110,17 @@ internal fun ChessMenu(
                         rotated = false,
                         interactive = false,
                         inCheck = false,
+                        pieceTextures = pieceTextures,
                         onTap = {},
                         modifier = Modifier.weight(1f)
                     )
-                    Spacer(Modifier.width(34.dp))
+                    Spacer(Modifier.width(24.dp))
                     ChessMenuPanel(
                         versionName,
                         onSingle,
                         onTwo,
                         onExit,
-                        Modifier.width(310.dp).fillMaxHeight(0.88f)
+                        Modifier.width(panelWidth).fillMaxHeight(0.88f)
                     )
                 }
             } else {
@@ -120,6 +136,7 @@ internal fun ChessMenu(
                         rotated = false,
                         interactive = false,
                         inCheck = false,
+                        pieceTextures = pieceTextures,
                         onTap = {},
                         modifier = Modifier.weight(1f)
                     )
@@ -145,7 +162,11 @@ private fun ChessMenuPanel(
     modifier: Modifier
 ) {
     val labels = chessMenuLabels()
-    ChessPanel(modifier) {
+    Column(
+        modifier = modifier.padding(horizontal = 14.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 "国际象棋",
@@ -155,7 +176,12 @@ private fun ChessMenuPanel(
                 fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(6.dp))
-            Text("CLASSICAL BOARD", color = DeepGreen, fontSize = 13.sp)
+            Text(
+                "CLASSICAL BOARD",
+                color = MutedInk,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
             Spacer(Modifier.height(5.dp))
             Text(chessVersionLabel(versionName), color = MutedInk, fontSize = 12.sp)
         }
@@ -180,6 +206,7 @@ internal fun ChessGameLayout(
     inCheck: Boolean,
     canUndo: Boolean,
     rotateBoard: Boolean,
+    pieceTextures: Map<ChessPiece, ImageBitmap>,
     onTap: (Int) -> Unit,
     onUndo: () -> Unit,
     onRestart: () -> Unit,
@@ -188,6 +215,7 @@ internal fun ChessGameLayout(
     ChessBackdrop {
         BoxWithConstraints(Modifier.fillMaxSize().padding(24.dp)) {
             if (chessUsesSideBySideLayout(maxWidth.value, maxHeight.value)) {
+                val railWidth = (maxWidth * 0.32f).coerceIn(238.dp, 300.dp)
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     ChessBoard(
                         state,
@@ -197,10 +225,11 @@ internal fun ChessGameLayout(
                         rotateBoard,
                         true,
                         inCheck,
+                        pieceTextures,
                         onTap,
                         Modifier.weight(1f)
                     )
-                    Spacer(Modifier.width(34.dp))
+                    Spacer(Modifier.width(24.dp))
                     ChessInfoRail(
                         state.sideToMove,
                         status,
@@ -212,7 +241,7 @@ internal fun ChessGameLayout(
                         onUndo,
                         onRestart,
                         onReturn,
-                        Modifier.width(300.dp).fillMaxHeight(0.88f)
+                        Modifier.width(railWidth).fillMaxHeight(0.94f)
                     )
                 }
             } else {
@@ -228,6 +257,7 @@ internal fun ChessGameLayout(
                         rotateBoard,
                         true,
                         inCheck,
+                        pieceTextures,
                         onTap,
                         Modifier.weight(1f)
                     )
@@ -254,6 +284,7 @@ internal fun ChessGameLayout(
 internal fun ChessPromotionDialog(
     side: ChessSide,
     choices: List<ChessPieceType>,
+    pieceTextures: Map<ChessPiece, ImageBitmap>,
     onSelect: (ChessPieceType) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -270,11 +301,10 @@ internal fun ChessPromotionDialog(
                 choices.forEach { type ->
                     TextButton(onClick = { onSelect(type) }) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                chessPieceGlyph(ChessPiece(side, type)),
-                                color = if (side == ChessSide.WHITE) Color(0xFF5A625F) else Ink,
-                                fontFamily = FontFamily.Serif,
-                                fontSize = 34.sp
+                            ChessPieceVisual(
+                                piece = ChessPiece(side, type),
+                                texture = pieceTextures[ChessPiece(side, type)],
+                                size = 48.dp
                             )
                             Text(type.chineseName(), color = Ink, fontSize = 14.sp)
                         }
@@ -302,11 +332,14 @@ private fun ChessBoard(
     rotated: Boolean,
     interactive: Boolean,
     inCheck: Boolean,
+    pieceTextures: Map<ChessPiece, ImageBitmap>,
     onTap: (Int) -> Unit,
     modifier: Modifier
 ) {
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val boardSize = minOf(maxWidth, maxHeight, 760.dp)
+        val rimWidth = 24.dp
+        val squareSize = (boardSize - rimWidth * 2) / 8
         val legalByTarget = legalDestinations.groupBy { it.to }
         val checkedKing = if (inCheck) {
             state.board.indexOf(
@@ -319,21 +352,29 @@ private fun ChessBoard(
             Modifier
                 .size(boardSize)
                 .aspectRatio(1f)
-                .shadow(18.dp, RoundedCornerShape(7.dp), clip = false)
-                .clip(RoundedCornerShape(7.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF70533A), BoardRim)))
-                .border(2.dp, Color(0xFF261B14), RoundedCornerShape(7.dp))
-                .padding(14.dp)
+                .shadow(14.dp, RoundedCornerShape(6.dp), clip = false)
+                .clip(RoundedCornerShape(6.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(Color(0xFF425A53), BoardRim, Color(0xFF2A3C37))
+                    )
+                )
+                .border(2.dp, BoardRimEdge, RoundedCornerShape(6.dp))
         ) {
+            ChessBoardCoordinates(rotated)
             Column(
                 Modifier
                     .fillMaxSize()
-                    .border(2.dp, Color(0xFF211813))
+                    .padding(rimWidth)
+                    .border(2.dp, BoardRimEdge)
             ) {
                 repeat(8) { displayRow ->
                     Row(Modifier.weight(1f)) {
                         repeat(8) { displayCol ->
                             val square = chessModelSquare(displayRow, displayCol, rotated)
+                            var hasFocus by remember(square, interactive) {
+                                mutableStateOf(false)
+                            }
                             val piece = state.board[square]
                             val isLight = (fileOf(square) + rankOf(square)) % 2 == 1
                             val isSelected = selected == square
@@ -345,13 +386,9 @@ private fun ChessBoard(
                                     .fillMaxHeight()
                                     .background(if (isLight) LightSquare else DarkSquare)
                                     .then(
-                                        if (isSelected) {
-                                            Modifier.border(4.dp, Brass)
-                                        } else if (checkedKing == square) {
-                                            Modifier.border(4.dp, CheckRed)
-                                        } else {
-                                            Modifier
-                                        }
+                                        if (checkedKing == square) {
+                                            Modifier.background(CheckRed.copy(alpha = 0.18f))
+                                        } else Modifier
                                     )
                                     .semantics {
                                         contentDescription = buildString {
@@ -364,6 +401,8 @@ private fun ChessBoard(
                                             if (isLast) append("，最后一步")
                                         }
                                     }
+                                    .onFocusChanged { hasFocus = it.isFocused }
+                                    .focusable(enabled = interactive)
                                     .clickable(enabled = interactive) { onTap(square) },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -371,21 +410,45 @@ private fun ChessBoard(
                                     if (piece == null) {
                                         Box(
                                             Modifier
-                                                .size(boardSize / 54)
-                                                .background(Ink.copy(alpha = 0.42f), CircleShape)
+                                                .size(squareSize / 8)
+                                                .background(Ink.copy(alpha = 0.46f), CircleShape)
                                         )
                                     } else {
                                         Box(
                                             Modifier
-                                                .fillMaxSize()
-                                                .padding(5.dp)
-                                                .border(3.dp, Brass.copy(alpha = 0.82f), CircleShape)
+                                                .fillMaxSize(0.90f)
+                                                .border(3.dp, Brass.copy(alpha = 0.88f), CircleShape)
                                         )
                                     }
                                 }
-                                piece?.let { ChessPieceGlyph(it, boardSize / 12) }
-                                if (isLast) LastMoveMarker(boardSize / 8 * CHESS_LAST_MOVE_MARKER_SCALE)
-                                CoordinateLabel(square, displayRow, displayCol, isLight)
+                                piece?.let {
+                                    ChessPieceVisual(
+                                        piece = it,
+                                        texture = pieceTextures[it],
+                                        size = squareSize
+                                    )
+                                }
+                                if (isSelected) {
+                                    Box(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .background(Brass.copy(alpha = 0.12f))
+                                            .border(3.dp, Brass)
+                                    )
+                                }
+                                if (checkedKing == square) {
+                                    Box(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .border(4.dp, CheckRed)
+                                    )
+                                }
+                                if (hasFocus) {
+                                    Box(Modifier.fillMaxSize().border(3.dp, FocusTeal))
+                                }
+                                if (isLast) {
+                                    LastMoveMarker(squareSize * CHESS_LAST_MOVE_MARKER_SCALE)
+                                }
                             }
                         }
                     }
@@ -396,7 +459,17 @@ private fun ChessBoard(
 }
 
 @Composable
-private fun ChessPieceGlyph(piece: ChessPiece, size: Dp) {
+private fun ChessPieceVisual(piece: ChessPiece, texture: ImageBitmap?, size: Dp) {
+    if (texture != null) {
+        Image(
+            bitmap = texture,
+            contentDescription = null,
+            modifier = Modifier.size(size * CHESS_PIECE_TEXTURE_SCALE),
+            contentScale = ContentScale.Fit
+        )
+        return
+    }
+
     val glyph = chessPieceGlyph(piece)
     val color = if (piece.side == ChessSide.WHITE) Ivory else Color(0xFF151B1A)
     val shadow = if (piece.side == ChessSide.WHITE) Ink else Color.White.copy(alpha = 0.35f)
@@ -430,31 +503,50 @@ private fun chessPieceGlyph(piece: ChessPiece): String = when (piece.side) {
     }
 
 @Composable
-private fun BoxScope.CoordinateLabel(
-    square: Int,
-    displayRow: Int,
-    displayCol: Int,
-    lightSquare: Boolean
-) {
-    val labelColor = if (lightSquare) DeepGreen else Ivory.copy(alpha = 0.86f)
-    if (displayCol == 0) {
-        Text(
-            text = "${rankOf(square) + 1}",
-            modifier = Modifier.align(Alignment.TopStart).padding(3.dp),
-            color = labelColor,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold
-        )
+private fun BoxScope.ChessBoardCoordinates(rotated: Boolean) {
+    val files = if (rotated) ('h' downTo 'a').toList() else ('a'..'h').toList()
+    val ranks = if (rotated) (1..8).toList() else (8 downTo 1).toList()
+    val coordinateColor = Ivory.copy(alpha = 0.78f)
+
+    listOf(Alignment.TopCenter, Alignment.BottomCenter).forEach { alignment ->
+        Row(
+            Modifier
+                .align(alignment)
+                .fillMaxWidth()
+                .height(24.dp)
+                .padding(horizontal = 24.dp)
+        ) {
+            files.forEach { file ->
+                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                    Text(
+                        file.toString(),
+                        color = coordinateColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
     }
-    if (displayRow == 7) {
-        val file = ('a'.code + fileOf(square)).toChar()
-        Text(
-            text = file.toString(),
-            modifier = Modifier.align(Alignment.BottomEnd).padding(3.dp),
-            color = labelColor,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold
-        )
+    listOf(Alignment.CenterStart, Alignment.CenterEnd).forEach { alignment ->
+        Column(
+            Modifier
+                .align(alignment)
+                .fillMaxHeight()
+                .width(24.dp)
+                .padding(vertical = 24.dp)
+        ) {
+            ranks.forEach { rank ->
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        rank.toString(),
+                        color = coordinateColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -512,7 +604,7 @@ private fun ChessInfoRail(
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(12.dp))
-            Text(score, color = Ink, fontSize = 46.sp, fontWeight = FontWeight.Light)
+            Text(score, color = Ink, fontSize = 44.sp, fontWeight = FontWeight.Normal)
             intelligenceLevel?.let {
                 Spacer(Modifier.height(7.dp))
                 Text(
@@ -523,7 +615,7 @@ private fun ChessInfoRail(
                 )
             }
         }
-        HorizontalDivider(color = Color(0xFFB9C3BF))
+        HorizontalDivider(color = RailOutline.copy(alpha = 0.62f))
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -564,13 +656,12 @@ private fun ChessInfoRail(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
-                } else {
-                    Text(status, color = MutedInk, fontSize = 15.sp, textAlign = TextAlign.Center)
                 }
+                Text(status, color = MutedInk, fontSize = 15.sp, textAlign = TextAlign.Center)
             }
         }
-        HorizontalDivider(color = Color(0xFFB9C3BF))
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        HorizontalDivider(color = RailOutline.copy(alpha = 0.62f))
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (shouldShowChessRestart(result)) {
                 ChessButton("重新开始", DeepGreen, Color.White, onRestart)
             }
@@ -596,11 +687,11 @@ private fun ChessPanel(
 ) {
     Column(
         modifier = modifier
-            .shadow(12.dp, RoundedCornerShape(8.dp), clip = false)
+            .shadow(5.dp, RoundedCornerShape(8.dp), clip = false)
             .clip(RoundedCornerShape(8.dp))
-            .background(Brush.verticalGradient(listOf(Color(0xFFFCFDFC), Color(0xFFE8EEEB))))
-            .border(1.dp, Color(0xFFB5C0BC), RoundedCornerShape(8.dp))
-            .padding(horizontal = 26.dp, vertical = 30.dp),
+            .background(RailSurface)
+            .border(1.dp, RailOutline, RoundedCornerShape(8.dp))
+            .padding(horizontal = 24.dp, vertical = 26.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween,
         content = content
@@ -616,11 +707,19 @@ private fun ChessButton(
     outlined: Boolean = false,
     enabled: Boolean = true
 ) {
+    var hasFocus by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(7.dp)
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.fillMaxWidth().height(54.dp),
-        shape = RoundedCornerShape(7.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .onFocusChanged { hasFocus = it.isFocused }
+            .then(
+                if (hasFocus) Modifier.border(2.dp, FocusTeal, shape) else Modifier
+            ),
+        shape = shape,
         colors = ButtonDefaults.buttonColors(
             containerColor = container,
             contentColor = content

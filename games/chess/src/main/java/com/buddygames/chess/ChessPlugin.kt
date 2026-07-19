@@ -22,8 +22,10 @@ class ChessPlugin : GamePlugin {
 
     @Composable
     override fun MainScreen(context: GameContext) {
+        val pieceTextures = rememberChessPieceTextures(context)
         ChessMenu(
             versionName = context.gamePackage.manifest.versionName,
+            pieceTextures = pieceTextures,
             onSingle = { context.startGame(GameMode.SINGLE_PLAYER) },
             onTwo = { context.startGame(GameMode.TWO_PLAYERS) },
             onExit = context::exitGame
@@ -32,6 +34,7 @@ class ChessPlugin : GamePlugin {
 
     @Composable
     override fun GameScreen(context: GameContext, mode: GameMode) {
+        val pieceTextures = rememberChessPieceTextures(context)
         val initialRound = remember { newChessRound() }
         var state by remember { mutableStateOf(initialRound.state) }
         var selected by remember { mutableStateOf(initialRound.selected) }
@@ -193,6 +196,7 @@ class ChessPlugin : GamePlugin {
                 inCheck = inCheck,
                 canUndo = history.isNotEmpty(),
                 rotateBoard = shouldRotateChessBoard(mode, playerSide),
+                pieceTextures = pieceTextures,
                 onTap = ::tap,
                 onUndo = ::undo,
                 onRestart = ::restart,
@@ -203,6 +207,7 @@ class ChessPlugin : GamePlugin {
             ChessPromotionDialog(
                 side = state.sideToMove,
                 choices = chessPromotionChoices(pendingPromotionMoves),
+                pieceTextures = pieceTextures,
                 onSelect = { type ->
                     chooseChessPromotion(pendingPromotionMoves, type)?.let(::commitPlayerMove)
                 },
@@ -215,13 +220,21 @@ class ChessPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "chess",
             displayName = "国际象棋",
-            versionCode = 7,
-            versionName = "0.0.7",
+            versionCode = 8,
+            versionName = "0.0.8",
             entryClass = "com.buddygames.chess.ChessPlugin",
             minShellApi = 1,
             icon = "assets/icon.png"
         )
     }
+}
+
+@Composable
+private fun rememberChessPieceTextures(context: GameContext) = remember(
+    context.gamePackage.rootDir,
+    context.gamePackage.manifest.versionCode
+) {
+    loadChessPieceTextures(context.gamePackage.assetsDir)
 }
 
 internal fun chessStatusText(

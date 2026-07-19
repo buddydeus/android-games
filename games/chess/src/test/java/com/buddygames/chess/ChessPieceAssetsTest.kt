@@ -10,6 +10,46 @@ import org.junit.Test
 
 class ChessPieceAssetsTest {
     @Test
+    fun everyPieceMapsToItsPackageOwnedTexture() {
+        val expected = mapOf(
+            ChessPiece(ChessSide.WHITE, ChessPieceType.KING) to "pieces/white-king.png",
+            ChessPiece(ChessSide.WHITE, ChessPieceType.QUEEN) to "pieces/white-queen.png",
+            ChessPiece(ChessSide.WHITE, ChessPieceType.ROOK) to "pieces/white-rook.png",
+            ChessPiece(ChessSide.WHITE, ChessPieceType.BISHOP) to "pieces/white-bishop.png",
+            ChessPiece(ChessSide.WHITE, ChessPieceType.KNIGHT) to "pieces/white-knight.png",
+            ChessPiece(ChessSide.WHITE, ChessPieceType.PAWN) to "pieces/white-pawn.png",
+            ChessPiece(ChessSide.BLACK, ChessPieceType.KING) to "pieces/black-king.png",
+            ChessPiece(ChessSide.BLACK, ChessPieceType.QUEEN) to "pieces/black-queen.png",
+            ChessPiece(ChessSide.BLACK, ChessPieceType.ROOK) to "pieces/black-rook.png",
+            ChessPiece(ChessSide.BLACK, ChessPieceType.BISHOP) to "pieces/black-bishop.png",
+            ChessPiece(ChessSide.BLACK, ChessPieceType.KNIGHT) to "pieces/black-knight.png",
+            ChessPiece(ChessSide.BLACK, ChessPieceType.PAWN) to "pieces/black-pawn.png"
+        )
+
+        assertEquals(expected, chessPieceTexturePaths())
+    }
+
+    @Test
+    fun pieceTexturesLeaveRoomForBoardStateMarkers() {
+        assertEquals(0.82f, CHESS_PIECE_TEXTURE_SCALE, 0.0001f)
+    }
+
+    @Test
+    fun transparentTextureMarginsAreTrimmedBeforeRendering() {
+        val alpha = intArrayOf(
+            0, 0, 0, 0,
+            0, 8, 9, 0,
+            0, 7, 6, 0,
+            0, 0, 0, 0
+        )
+
+        assertEquals(
+            ChessTextureBounds(left = 1, top = 1, rightExclusive = 3, bottomExclusive = 3),
+            findChessTextureBounds(width = 4, height = 4) { x, y -> alpha[y * 4 + x] }
+        )
+    }
+
+    @Test
     fun packageIncludesCompleteTransparentPieceTextureSet() {
         val assetDirectory = repositoryRoot().resolve("games/chess/package/assets/pieces")
 
