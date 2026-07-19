@@ -11,9 +11,9 @@ import org.junit.Test
 class XiangqiRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(11, XiangqiPlugin.manifest.versionCode)
-        assertEquals("0.0.11", XiangqiPlugin.manifest.versionName)
-        assertEquals("版本 0.0.11", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+        assertEquals(12, XiangqiPlugin.manifest.versionCode)
+        assertEquals("0.0.12", XiangqiPlugin.manifest.versionName)
+        assertEquals("版本 0.0.12", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
     }
 
     @Test
@@ -353,10 +353,10 @@ class XiangqiRulesTest {
         val maximum = xiangqiBoardSize(1200f, 900f)
 
         assertEquals(240f, compact.width, 0.001f)
-        assertEquals(266.66666f, compact.height, 0.001f)
-        assertEquals(540f, typical.width, 0.001f)
+        assertEquals(225f, compact.height, 0.001f)
+        assertEquals(640f, typical.width, 0.001f)
         assertEquals(600f, typical.height, 0.001f)
-        assertEquals(738f, maximum.width, 0.001f)
+        assertEquals(874.6667f, maximum.width, 0.001f)
         assertEquals(820f, maximum.height, 0.001f)
     }
 

@@ -34,7 +34,7 @@
 
 | Direction | Character | Trade-off |
 | --- | --- | --- |
-| **A. 晴光瓷局 (selected)** | Cool-white porcelain board, pale celadon rim, ink grid, matte ivory pieces with cinnabar or blue-black labels. | Distinctive and bright while still recognizably Chinese; requires disciplined texture generation to avoid looking clinical. |
+| **A. 晴光瓷局 (selected)** | Cool-white porcelain board, pale celadon rim, ink grid, glazed ivory pieces with cinnabar or blue-black labels. | Distinctive and bright while still recognizably Chinese; requires visible ceramic depth at tablet scale. |
 | B. 浅竹棋桌 | Pale bamboo board, dark burned grid, traditional wooden discs. | Immediately familiar, but too close to common Xiangqi apps and easily becomes warm brown-dominant. |
 | C. 宣纸墨局 | Flat rice-paper board, brush grid, seal-red pieces. | Graphic and elegant, but brush irregularity reduces coordinate precision and piece readability at tablet distance. |
 
@@ -92,11 +92,11 @@ The design replaces the expected yellow-brown wood with a thin white-porcelain p
 | --- | --- | --- |
 | `canvas` | `#EAF1EF` | Bright mineral-celadon background |
 | `canvasLine` | `#D3E0DC` | Sparse backdrop rule |
-| `board.surface` | `#F5F1E8` | Cool ivory porcelain board |
-| `board.rim` | `#A9C7BE` | Pale celadon glazed rim |
+| `board.surface` | `#FAF7EF` | Warm ivory porcelain board |
+| `board.rim` | `#A9C8BE` | Pale celadon glazed rim |
 | `board.rimEdge` | `#6E9489` | Thin outer edge and board registration |
-| `board.grid` | `#263C38` | Ink-green grid and palace lines |
-| `board.river` | `#D9E9E4` | Signature river band |
+| `board.grid` | `#27443F` | Ink-green grid and palace lines |
+| `board.river` | `#E2ECE7` | Signature river band |
 | `rail.surface` | `#FBFCFA` | Matte score-sheet rail |
 | `rail.outline` | `#B8CCC6` | Rail and control borders |
 | `ink.primary` | `#213431` | Primary interface text |
@@ -156,7 +156,7 @@ The board is the dominant unframed play surface; a single full-height score-shee
 ### Responsive rules
 
 - Target landscape tablets from 800 x 600 dp upward.
-- At widths >= 900 dp, board and rail stay side by side; the board keeps its 0.90 width/height ratio.
+- At widths >= 900 dp, board and rail stay side by side; the board keeps its `1600 / 1500` width/height ratio from the approved menu preview.
 - The rail is 288-312 dp wide and uses full available height rather than floating as a card.
 - At compact widths, board appears first and the rail becomes a full-width band below it.
 - Every intersection uses the full grid step as its touch target; no visual asset changes hit geometry.
@@ -165,14 +165,15 @@ The board is the dominant unframed play surface; a single full-height score-shee
 ## Board Asset System
 
 - Save one complete board PNG at `games/xiangqi/package/assets/board/xiangqi-board.png`.
-- Final size: 1440 x 1600 RGBA PNG with transparent corners outside the thin board silhouette.
-- The PNG owns the complete grid, palace diagonals, position marks, river band, `楚河` / `漢界`, rim, and surface material.
+- Final size: 1600 x 1500 RGBA PNG with transparent corners outside the thin board silhouette.
+- The PNG owns the complete grid, palace diagonals, river band, `楚河` / `漢界`, rim, and surface material.
 - Preserve interaction registration:
-  - grid left: `192 / 1440`
-  - grid top: `190 / 1600`
-  - grid right: `1248 / 1440`
-  - grid bottom: `1378 / 1600`
-- Camera is perfectly orthographic and front-facing. No perspective, board rotation, pieces, hands, room, table, text outside the river labels, watermark, or cast shadow.
+  - grid left: `128 / 1600`
+  - grid top: `90 / 1500`
+  - grid right: `1472 / 1600`
+  - grid bottom: `1410 / 1500`
+- Camera is perfectly orthographic and front-facing. The board uses a thin celadon frame, warm-white inset field, and restrained lower-right elevation shadow matching `designs/previews/xiangqi-ui-menu.png`.
+- No perspective, board rotation, pieces, hands, room, table, text outside the river labels, watermark, thick nested frame, or position marks absent from the approved menu preview.
 - Surface texture is subtle enough that every grid line remains crisp at tablet resolution.
 
 ## Piece Asset System
@@ -180,14 +181,15 @@ The board is the dominant unframed play surface; a single full-height score-shee
 - Save 14 separate PNG files under `games/xiangqi/package/assets/pieces/`.
 - Red files: `red-general.png`, `red-rook.png`, `red-horse.png`, `red-cannon.png`, `red-elephant.png`, `red-advisor.png`, `red-soldier.png`.
 - Black files: `black-general.png`, `black-rook.png`, `black-horse.png`, `black-cannon.png`, `black-elephant.png`, `black-advisor.png`, `black-soldier.png`.
-- Each final file is 1024 x 1024 RGBA PNG with transparent corners and 10-12% transparent padding.
+- Each final file is 1024 x 1024 RGBA PNG with transparent corners and enough padding for the complete ceramic disc plus its soft lower-right shadow.
 - Every file contains exactly one centered circular piece in the same orthographic top view, diameter, rim geometry, light direction, and crop.
-- Piece body is matte ivory with a restrained brass-tan edge. Red glyphs use cinnabar; Black glyphs use blue-black ink.
+- Piece body is warm ivory glazed porcelain with a raised rounded edge, slim double brass-gold rim, upper-left glaze highlight, lower-right bevel shade, and visible soft external shadow. Red glyphs use cinnabar; Black glyphs use blue-black ink.
 - Embedded glyph mapping:
   - Red: `帥`, `俥`, `傌`, `炮`, `相`, `仕`, `兵`
   - Black: `將`, `車`, `馬`, `砲`, `象`, `士`, `卒`
 - Glyphs must be upright, centered, legible, and use a consistent Song-style engraved/inked treatment.
-- No board, background, floor plane, external shadow, extra symbol, English, watermark, bevel-heavy 3D, or decorative motif.
+- No board, opaque background, floor plane, extra symbol, English, watermark, wood grain, stone texture, or decorative motif.
+- `games/xiangqi/tools/source/ceramic-piece-master.png` is the approved blank material master. The generator must resize this same master and add exact local-font glyphs so all fourteen output files retain identical ceramic lighting and geometry.
 - Compose renders with `ContentScale.Fit`; selection and latest-move overlays remain code-drawn above the texture.
 
 ## Board State Language

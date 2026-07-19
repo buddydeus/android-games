@@ -100,7 +100,7 @@ internal fun XiangqiMenu(
                         onSingle,
                         onTwo,
                         onExit,
-                        Modifier.width(310.dp).fillMaxHeight(0.88f)
+                        Modifier.width(320.dp).fillMaxHeight(0.88f)
                     )
                 }
             } else {
@@ -129,19 +129,121 @@ private fun XiangqiMenuPanel(
     modifier: Modifier
 ) {
     val labels = xiangqiMenuLabels()
-    MaterialPanel(modifier) {
+    Column(
+        modifier = modifier.padding(horizontal = 10.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("象棋", color = Ink, fontFamily = FontFamily.Serif, fontSize = 42.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(6.dp))
-            Text("楚河 · 漢界", color = MutedInk, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(4.dp))
-            Text(xiangqiVersionLabel(versionName), color = MutedInk, fontSize = 12.sp)
+            Text(
+                "象棋",
+                color = Ink,
+                fontFamily = FontFamily.Serif,
+                fontSize = 56.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "楚 河 · 漢 界",
+                color = Ink,
+                fontFamily = FontFamily.Serif,
+                fontSize = 20.sp
+            )
+            Spacer(Modifier.height(22.dp))
+            HorizontalDivider(color = Celadon.copy(alpha = 0.72f))
+            Spacer(Modifier.height(14.dp))
+            Text(xiangqiVersionLabel(versionName), color = MutedInk, fontSize = 14.sp)
         }
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            MenuButton(labels[0], Cinnabar, Color.White, onSingle)
-            MenuButton(labels[1], Color.Transparent, MutedInk, onTwo, outlined = true)
-            MenuButton(labels[2], Color.Transparent, Cinnabar, onExit, outlined = true)
+        Column(
+            Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            XiangqiMenuButton(labels[0], XiangqiMenuIcon.SINGLE, onSingle)
+            XiangqiMenuButton(labels[1], XiangqiMenuIcon.DOUBLE, onTwo)
+            XiangqiMenuButton(labels[2], XiangqiMenuIcon.EXIT, onExit)
         }
+    }
+}
+
+private enum class XiangqiMenuIcon {
+    SINGLE,
+    DOUBLE,
+    EXIT
+}
+
+@Composable
+private fun XiangqiMenuButton(
+    label: String,
+    icon: XiangqiMenuIcon,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(64.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Transparent,
+            contentColor = Ink
+        ),
+        border = BorderStroke(1.2.dp, Ink.copy(alpha = 0.90f))
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(Modifier.width(52.dp), contentAlignment = Alignment.Center) {
+                when (icon) {
+                    XiangqiMenuIcon.SINGLE -> PersonGlyph()
+                    XiangqiMenuIcon.DOUBLE -> GroupGlyph()
+                    XiangqiMenuIcon.EXIT -> ExitGlyph(Ink)
+                }
+            }
+            Text(
+                label,
+                modifier = Modifier.weight(1f),
+                color = Ink,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.width(52.dp))
+        }
+    }
+}
+
+@Composable
+private fun PersonGlyph() {
+    Canvas(Modifier.size(34.dp)) {
+        val color = Ink
+        val centerX = size.width / 2f
+        drawCircle(color, size.minDimension * 0.15f, Offset(centerX, size.height * 0.28f))
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(size.width * 0.24f, size.height * 0.49f),
+            size = Size(size.width * 0.52f, size.height * 0.38f),
+            cornerRadius = CornerRadius(size.width * 0.13f)
+        )
+    }
+}
+
+@Composable
+private fun GroupGlyph() {
+    Canvas(Modifier.size(38.dp)) {
+        val color = Ink
+        drawCircle(color, size.minDimension * 0.13f, Offset(size.width * 0.38f, size.height * 0.31f))
+        drawCircle(color, size.minDimension * 0.12f, Offset(size.width * 0.66f, size.height * 0.34f))
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(size.width * 0.15f, size.height * 0.51f),
+            size = Size(size.width * 0.48f, size.height * 0.34f),
+            cornerRadius = CornerRadius(size.width * 0.12f)
+        )
+        drawRoundRect(
+            color = color.copy(alpha = 0.88f),
+            topLeft = Offset(size.width * 0.50f, size.height * 0.55f),
+            size = Size(size.width * 0.35f, size.height * 0.29f),
+            cornerRadius = CornerRadius(size.width * 0.10f)
+        )
     }
 }
 
@@ -596,9 +698,8 @@ private fun ExitButton(onClick: () -> Unit) {
 }
 
 @Composable
-private fun ExitGlyph() {
+private fun ExitGlyph(color: Color = Cinnabar) {
     Canvas(Modifier.size(24.dp)) {
-        val color = Cinnabar
         drawRoundRect(
             color = color,
             topLeft = Offset(2f, 3f),

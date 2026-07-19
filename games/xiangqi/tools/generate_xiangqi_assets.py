@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate deterministic porcelain-and-celadon Xiangqi PNG assets."""
+"""Generate Xiangqi PNG assets from the approved ceramic master and board tokens."""
 
 from __future__ import annotations
 
@@ -10,13 +10,14 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 
-BOARD_SIZE = (1440, 1600)
-GRID_LEFT = 192
-GRID_TOP = 190
-GRID_RIGHT = 1248
-GRID_BOTTOM = 1378
+BOARD_SIZE = (1600, 1500)
+GRID_LEFT = 128
+GRID_TOP = 90
+GRID_RIGHT = 1472
+GRID_BOTTOM = 1410
 PIECE_SIZE = 1024
 REQUIRED_GLYPHS = "帥俥傌炮相仕兵將車馬砲象士卒楚河漢界"
+PIECE_MASTER = Path(__file__).resolve().parent / "source" / "ceramic-piece-master.png"
 
 FONT_CANDIDATES = (
     Path("/System/Library/Fonts/Supplemental/Songti.ttc"),
@@ -102,28 +103,6 @@ def soft_material(
     return texture
 
 
-def radial_porcelain(
-    size: tuple[int, int],
-    center: tuple[int, int, int],
-    edge: tuple[int, int, int],
-) -> Image.Image:
-    width, height = size
-    image = Image.new("RGB", size, center)
-    pixels = image.load()
-    cx = (width - 1) / 2
-    cy = (height - 1) / 2
-    max_distance = (cx * cx + cy * cy) ** 0.5
-    for y in range(height):
-        for x in range(width):
-            distance = (((x - cx) ** 2 + (y - cy) ** 2) ** 0.5) / max_distance
-            amount = min(1.0, distance ** 1.35)
-            pixels[x, y] = tuple(
-                int(center[index] + (edge[index] - center[index]) * amount)
-                for index in range(3)
-            )
-    return image
-
-
 def paste_with_rounded_mask(
     canvas: Image.Image,
     texture: Image.Image,
@@ -158,60 +137,58 @@ def centered_text(
     )
 
 
-def draw_registration_mark(
-    draw: ImageDraw.ImageDraw,
-    x: int,
-    y: int,
-    left: bool,
-    right: bool,
-    color: tuple[int, int, int, int],
-) -> None:
-    gap = 14
-    arm = 24
-    offset = 10
-    width = 4
-    if left:
-        draw.line((x - gap, y - offset, x - gap - arm, y - offset), fill=color, width=width)
-        draw.line((x - gap, y - offset, x - gap, y - offset - arm), fill=color, width=width)
-        draw.line((x - gap, y + offset, x - gap - arm, y + offset), fill=color, width=width)
-        draw.line((x - gap, y + offset, x - gap, y + offset + arm), fill=color, width=width)
-    if right:
-        draw.line((x + gap, y - offset, x + gap + arm, y - offset), fill=color, width=width)
-        draw.line((x + gap, y - offset, x + gap, y - offset - arm), fill=color, width=width)
-        draw.line((x + gap, y + offset, x + gap + arm, y + offset), fill=color, width=width)
-        draw.line((x + gap, y + offset, x + gap, y + offset + arm), fill=color, width=width)
-
-
 def generate_board(output: Path, font_spec: FontSpec) -> None:
     width, height = BOARD_SIZE
     board = Image.new("RGBA", BOARD_SIZE, (0, 0, 0, 0))
 
-    outer_box = (48, 36, width - 48, height - 52)
+    shadow = Image.new("RGBA", BOARD_SIZE, (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle(
+        (32, 34, width - 18, height - 12),
+        radius=14,
+        fill=(34, 54, 49, 72),
+    )
+    board.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(17)))
+
+    outer_box = (24, 18, width - 24, height - 30)
     outer = soft_material(
         (outer_box[2] - outer_box[0], outer_box[3] - outer_box[1]),
-        (169, 199, 190),
+        (169, 200, 190),
         seed=41,
-        variation=5,
+        variation=7,
     )
-    paste_with_rounded_mask(board, outer, outer_box, 46)
+    paste_with_rounded_mask(board, outer, outer_box, 11)
 
     draw = ImageDraw.Draw(board, "RGBA")
-    draw.rounded_rectangle(outer_box, 46, outline=(110, 148, 137, 255), width=7)
-    draw.rounded_rectangle((67, 55, width - 67, height - 71), 35, outline=(221, 235, 231, 190), width=5)
-    draw.rounded_rectangle((92, 82, width - 92, height - 98), 22, outline=(92, 128, 118, 210), width=5)
+    draw.rounded_rectangle(outer_box, 11, outline=(95, 130, 119, 255), width=4)
+    draw.rounded_rectangle(
+        (33, 27, width - 33, height - 39),
+        8,
+        outline=(226, 239, 234, 210),
+        width=4,
+    )
+    draw.rounded_rectangle(
+        (42, 36, width - 42, height - 48),
+        6,
+        outline=(126, 160, 150, 190),
+        width=3,
+    )
 
-    field_box = (116, 108, width - 116, height - 122)
+    field_box = (52, 48, width - 52, height - 52)
     field = soft_material(
         (field_box[2] - field_box[0], field_box[3] - field_box[1]),
-        (245, 241, 232),
+        (250, 247, 239),
         seed=73,
-        variation=3,
+        variation=4,
     )
-    paste_with_rounded_mask(board, field, field_box, 15)
-    draw.rounded_rectangle(field_box, 15, outline=(110, 148, 137, 235), width=5)
-    draw.rounded_rectangle((130, 122, width - 130, height - 136), 11, outline=(255, 255, 255, 170), width=3)
+    paste_with_rounded_mask(board, field, field_box, 3)
+    draw.rounded_rectangle(field_box, 3, outline=(102, 137, 127, 220), width=3)
+    draw.line(
+        (field_box[0] + 3, field_box[1] + 3, field_box[2] - 3, field_box[1] + 3),
+        fill=(255, 255, 255, 205),
+        width=3,
+    )
 
-    line_color = (38, 60, 56, 238)
+    line_color = (39, 68, 63, 245)
     line_width = 3
     dx = (GRID_RIGHT - GRID_LEFT) // 8
     dy = (GRID_BOTTOM - GRID_TOP) // 9
@@ -219,7 +196,7 @@ def generate_board(output: Path, font_spec: FontSpec) -> None:
     river_bottom = GRID_TOP + 5 * dy
     draw.rectangle(
         (GRID_LEFT + 2, river_top + 2, GRID_RIGHT - 2, river_bottom - 2),
-        fill=(217, 233, 228, 236),
+        fill=(226, 236, 231, 242),
     )
     for row in range(10):
         y = GRID_TOP + row * dy
@@ -234,68 +211,59 @@ def generate_board(output: Path, font_spec: FontSpec) -> None:
     draw.line((GRID_LEFT + 3 * dx, GRID_TOP + 7 * dy, GRID_LEFT + 5 * dx, GRID_BOTTOM), fill=line_color, width=line_width)
     draw.line((GRID_LEFT + 5 * dx, GRID_TOP + 7 * dy, GRID_LEFT + 3 * dx, GRID_BOTTOM), fill=line_color, width=line_width)
 
-    for row in (2, 7):
-        for col in (1, 7):
-            draw_registration_mark(
-                draw,
-                GRID_LEFT + col * dx,
-                GRID_TOP + row * dy,
-                left=True,
-                right=True,
-                color=line_color,
-            )
-    for row in (3, 6):
-        for col in (0, 2, 4, 6, 8):
-            draw_registration_mark(
-                draw,
-                GRID_LEFT + col * dx,
-                GRID_TOP + row * dy,
-                left=col != 0,
-                right=col != 8,
-                color=line_color,
-            )
-
-    river_font = load_font(font_spec, 70)
+    river_font = load_font(font_spec, 78)
     river_y = GRID_TOP + int(4.5 * dy)
-    centered_text(draw, (GRID_LEFT + 2.1 * dx, river_y), "楚河", river_font, (38, 60, 56, 238))
-    centered_text(draw, (GRID_LEFT + 5.9 * dx, river_y), "漢界", river_font, (38, 60, 56, 238))
+    centered_text(
+        draw,
+        (GRID_LEFT + 1.35 * dx, river_y),
+        "楚 河",
+        river_font,
+        (39, 68, 63, 245),
+    )
+    centered_text(
+        draw,
+        (GRID_LEFT + 6.65 * dx, river_y),
+        "漢 界",
+        river_font,
+        (39, 68, 63, 245),
+    )
+    draw.rectangle((0, 0, 7, 7), fill=(0, 0, 0, 0))
+    draw.rectangle((width - 8, 0, width - 1, 7), fill=(0, 0, 0, 0))
+    draw.rectangle((0, height - 8, 7, height - 1), fill=(0, 0, 0, 0))
+    draw.rectangle(
+        (width - 8, height - 8, width - 1, height - 1),
+        fill=(0, 0, 0, 0),
+    )
     board.save(output, "PNG", optimize=True)
 
 
-def generate_piece(output: Path, glyph: str, side: str, font_spec: FontSpec, seed: int) -> None:
-    image = Image.new("RGBA", (PIECE_SIZE, PIECE_SIZE), (0, 0, 0, 0))
-    disc_box = (124, 124, 900, 900)
-    disc_size = (disc_box[2] - disc_box[0], disc_box[3] - disc_box[1])
-    porcelain = radial_porcelain(disc_size, (250, 244, 230), (226, 211, 181))
-    material = Image.blend(
-        porcelain,
-        soft_material(disc_size, (243, 231, 206), seed, variation=3),
-        0.30,
-    )
-    mask = Image.new("L", disc_size, 0)
-    ImageDraw.Draw(mask).ellipse((0, 0, disc_size[0] - 1, disc_size[1] - 1), fill=255)
-    image.paste(material, (disc_box[0], disc_box[1]), mask)
-
+def generate_piece(output: Path, glyph: str, side: str, font_spec: FontSpec) -> None:
+    if not PIECE_MASTER.is_file():
+        raise FileNotFoundError(f"Missing approved ceramic piece master: {PIECE_MASTER}")
+    image = Image.open(PIECE_MASTER).convert("RGBA")
+    image = image.resize((PIECE_SIZE, PIECE_SIZE), Image.Resampling.LANCZOS)
     draw = ImageDraw.Draw(image, "RGBA")
-    center = (512, 512)
-    ink = (184, 58, 50, 255) if side == "red" else (38, 60, 66, 255)
-    ink_soft = (119, 42, 37, 205) if side == "red" else (25, 44, 49, 205)
-    draw.ellipse(disc_box, outline=(184, 155, 109, 255), width=12)
-    draw.ellipse((141, 141, 883, 883), outline=(255, 252, 242, 210), width=7)
-    draw.ellipse((174, 174, 850, 850), outline=(184, 155, 109, 190), width=8)
-    draw.ellipse((196, 196, 828, 828), outline=(*ink[:3], 195), width=5)
-    draw.arc((164, 164, 860, 860), 205, 325, fill=(255, 255, 255, 150), width=8)
-    draw.arc((178, 178, 846, 846), 25, 145, fill=(139, 116, 82, 70), width=6)
-
-    glyph_font = load_font(font_spec, 390)
+    center = (512, 500)
+    ink = (178, 48, 42, 255) if side == "red" else (28, 49, 64, 255)
+    ink_shadow = (105, 24, 21, 95) if side == "red" else (10, 26, 35, 95)
+    glyph_font = load_font(font_spec, 356)
+    centered_text(
+        draw,
+        (center[0] + 3, center[1] + 4),
+        glyph,
+        glyph_font,
+        ink_shadow,
+        stroke_fill=ink_shadow,
+        stroke_width=2,
+    )
     centered_text(
         draw,
         center,
         glyph,
         glyph_font,
         ink,
-        stroke_fill=ink_soft,
-        stroke_width=2,
+        stroke_fill=ink,
+        stroke_width=1,
     )
     image.save(output, "PNG", optimize=True)
 
@@ -331,8 +299,8 @@ def main() -> None:
     piece_directory.mkdir(parents=True, exist_ok=True)
 
     generate_board(board_directory / "xiangqi-board.png", font_spec)
-    for index, (file_name, glyph, side) in enumerate(PIECES):
-        generate_piece(piece_directory / file_name, glyph, side, font_spec, 100 + index)
+    for file_name, glyph, side in PIECES:
+        generate_piece(piece_directory / file_name, glyph, side, font_spec)
     if args.contact_sheet is not None:
         build_contact_sheet(piece_directory, args.contact_sheet)
 

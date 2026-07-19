@@ -4,8 +4,8 @@
 
 ## Delivery Sequence
 
-1. Generate and validate the 1440 x 1600 complete board texture.
-2. Generate and validate all 14 1024 x 1024 transparent piece textures as one matched family.
+1. Generate and validate the 1600 x 1500 complete board texture using the approved menu preview proportions.
+2. Generate and validate all 14 1024 x 1024 transparent piece textures from the same ceramic master.
 3. Lock texture filenames, dimensions, alpha corners, visual coverage, and glyph mapping in tests.
 4. Update the Compose backdrop, menu rail, game rail, selection treatment, and texture scale from the SSOT tokens.
 5. Verify red-side and black-side board orientation at 800 x 600 and a larger tablet viewport.
@@ -15,6 +15,7 @@
 - The board is orthographic, bright, complete, and registered to the existing grid fractions.
 - Every piece is a separate transparent PNG and shows exactly one correct Chinese glyph.
 - Red and Black piece families share identical shape, size, lighting, and crop.
+- The upper-left glaze highlight, double gold rim, lower-right bevel shade, and soft cast shadow remain visible after runtime scaling.
 - Piece edges remain distinguishable over every board area.
 - Latest-move and selection overlays remain outside the visible piece boundary.
 - No generated watermark, background, accidental extra glyph, or mixed visual style remains.
@@ -22,6 +23,7 @@
 ## Engineering Guardrails
 
 - Decode assets once per installed package version.
+- Keep `games/xiangqi/tools/source/ceramic-piece-master.png` package-development-local and use it as the only piece material source.
 - Keep transparent-margin trimming in memory and preserve source files unchanged.
 - Keep board and piece fallbacks available for missing or invalid package assets.
 - Preserve 48 dp controls, Compose semantics, high-contrast status labels, and stable board geometry.

@@ -34,14 +34,14 @@ class XiangqiPieceAssetsTest {
     @Test
     fun boardTextureOwnsTheCompleteGridGeometry() {
         assertEquals("board/xiangqi-board.png", XIANGQI_BOARD_TEXTURE_PATH)
-        assertEquals(1440, XIANGQI_BOARD_TEXTURE_WIDTH)
-        assertEquals(1600, XIANGQI_BOARD_TEXTURE_HEIGHT)
-        assertEquals(192f / 1440f, XIANGQI_GRID_LEFT_FRACTION, 0.0001f)
-        assertEquals(190f / 1600f, XIANGQI_GRID_TOP_FRACTION, 0.0001f)
-        assertEquals(1248f / 1440f, XIANGQI_GRID_RIGHT_FRACTION, 0.0001f)
-        assertEquals(1378f / 1600f, XIANGQI_GRID_BOTTOM_FRACTION, 0.0001f)
-        assertEquals(0.90f, XIANGQI_BOARD_ASPECT_RATIO, 0.0001f)
-        assertEquals(0.78f, XIANGQI_PIECE_TEXTURE_SCALE, 0.0001f)
+        assertEquals(1600, XIANGQI_BOARD_TEXTURE_WIDTH)
+        assertEquals(1500, XIANGQI_BOARD_TEXTURE_HEIGHT)
+        assertEquals(128f / 1600f, XIANGQI_GRID_LEFT_FRACTION, 0.0001f)
+        assertEquals(90f / 1500f, XIANGQI_GRID_TOP_FRACTION, 0.0001f)
+        assertEquals(1472f / 1600f, XIANGQI_GRID_RIGHT_FRACTION, 0.0001f)
+        assertEquals(1410f / 1500f, XIANGQI_GRID_BOTTOM_FRACTION, 0.0001f)
+        assertEquals(1600f / 1500f, XIANGQI_BOARD_ASPECT_RATIO, 0.0001f)
+        assertEquals(0.90f, XIANGQI_PIECE_TEXTURE_SCALE, 0.0001f)
     }
 
     @Test
@@ -73,22 +73,63 @@ class XiangqiPieceAssetsTest {
 
         assertColorNear(
             "porcelain field",
-            board.getRGB(650, 500),
-            expected = 0xFFF5F1E8.toInt(),
-            tolerance = 24
+            board.getRGB(750, 420),
+            expected = 0xFFFAF7EF.toInt(),
+            tolerance = 20
         )
         assertColorNear(
             "celadon rim",
-            board.getRGB(72, 800),
-            expected = 0xFFA9C7BE.toInt(),
-            tolerance = 26
+            board.getRGB(40, 750),
+            expected = 0xFFA9C8BE.toInt(),
+            tolerance = 24
         )
         assertColorNear(
             "celadon river",
-            board.getRGB(720, 784),
-            expected = 0xFFD9E9E4.toInt(),
-            tolerance = 24
+            board.getRGB(800, 750),
+            expected = 0xFFE2ECE7.toInt(),
+            tolerance = 20
         )
+    }
+
+    @Test
+    fun pieceTexturesPreserveCeramicGlazeAndCastShadow() {
+        val pieceDirectory = repositoryRoot().resolve("games/xiangqi/package/assets/pieces")
+
+        PIECE_FILES.forEach { fileName ->
+            val image = readPng(pieceDirectory.resolve(fileName))
+            val bodyLuminance = mutableListOf<Int>()
+            var translucentShadowSamples = 0
+            for (y in 0 until image.height step SAMPLE_STEP) {
+                for (x in 0 until image.width step SAMPLE_STEP) {
+                    val argb = image.getRGB(x, y)
+                    val alpha = argb ushr 24 and 0xff
+                    val red = argb ushr 16 and 0xff
+                    val green = argb ushr 8 and 0xff
+                    val blue = argb and 0xff
+                    val radius = kotlin.math.hypot(x - 512.0, y - 500.0)
+                    if (
+                        alpha >= 245 &&
+                        radius < 335.0 &&
+                        maxOf(red, green, blue) - minOf(red, green, blue) < 45
+                    ) {
+                        bodyLuminance += (red * 3 + green * 6 + blue) / 10
+                    }
+                    if (alpha in 18..190 && radius in 350.0..455.0 && y > 470) {
+                        translucentShadowSamples++
+                    }
+                }
+            }
+
+            assertTrue("$fileName must retain enough ceramic body samples", bodyLuminance.size > 900)
+            assertTrue(
+                "$fileName glaze needs visible highlight and shade",
+                bodyLuminance.max() - bodyLuminance.min() >= 46
+            )
+            assertTrue(
+                "$fileName needs a soft external cast shadow",
+                translucentShadowSamples >= 90
+            )
+        }
     }
 
     @Test
