@@ -59,7 +59,7 @@ tasks.register("verifyGamePackages") {
 
     doLast {
         val gameIds = listOf("gomoku", "othello", "xiangqi", "chess")
-        val requiredPackageEntries = setOf("manifest.json", "plugin.apk", "assets/icon.txt")
+        val requiredPackageEntries = setOf("manifest.json", "plugin.apk", "assets/icon.png")
 
         gameIds.forEach { gameId ->
             val packageFile = layout.buildDirectory.file("game-packages/$gameId.zip").get().asFile

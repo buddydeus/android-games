@@ -15,6 +15,7 @@ Current game behavior:
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
 - The game-center shell currently uses `versionCode = 3` and `versionName = 0.0.3`; the home top bar displays `BuildConfig.VERSION_NAME`.
 - Home game names and logos come only from each installed package's `displayName` and `icon` manifest fields. The shell supports bounded package-local PNG, WebP, JPEG, and compact text icon files and must not branch on known game IDs for presentation.
+- All four built-in packages provide a `1024 x 1024` circular-safe PNG at `assets/icon.png`, following `designs/specs/android-game-package-logos.md`; package verification requires that entry.
 - The home game order is the descending persisted count of successful plugin loads. Equal counts use package display name and then game ID for deterministic, package-agnostic ordering.
 - All game menus use `单人模式`, `双人对战`, and `退出游戏`.
 - Every game owns an independent version starting at `0.0.1`, and its main menu displays `GameManifest.versionName`.
@@ -25,7 +26,7 @@ Current game behavior:
 - Gomoku uses a 15×15 intersection board. Its robot priority is: win immediately, block an immediate five (including closed four), block moves that create at least two immediate winning points (continuous or broken open three), then use the positional fallback.
 - Othello hides robot hint points in two-player mode.
 - Xiangqi uses intersection placement, filters moves that expose the moving side's general, recognizes capture and checkmate wins, colors the active side in the turn display, and shows `将军` in the side panel when applicable. Its intelligence gradient is defined in `docs/superpowers/specs/2026-07-18-xiangqi-intelligence-gradient-design.md`: single-player AI level is the human player's accumulated win score plus one, capped at level 10. A pure-Kotlin iterative-deepening Negamax search uses a primitive make/unmake position, cached move ordering, effective-depth statistics, a bounded transposition table, per-level node/depth/deadline budgets, deterministic weakening for levels 1-5, and bounded quiescence for levels 8-10; levels 4 and 6 are the first four-ply and five-ply transition tiers, and search runs away from the Compose UI thread. Single-player scoring follows player-versus-robot identities across side swaps, while two-player scoring stays red-versus-black. In single-player mode, a black-side player sees a 180-degree coordinate-mapped board with black at the bottom while piece text stays upright.
-- International Chess version `0.0.4` uses standard square placement, complete special moves and draw rules, legal-move-equivalent threefold-repetition keys, player-score-driven 1-10 offline search, explicit draw session state, Xiangqi-family score/undo/restart behavior, and a 180-degree Black-player view with upright piece glyphs. Its square board and right rail remain side by side at 800×600 landscape, and the rail distinguishes the active side, check, terminal result, AI level, undo, and restart.
+- International Chess version `0.0.5` uses standard square placement, complete special moves and draw rules, legal-move-equivalent threefold-repetition keys, player-score-driven 1-10 offline search, explicit draw session state, Xiangqi-family score/undo/restart behavior, and a 180-degree Black-player view with upright piece glyphs. Its square board and right rail remain side by side at 800×600 landscape, and the rail distinguishes the active side, check, terminal result, AI level, undo, and restart.
 - International Chess promotion must expose queen, rook, bishop, and knight choices to human players; its search must preserve checkmate precedence over automatic draws and include session repetition history.
 - International Chess search and session repetition keys must remain identical, including normalized move-counter hash components and both usable and unusable en-passant rights.
 - Mix the full International Chess repetition-count context into transposition-table keys; repetition scores are path-dependent.
@@ -35,6 +36,7 @@ Current game behavior:
 Current design direction:
 
 - `designs/specs/android-games-home.md` defines the light mineral-grey, matte-porcelain home screen with equal-size package-driven game buttons and no game-specific shell styling; its wide style starts only when four 240dp buttons fit without a breakpoint shrink.
+- `designs/specs/android-game-package-logos.md` defines the four package-owned circular PNG logos and their shared cool-porcelain medallion style.
 - `designs/specs/android-games-family-versus-logo.md` records the approved game-center brand Logo: two face-to-face players around a shared game table. Root `logo.svg` and all launcher resources must preserve the user-selected 1254×1254 artwork without cropping or reinterpretation.
 - The approved app-icon artwork is a 1254×1254 source embedded byte-for-byte in root `logo.svg`; `AppIconResourcesTest` guards its SHA-256 plus legacy/adaptive launcher resource wiring.
 
@@ -93,6 +95,7 @@ Run from repository root:
 - Increment `app/build.gradle.kts` `versionCode` and semantic `versionName` for every game-center shell feature, UI, resource, package-management, or loader update. Game-only changes do not increment the shell version.
 - Scope game logic/UI to the relevant `games/<name>/` module.
 - Increment only the touched game's `versionCode` and semantic `versionName` for every rules, robot, UI, or package-asset update. Keep the plugin manifest and `games/<name>/package/manifest.json` exactly aligned.
+- Keep each built-in package's `assets/icon.png` readable, square, `1024 x 1024`, circular-safe, and aligned with the manifest `icon` path.
 - Keep robot strategy and its regression tests in the same game module; threat-priority changes must include deterministic board-state tests.
 - Xiangqi AI changes must preserve safe-move filtering and cover immediate general capture, checkmate preference, and poisoned-capture avoidance.
 - Keep Xiangqi intelligence levels centralized in immutable configuration, monotonic in depth and node budget, deterministic for a given position and level, and derived from the human player's accumulated single-player win score rather than a fixed board side.

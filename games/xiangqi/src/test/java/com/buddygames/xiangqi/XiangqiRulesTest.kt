@@ -11,9 +11,9 @@ import org.junit.Test
 class XiangqiRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(7, XiangqiPlugin.manifest.versionCode)
-        assertEquals("0.0.7", XiangqiPlugin.manifest.versionName)
-        assertEquals("版本 0.0.7", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
+        assertEquals(8, XiangqiPlugin.manifest.versionCode)
+        assertEquals("0.0.8", XiangqiPlugin.manifest.versionName)
+        assertEquals("版本 0.0.8", xiangqiVersionLabel(XiangqiPlugin.manifest.versionName))
     }
 
     @Test

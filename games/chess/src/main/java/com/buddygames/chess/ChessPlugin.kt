@@ -215,11 +215,11 @@ class ChessPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "chess",
             displayName = "国际象棋",
-            versionCode = 4,
-            versionName = "0.0.4",
+            versionCode = 5,
+            versionName = "0.0.5",
             entryClass = "com.buddygames.chess.ChessPlugin",
             minShellApi = 1,
-            icon = "assets/icon.txt"
+            icon = "assets/icon.png"
         )
     }
 }

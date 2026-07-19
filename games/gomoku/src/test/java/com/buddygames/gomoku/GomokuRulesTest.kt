@@ -9,9 +9,9 @@ import org.junit.Test
 class GomokuRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(4, GomokuPlugin.manifest.versionCode)
-        assertEquals("0.0.4", GomokuPlugin.manifest.versionName)
-        assertEquals("版本 0.0.4", gomokuVersionLabel(GomokuPlugin.manifest.versionName))
+        assertEquals(5, GomokuPlugin.manifest.versionCode)
+        assertEquals("0.0.5", GomokuPlugin.manifest.versionName)
+        assertEquals("版本 0.0.5", gomokuVersionLabel(GomokuPlugin.manifest.versionName))
     }
 
     @Test

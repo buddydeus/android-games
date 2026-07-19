@@ -18,6 +18,8 @@ Manifest validation lives in `GameManifest.isValidForShell()`. Required fields: 
 
 `icon` is an optional package-relative path. The home screen supports PNG, WebP, JPEG, and UTF-8 text files; text content is rendered as a compact mark of up to six characters inside the shared logo well. Bitmap decoding is sampled to a bounded display size. Missing, empty, unsupported, or unreadable icons fall back to the first character of `displayName`. Keep all icon paths inside the game package and never use absolute paths or `..`.
 
+Built-in packages use a square `1024 x 1024` PNG at `assets/icon.png`. Keep the recognizable mark inside a circular safe area because the home screen clips the package image into its shared round logo well.
+
 ## Game versions
 
 Each game has an independent version beginning at `versionCode = 1` and `versionName = "0.0.1"`. `MainScreen` must display the plugin manifest's `versionName`.

@@ -10,9 +10,9 @@ import org.junit.Test
 class OthelloRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(4, OthelloPlugin.manifest.versionCode)
-        assertEquals("0.0.4", OthelloPlugin.manifest.versionName)
-        assertEquals("版本 0.0.4", othelloVersionLabel(OthelloPlugin.manifest.versionName))
+        assertEquals(5, OthelloPlugin.manifest.versionCode)
+        assertEquals("0.0.5", OthelloPlugin.manifest.versionName)
+        assertEquals("版本 0.0.5", othelloVersionLabel(OthelloPlugin.manifest.versionName))
     }
 
     @Test

@@ -191,11 +191,11 @@ class OthelloPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "othello",
             displayName = "黑白棋",
-            versionCode = 4,
-            versionName = "0.0.4",
+            versionCode = 5,
+            versionName = "0.0.5",
             entryClass = "com.buddygames.othello.OthelloPlugin",
             minShellApi = 1,
-            icon = "assets/icon.txt"
+            icon = "assets/icon.png"
         )
     }
 }

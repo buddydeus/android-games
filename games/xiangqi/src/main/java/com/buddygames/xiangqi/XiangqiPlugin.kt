@@ -262,11 +262,11 @@ class XiangqiPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "xiangqi",
             displayName = "象棋",
-            versionCode = 7,
-            versionName = "0.0.7",
+            versionCode = 8,
+            versionName = "0.0.8",
             entryClass = "com.buddygames.xiangqi.XiangqiPlugin",
             minShellApi = 1,
-            icon = "assets/icon.txt"
+            icon = "assets/icon.png"
         )
     }
 }
