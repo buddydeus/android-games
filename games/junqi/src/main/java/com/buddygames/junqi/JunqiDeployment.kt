@@ -27,12 +27,13 @@ object JunqiDeployment {
         second: JunqiPosition,
     ): List<JunqiPiece> {
         val side = deployment.firstOrNull()?.side ?: return deployment
-        if (deployment.none { it.position == first } || deployment.none { it.position == second }) return deployment
+        val firstPiece = deployment.singleOrNull { it.position == first } ?: return deployment
+        val secondPiece = deployment.singleOrNull { it.position == second } ?: return deployment
 
         val swapped = deployment.map { piece ->
             when (piece.position) {
-                first -> piece.copy(position = second)
-                second -> piece.copy(position = first)
+                first -> piece.copy(type = secondPiece.type)
+                second -> piece.copy(type = firstPiece.type)
                 else -> piece
             }
         }

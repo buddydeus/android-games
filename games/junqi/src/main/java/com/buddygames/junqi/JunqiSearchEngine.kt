@@ -27,31 +27,28 @@ internal class JunqiSearchEngine(
         require(observation.currentSide == observation.viewer) {
             "Junqi search can run only for the observation viewer's turn"
         }
+        val startedAt = nanoTime()
         val budget = SearchBudget(
             nodeLimit = level.nodeBudget,
-            deadlineNanos = nanoTime() + level.timeBudgetMillis * NANOS_PER_MILLISECOND,
+            deadlineNanos = startedAt + level.timeBudgetMillis * NANOS_PER_MILLISECOND,
             nanoTime = nanoTime,
         )
         if (observation.result != null) return JunqiSearchResult(emptyList(), 0, 0, false)
 
+        val rootMoves = observation.visibleLegalMoves()
+        if (rootMoves.isEmpty()) return JunqiSearchResult(emptyList(), 0, 0, false)
         val baseSeed = observation.deterministicHash() xor AI_PACKAGE_SALT xor level.level.toLong()
-        var rootMoves = emptyList<JunqiMove>()
         var priorities = emptyMap<JunqiMove, Int>()
         val fallbackScores = linkedMapOf<JunqiMove, Int>()
         val aggregates = linkedMapOf<JunqiMove, ScoreAggregate>()
         var samplesCompleted = 0
+        rootMoves.forEach { move -> aggregates[move] = ScoreAggregate() }
 
         try {
             val firstAssignment = budget.timed {
                 knowledge.sampleTypes(observation, sampleSeed(baseSeed, 0))
             }
             val firstState = observation.toSampleState(firstAssignment)
-            rootMoves = budget.timed {
-                JunqiRules.legalMoves(firstState, observation.viewer).sortedWith(moveComparator)
-            }
-            if (rootMoves.isEmpty()) return JunqiSearchResult(emptyList(), 0, 0, false)
-
-            rootMoves.forEach { move -> aggregates[move] = ScoreAggregate() }
             priorities = JunqiTactics.rankedMoves(
                 observation = observation,
                 knowledge = knowledge,
@@ -283,6 +280,26 @@ internal class JunqiSearchEngine(
             JunqiPieceType.FLAG to 4_000,
         )
     }
+}
+
+internal fun JunqiObservation.visibleLegalMoves(): List<JunqiMove> {
+    val own = ownPieces.map { piece ->
+        JunqiPiece(piece.id, viewer, piece.type, piece.position, piece.hasMoved)
+    }
+    val opponentSide = other(viewer)
+    val opponents = opponentPieces.map { piece ->
+        // Root legality depends on public occupancy, not the opponent's hidden rank.
+        JunqiPiece(piece.id, opponentSide, JunqiPieceType.PLATOON, piece.position, piece.hasMoved)
+    }
+    val visibleState = JunqiState(
+        pieces = (own + opponents).associateBy { it.position },
+        currentSide = currentSide,
+        revealedFlags = revealedFlags,
+        quietHalfMoves = quietHalfMoves,
+        result = result,
+        lastBattleOutcome = lastBattleOutcome,
+    )
+    return JunqiRules.legalMoves(visibleState, viewer).sortedWith(moveComparator)
 }
 
 internal fun JunqiObservation.toSampleState(

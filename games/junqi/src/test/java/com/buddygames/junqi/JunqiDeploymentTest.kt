@@ -138,21 +138,32 @@ class JunqiDeploymentTest {
     }
 
     @Test
-    fun swapAppliesOnlyWhenTheResultRemainsLegal() {
+    fun swapChangesHiddenTypesWithoutMovingOpaqueSlotIdentities() {
         val deployment = JunqiDeployment.default(JunqiSide.RED)
-        val movable = deployment.filter { it.type == JunqiPieceType.COMPANY }
-        val legal = JunqiDeployment.swapIfLegal(deployment, movable[0].position, movable[1].position)
+        val first = deployment.single { it.type == JunqiPieceType.COMMANDER }
+        val second = deployment.single { it.type == JunqiPieceType.ARMY_COMMANDER }
+        val legal = JunqiDeployment.swapIfLegal(deployment, first.position, second.position)
         val flag = deployment.single { it.type == JunqiPieceType.FLAG }
         val illegalTarget = deployment.first { it.position !in JunqiBoard.headquarters }
         val illegal = JunqiDeployment.swapIfLegal(deployment, flag.position, illegalTarget.position)
+        val originalByPosition = deployment.associateBy { it.position }
+        val legalByPosition = legal.associateBy { it.position }
 
         assertTrue(JunqiDeployment.isLegal(legal, JunqiSide.RED))
-        assertEquals(movable[1].id, legal.single { it.position == movable[0].position }.id)
-        assertEquals(legal, JunqiDeployment.swapIfLegal(deployment, movable[0].position, movable[1].position))
+        assertEquals(second.type, legalByPosition.getValue(first.position).type)
+        assertEquals(first.type, legalByPosition.getValue(second.position).type)
+        for ((position, original) in originalByPosition) {
+            val swapped = legalByPosition.getValue(position)
+            assertEquals(original.id, swapped.id)
+            assertEquals(original.side, swapped.side)
+            assertEquals(original.position, swapped.position)
+            assertEquals(original.hasMoved, swapped.hasMoved)
+        }
+        assertEquals(legal, JunqiDeployment.swapIfLegal(deployment, first.position, second.position))
         assertSame(deployment, illegal)
         assertSame(
             deployment,
-            JunqiDeployment.swapIfLegal(deployment, JunqiPosition(5, 0), movable[0].position),
+            JunqiDeployment.swapIfLegal(deployment, JunqiPosition(5, 0), first.position),
         )
     }
 

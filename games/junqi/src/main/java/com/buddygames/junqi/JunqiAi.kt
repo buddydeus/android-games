@@ -189,7 +189,7 @@ internal val moveComparator = compareBy<JunqiMove>(
     { it.to.column },
 )
 
-internal const val AI_PACKAGE_SALT = 0x4A_55_4E_51_49_00_00_02L
+internal const val AI_PACKAGE_SALT = 0x4A_55_4E_51_49_00_00_03L
 
 internal fun other(side: JunqiSide): JunqiSide =
     if (side == JunqiSide.RED) JunqiSide.BLUE else JunqiSide.RED

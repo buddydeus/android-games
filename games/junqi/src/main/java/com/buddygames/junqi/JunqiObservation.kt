@@ -180,6 +180,11 @@ class JunqiKnowledge private constructor(
             is JunqiKnowledgeEvent.FlagRevealed -> {
                 require(event.pieceId in updatedActiveIds) { "Unknown active enemy piece: ${event.pieceId}" }
                 updatedCandidates.getValue(event.pieceId).retainAll(setOf(JunqiPieceType.FLAG))
+                updatedActiveIds.asSequence()
+                    .filter { it != event.pieceId }
+                    .forEach { pieceId ->
+                        updatedCandidates.getValue(pieceId).remove(JunqiPieceType.COMMANDER)
+                    }
             }
             is JunqiKnowledgeEvent.Battle -> {
                 require(event.enemyPieceId in updatedActiveIds) {
@@ -202,12 +207,27 @@ class JunqiKnowledge private constructor(
         require(observedById.keys == activePieceIds) {
             "Junqi knowledge active identities must match the current observation"
         }
-        val activeCandidates = observedById.mapValuesTo(linkedMapOf()) { (id, observed) ->
-            candidatesByPieceId.getValue(id).intersect(candidatesFrom(observed.constraints))
+        val opponentCommanderEliminated = opponentOf(observation.viewer) in observation.revealedFlags
+        val allCandidates = candidatesByPieceId.mapValuesTo(linkedMapOf()) { (id, knownCandidates) ->
+            knownCandidates.toMutableSet().apply {
+                val observed = observedById[id]
+                if (observed != null) {
+                    retainAll(candidatesFrom(observed.constraints))
+                    if (opponentCommanderEliminated) remove(JunqiPieceType.COMMANDER)
+                } else if (observation.result == null) {
+                    remove(JunqiPieceType.FLAG)
+                }
+            }
         }
-        val assignment = findAssignment(activeCandidates, seed)
+        val assignment = findAssignment(
+            candidatesById = normalizeCandidates(allCandidates),
+            seed = seed,
+            liveFlagIds = if (observation.result == null) activePieceIds else null,
+        )
         check(assignment != null) { "Junqi knowledge candidates have no inventory-consistent assignment" }
-        return Collections.unmodifiableMap(assignment)
+        return Collections.unmodifiableMap(
+            assignment.filterTo(linkedMapOf()) { (id, _) -> id in activePieceIds },
+        )
     }
 
     override fun equals(other: Any?): Boolean =
@@ -222,8 +242,15 @@ class JunqiKnowledge private constructor(
 
     companion object {
         fun from(observation: JunqiObservation): JunqiKnowledge {
+            val opponentCommanderEliminated = opponentOf(observation.viewer) in observation.revealedFlags
             val candidates = observation.opponentPieces.associateTo(linkedMapOf()) { piece ->
-                piece.id to candidatesFrom(piece.constraints)
+                piece.id to candidatesFrom(piece.constraints).let { observedCandidates ->
+                    if (opponentCommanderEliminated) {
+                        observedCandidates - JunqiPieceType.COMMANDER
+                    } else {
+                        observedCandidates
+                    }
+                }
             }
             return create(candidates, candidates.keys)
         }
@@ -293,18 +320,56 @@ class JunqiKnowledge private constructor(
         private fun findAssignment(
             candidatesById: Map<String, Set<JunqiPieceType>>,
             seed: Long,
+            liveFlagIds: Set<String>? = null,
         ): LinkedHashMap<String, JunqiPieceType>? {
+            if (liveFlagIds != null) {
+                val flagRandom = Random(seed xor LIVE_FLAG_SEED_SALT)
+                val orderedLiveFlagIds = liveFlagIds.sorted()
+                val flagTieBreakers = orderedLiveFlagIds.associateWith { flagRandom.nextLong() }
+                val eligibleFlagIds = orderedLiveFlagIds
+                    .filter { id -> JunqiPieceType.FLAG in candidatesById.getValue(id) }
+                    .sortedWith(compareBy<String> { flagTieBreakers.getValue(it) }.thenBy { it })
+                for (flagId in eligibleFlagIds) {
+                    val forcedCandidates = candidatesById.mapValuesTo(linkedMapOf()) { (id, candidates) ->
+                        if (id == flagId) {
+                            setOf(JunqiPieceType.FLAG)
+                        } else {
+                            candidates - JunqiPieceType.FLAG
+                        }
+                    }
+                    if (forcedCandidates.values.any { it.isEmpty() }) continue
+                    val normalized = try {
+                        normalizeCandidates(forcedCandidates)
+                    } catch (_: IllegalArgumentException) {
+                        continue
+                    }
+                    findAssignment(normalized, seed)?.let { return it }
+                }
+                return null
+            }
+
             val random = Random(seed)
-            val idTieBreakers = candidatesById.keys.associateWith { random.nextLong() }
-            val typeTieBreakers = candidatesById.flatMap { (id, candidates) ->
-                candidates.map { type -> (id to type) to random.nextLong() }
+            val orderedIds = candidatesById.keys.sorted()
+            val idTieBreakers = orderedIds.associateWith { random.nextLong() }
+            val typeTieBreakers = orderedIds.flatMap { id ->
+                candidatesById.getValue(id).sortedBy { it.ordinal }.map { type ->
+                    (id to type) to random.nextLong()
+                }
             }.toMap()
             val remaining = JUNQI_INITIAL_INVENTORY.toMutableMap()
             val assigned = linkedMapOf<String, JunqiPieceType>()
+            val requiresExactInventory = candidatesById.size == JUNQI_INITIAL_INVENTORY.values.sum()
 
             fun assign(): Boolean {
                 if (assigned.size == candidatesById.size) return true
-                val nextId = candidatesById.keys
+                val unassignedIds = orderedIds.filterNot { it in assigned }
+                if (requiresExactInventory && JUNQI_INITIAL_INVENTORY.keys.any { type ->
+                        remaining.getValue(type) > unassignedIds.count { id -> type in candidatesById.getValue(id) }
+                    }
+                ) {
+                    return false
+                }
+                val nextId = orderedIds
                     .asSequence()
                     .filterNot { it in assigned }
                     .map { id ->
@@ -318,8 +383,14 @@ class JunqiKnowledge private constructor(
                     ?: return true
                 if (nextId.second.isEmpty()) return false
 
+                val typeAvailability = nextId.second.associateWith { type ->
+                    unassignedIds.count { id -> type in candidatesById.getValue(id) }
+                }
                 val orderedTypes = nextId.second.sortedWith(
-                    compareBy<JunqiPieceType> { typeTieBreakers.getValue(nextId.first to it) }
+                    compareBy<JunqiPieceType> {
+                        typeAvailability.getValue(it) - remaining.getValue(it)
+                    }
+                        .thenBy { typeTieBreakers.getValue(nextId.first to it) }
                         .thenBy { it.ordinal },
                 )
                 for (type in orderedTypes) {
@@ -334,6 +405,11 @@ class JunqiKnowledge private constructor(
 
             return if (assign()) assigned else null
         }
+
+        private fun opponentOf(side: JunqiSide): JunqiSide =
+            if (side == JunqiSide.RED) JunqiSide.BLUE else JunqiSide.RED
+
+        private const val LIVE_FLAG_SEED_SALT = 0x46_4C_41_47_00_00_00_01L
 
         private val nonMovableTypes = setOf(JunqiPieceType.MINE, JunqiPieceType.FLAG)
     }

@@ -68,6 +68,40 @@ class JunqiAiTest {
     }
 
     @Test
+    fun realDefaultAndSwapDeploymentsKeepOpponentIdsHashAndAiChoiceIdentical() {
+        val red = JunqiDeployment.default(JunqiSide.RED)
+        val defaultBlue = JunqiDeployment.default(JunqiSide.BLUE)
+        val first = defaultBlue.single { it.type == JunqiPieceType.COMMANDER }
+        val second = defaultBlue.single { it.type == JunqiPieceType.ARMY_COMMANDER }
+        val swappedBlue = JunqiDeployment.swapIfLegal(defaultBlue, first.position, second.position)
+        val defaultTypes = defaultBlue.associate { piece -> piece.position to piece.type }
+        val swappedTypes = swappedBlue.associate { piece -> piece.position to piece.type }
+        val defaultObservation = JunqiObservation.from(
+            JunqiState((red + defaultBlue).associateBy { it.position }),
+            JunqiSide.RED,
+        )
+        val swappedObservation = JunqiObservation.from(
+            JunqiState((red + swappedBlue).associateBy { it.position }),
+            JunqiSide.RED,
+        )
+        val defaultKnowledge = JunqiKnowledge.from(defaultObservation)
+        val swappedKnowledge = JunqiKnowledge.from(swappedObservation)
+
+        assertNotEquals(defaultTypes, swappedTypes)
+        assertEquals(
+            defaultObservation.opponentPieces.map { it.id to it.position },
+            swappedObservation.opponentPieces.map { it.id to it.position },
+        )
+        assertEquals(defaultObservation, swappedObservation)
+        assertEquals(defaultObservation.deterministicHash(), swappedObservation.deterministicHash())
+        assertEquals(defaultKnowledge, swappedKnowledge)
+        val defaultMove = JunqiAi.chooseMove(defaultObservation, defaultKnowledge, JunqiAiLevel.LEVEL_1)
+        val swappedMove = JunqiAi.chooseMove(swappedObservation, swappedKnowledge, JunqiAiLevel.LEVEL_1)
+        assertNotNull(defaultMove)
+        assertEquals(defaultMove, swappedMove)
+    }
+
+    @Test
     fun levelsMatchTheApprovedExactMonotonicTableAndPlayerScoreMapping() {
         val expected = listOf(
             listOf(1, 1, 100, 80),
@@ -145,7 +179,7 @@ class JunqiAiTest {
             piece("red-bomb", JunqiSide.RED, JunqiPieceType.BOMB, 10, 2),
             piece("red-other", JunqiSide.RED, JunqiPieceType.COMPANY, 6, 4),
             piece("red-flag", JunqiSide.RED, JunqiPieceType.FLAG, 11, 1),
-            piece("blue-threat", JunqiSide.BLUE, JunqiPieceType.COMMANDER, 10, 1, hasMoved = true),
+            piece("blue-threat", JunqiSide.BLUE, JunqiPieceType.ARMY_COMMANDER, 10, 1, hasMoved = true),
             piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
             revealedFlags = setOf(JunqiSide.RED, JunqiSide.BLUE),
         )
@@ -153,13 +187,13 @@ class JunqiAiTest {
         val knowledge = JunqiKnowledge.from(observation).update(
             JunqiKnowledgeEvent.Battle(
                 enemyPieceId = "blue-threat",
-                ownPieceType = JunqiPieceType.ARMY_COMMANDER,
+                ownPieceType = JunqiPieceType.REGIMENT,
                 enemyWasAttacker = false,
                 outcome = JunqiBattleOutcome.DEFENDER_WINS,
             ),
         )
 
-        assertEquals(setOf(JunqiPieceType.COMMANDER), knowledge.candidatesFor("blue-threat"))
+        assertTrue(knowledge.candidatesFor("blue-threat").all { it in highRanks })
         assertEquals(
             JunqiMove(at(10, 2), at(10, 1)),
             JunqiAi.chooseMove(observation, knowledge, JunqiAiLevel.LEVEL_10),
@@ -309,6 +343,7 @@ class JunqiAiTest {
             readings[minOf(index++, readings.lastIndex)]
         }
         val observation = fullDeploymentObservation()
+        val expectedMoves = JunqiRules.legalMoves(fullDeploymentState(), JunqiSide.RED).sortedWith(moveComparator)
 
         val result = JunqiSearchEngine(clock).search(
             observation,
@@ -319,7 +354,15 @@ class JunqiAiTest {
         assertTrue(result.budgetExhausted)
         assertEquals(0, result.nodes)
         assertEquals(0, result.samplesCompleted)
-        assertTrue(result.rankedMoves.isEmpty())
+        assertNotNull(result.rankedMoves.firstOrNull())
+        assertEquals(expectedMoves, result.rankedMoves.map { it.move })
+        assertNotNull(
+            JunqiAi.chooseMove(
+                observation,
+                JunqiKnowledge.from(observation),
+                JunqiAiLevel.LEVEL_1,
+            ),
+        )
     }
 
     @Test
@@ -354,8 +397,12 @@ class JunqiAiTest {
     )
 
     private fun fullDeploymentObservation(): JunqiObservation {
+        return JunqiObservation.from(fullDeploymentState(), JunqiSide.RED)
+    }
+
+    private fun fullDeploymentState(): JunqiState {
         val pieces = JunqiDeployment.default(JunqiSide.RED) + JunqiDeployment.default(JunqiSide.BLUE)
-        return JunqiObservation.from(JunqiState(pieces.associateBy { it.position }), JunqiSide.RED)
+        return JunqiState(pieces.associateBy { it.position })
     }
 
     private fun stateOf(

@@ -232,6 +232,113 @@ class JunqiObservationTest {
     }
 
     @Test
+    fun nonterminalSamplesKeepExactlyOneLiveFlagAfterAnUnknownDefenderIsEliminated() {
+        val red = JunqiDeployment.default(JunqiSide.RED)
+        val blue = JunqiDeployment.default(JunqiSide.BLUE)
+        val eliminated = blue.single { piece ->
+            piece.position in JunqiBoard.headquarters && piece.type != JunqiPieceType.FLAG
+        }
+        val initialObservation = JunqiObservation.from(
+            JunqiState((red + blue).associateBy { it.position }),
+            JunqiSide.RED,
+        )
+        val knowledge = JunqiKnowledge.from(initialObservation).update(
+            JunqiKnowledgeEvent.Battle(
+                enemyPieceId = eliminated.id,
+                ownPieceType = JunqiPieceType.COMMANDER,
+                enemyWasAttacker = false,
+                outcome = JunqiBattleOutcome.ATTACKER_WINS,
+            ),
+        )
+        val observation = JunqiObservation.from(
+            JunqiState((red + blue.filterNot { it.id == eliminated.id }).associateBy { it.position }),
+            JunqiSide.RED,
+        )
+
+        repeat(32) { sampleIndex ->
+            val sample = knowledge.sampleTypes(observation, sampleIndex.toLong())
+            assertEquals(1, sample.values.count { it == JunqiPieceType.FLAG })
+        }
+    }
+
+    @Test
+    fun eliminatedKnownRankConsumesItsExactInventoryCapacity() {
+        val red = JunqiDeployment.default(JunqiSide.RED)
+        val blue = JunqiDeployment.default(JunqiSide.BLUE)
+        val eliminated = blue.first { it.type == JunqiPieceType.DIVISION_COMMANDER }
+        val initialObservation = JunqiObservation.from(
+            JunqiState((red + blue).associateBy { it.position }),
+            JunqiSide.RED,
+        )
+        val knowledge = JunqiKnowledge.from(initialObservation)
+            .update(
+                JunqiKnowledgeEvent.Battle(
+                    enemyPieceId = eliminated.id,
+                    ownPieceType = JunqiPieceType.BRIGADE_COMMANDER,
+                    enemyWasAttacker = true,
+                    outcome = JunqiBattleOutcome.ATTACKER_WINS,
+                ),
+            )
+            .update(
+                JunqiKnowledgeEvent.Battle(
+                    enemyPieceId = eliminated.id,
+                    ownPieceType = JunqiPieceType.ARMY_COMMANDER,
+                    enemyWasAttacker = false,
+                    outcome = JunqiBattleOutcome.ATTACKER_WINS,
+                ),
+            )
+        val observation = JunqiObservation.from(
+            JunqiState((red + blue.filterNot { it.id == eliminated.id }).associateBy { it.position }),
+            JunqiSide.RED,
+        )
+
+        assertEquals(setOf(JunqiPieceType.DIVISION_COMMANDER), knowledge.candidatesFor(eliminated.id))
+        repeat(32) { sampleIndex ->
+            val sample = knowledge.sampleTypes(observation, sampleIndex.toLong())
+            assertEquals(1, sample.values.count { it == JunqiPieceType.DIVISION_COMMANDER })
+        }
+    }
+
+    @Test
+    fun revealedFlagProvesCommanderIsAbsentFromEveryActiveSurvivor() {
+        val red = JunqiDeployment.default(JunqiSide.RED)
+        val blue = JunqiDeployment.default(JunqiSide.BLUE)
+        val commander = blue.single { it.type == JunqiPieceType.COMMANDER }
+        val flag = blue.single { it.type == JunqiPieceType.FLAG }
+        val initialObservation = JunqiObservation.from(
+            JunqiState((red + blue).associateBy { it.position }),
+            JunqiSide.RED,
+        )
+        val knowledge = JunqiKnowledge.from(initialObservation)
+            .update(
+                JunqiKnowledgeEvent.Battle(
+                    enemyPieceId = commander.id,
+                    ownPieceType = JunqiPieceType.COMMANDER,
+                    enemyWasAttacker = true,
+                    outcome = JunqiBattleOutcome.BOTH_REMOVED,
+                ),
+            )
+            .update(JunqiKnowledgeEvent.FlagRevealed(flag.id))
+        val observation = JunqiObservation.from(
+            JunqiState(
+                pieces = (red + blue.filterNot { it.id == commander.id }).associateBy { it.position },
+                revealedFlags = setOf(JunqiSide.BLUE),
+            ),
+            JunqiSide.RED,
+        )
+
+        assertTrue(
+            knowledge.activePieceIds.all { pieceId ->
+                JunqiPieceType.COMMANDER !in knowledge.candidatesFor(pieceId)
+            },
+        )
+        repeat(32) { sampleIndex ->
+            val sample = knowledge.sampleTypes(observation, sampleIndex.toLong())
+            assertEquals(0, sample.values.count { it == JunqiPieceType.COMMANDER })
+        }
+    }
+
+    @Test
     fun impossibleGlobalCandidateCountsAreRejected() {
         val state = JunqiState(
             pieces = listOf(
