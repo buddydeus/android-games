@@ -126,6 +126,22 @@ build/game-packages/xiangqi.zip
 build/game-packages/chess.zip
 ```
 
+## 连接 USB 设备
+
+Android 设备开启 USB 调试并接入电脑后，先列出 ADB 当前发现的全部设备：
+
+```bash
+pnpm connect list
+```
+
+列表会保留 `device`、`unauthorized`、`offline` 等状态。使用完整 serial 精确选择并验证一个在线设备：
+
+```bash
+pnpm connect <serial-id>
+```
+
+USB 传输由 ADB 自动建立，因此该命令使用 serial 选择设备，不会调用面向网络地址的 `adb connect`。如果状态为 `unauthorized`，请解锁设备并接受 USB 调试 RSA 授权提示后重试。
+
 ## 启动调试
 
 ```bash

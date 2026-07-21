@@ -65,6 +65,7 @@ Run from repository root:
 - `npm run build:game:chess` — `./gradlew packageChessGame`
 - `pnpm connect list` — list every USB-connected ADB device and its current state
 - `pnpm connect <serial-id>` — select and verify one USB-connected device by exact ADB serial
+- `bash scripts/test-connect-android-device.sh` — run deterministic host-side connect tests with a fake ADB executable
 - `npm start` — boot emulator (if needed), build APK, install, launch `com.buddygames.center/.MainActivity`
 - `./gradlew :game-api:testDebugUnitTest` — game-api manifest/contract tests only
 - `./gradlew :app:testDebugUnitTest` — shell runtime tests only
@@ -85,6 +86,8 @@ Run from repository root:
 | `games/xiangqi/` | Xiangqi plugin module + package layout |
 | `games/chess/` | International Chess plugin module + package layout |
 | `build.gradle.kts` | Registers `package*Game` zip tasks (jar → d8 → plugin.apk → zip) |
+| `scripts/connect-android-device.sh` | Lists USB ADB transports and verifies one exact device serial |
+| `scripts/test-connect-android-device.sh` | Fake-ADB regression tests for host-side device connection states |
 | `scripts/start-android-debug.sh` | Local emulator + install + launch |
 | `docs/superpowers/specs/` | Approved product/architecture spec (SSOT) |
 | `docs/superpowers/plans/` | MVP implementation plan |
@@ -134,9 +137,10 @@ Run from repository root:
 
 After code changes:
 
-1. `./gradlew :<module>:testDebugUnitTest` for each touched module
-2. `npm run verify` for integration-level confidence
-3. Optional: `npm start` for on-device/emulator smoke test
+1. `bash scripts/test-connect-android-device.sh` for host connect-script changes
+2. `./gradlew :<module>:testDebugUnitTest` for each touched Android module
+3. `npm run verify` for integration-level confidence
+4. Optional: `npm start` for on-device/emulator smoke test
 
 Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 

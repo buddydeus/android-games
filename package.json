@@ -9,6 +9,7 @@
     "build:game:xiangqi": "./gradlew packageXiangqiGame",
     "build:game:chess": "./gradlew packageChessGame",
     "verify": "./gradlew test verifyGamePackages",
-    "start": "bash scripts/start-android-debug.sh"
+    "start": "bash scripts/start-android-debug.sh",
+    "connect": "bash scripts/connect-android-device.sh"
   }
 }
