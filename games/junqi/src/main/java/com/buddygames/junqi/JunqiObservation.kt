@@ -194,8 +194,18 @@ class JunqiKnowledge private constructor(
         return create(updatedCandidates, updatedActiveIds)
     }
 
-    internal fun sampleTypes(seed: Long): Map<String, JunqiPieceType> {
-        val assignment = findAssignment(candidatesByPieceId, seed)
+    internal fun sampleTypes(
+        observation: JunqiObservation,
+        seed: Long,
+    ): Map<String, JunqiPieceType> {
+        val observedById = observation.opponentPieces.associateBy { it.id }
+        require(observedById.keys == activePieceIds) {
+            "Junqi knowledge active identities must match the current observation"
+        }
+        val activeCandidates = observedById.mapValuesTo(linkedMapOf()) { (id, observed) ->
+            candidatesByPieceId.getValue(id).intersect(candidatesFrom(observed.constraints))
+        }
+        val assignment = findAssignment(activeCandidates, seed)
         check(assignment != null) { "Junqi knowledge candidates have no inventory-consistent assignment" }
         return Collections.unmodifiableMap(assignment)
     }

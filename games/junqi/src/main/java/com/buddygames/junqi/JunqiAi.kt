@@ -35,13 +35,7 @@ object JunqiAi {
         }
         if (observation.result != null) return null
 
-        val tacticalMoves = JunqiTactics.rankedMoves(observation, knowledge)
-        val bestTacticalPriority = tacticalMoves.firstOrNull()?.priority ?: 0
-        val rankedMoves = if (bestTacticalPriority > 0) {
-            tacticalMoves.takeWhile { it.priority == bestTacticalPriority }.map { it.move }
-        } else {
-            JunqiSearchEngine().search(observation, knowledge, level).rankedMoves.map { it.move }
-        }
+        val rankedMoves = JunqiSearchEngine().search(observation, knowledge, level).rankedMoves.map { it.move }
         if (rankedMoves.isEmpty()) return null
 
         val seed = observation.deterministicHash() xor AI_PACKAGE_SALT
@@ -61,25 +55,46 @@ internal object JunqiTactics {
     fun rankedMoves(
         observation: JunqiObservation,
         knowledge: JunqiKnowledge,
+        sampleCount: Int = TACTICAL_SAMPLE_COUNT,
+        checkDeadline: () -> Unit = {},
     ): List<JunqiTacticalMove> {
-        val rootState = observation.toSampleState(knowledge.sampleTypes(observation.deterministicHash()))
+        require(sampleCount > 0) { "Junqi tactics need at least one determinization" }
+        val sampledAssignments = (0 until sampleCount).map { sampleIndex ->
+            checkDeadline()
+            val assignment = knowledge.sampleTypes(
+                observation,
+                tacticalSampleSeed(observation.deterministicHash(), sampleIndex),
+            )
+            checkDeadline()
+            assignment
+        }
+        val sampledStates = sampledAssignments.map(observation::toSampleState)
+        val rootState = sampledStates.first()
+        checkDeadline()
         val legalMoves = JunqiRules.legalMoves(rootState, observation.viewer).sortedWith(moveComparator)
+        checkDeadline()
         val ownByPosition = observation.ownPieces.associateBy { it.position }
         val opponentByPosition = observation.opponentPieces.associateBy { it.position }
-        val threatenedPositions = exposedFlagThreats(observation, knowledge)
+        val effectiveFlagDefenses = effectiveFlagDefenses(
+            observation,
+            sampledStates,
+            legalMoves,
+            checkDeadline,
+        )
 
         return legalMoves.map { move ->
             val ownPiece = ownByPosition.getValue(move.from)
             val opponent = opponentByPosition[move.to]
             val priority = when {
                 opponent?.constraints?.revealedFlag == true -> FLAG_CAPTURE_PRIORITY
-                move.to in threatenedPositions -> FLAG_DEFENSE_PRIORITY
+                move in effectiveFlagDefenses -> FLAG_DEFENSE_PRIORITY
                 ownPiece.type == JunqiPieceType.ENGINEER &&
                     opponent != null &&
                     knowledge.candidatesFor(opponent.id) == setOf(JunqiPieceType.MINE) -> MINE_CLEAR_PRIORITY
                 ownPiece.type == JunqiPieceType.BOMB &&
                     opponent != null &&
-                    knowledge.highRankProbability(opponent.id) >= BOMB_EXCHANGE_THRESHOLD -> BOMB_EXCHANGE_PRIORITY
+                    highRankSampleShare(opponent.id, sampledAssignments) >=
+                    BOMB_EXCHANGE_SAMPLE_SHARE_THRESHOLD -> BOMB_EXCHANGE_PRIORITY
                 else -> 0
             }
             JunqiTacticalMove(move, priority)
@@ -92,36 +107,63 @@ internal object JunqiTactics {
         )
     }
 
-    private fun exposedFlagThreats(
+    private fun effectiveFlagDefenses(
         observation: JunqiObservation,
-        knowledge: JunqiKnowledge,
-    ): Set<JunqiPosition> {
+        sampledStates: List<JunqiState>,
+        legalMoves: List<JunqiMove>,
+        checkDeadline: () -> Unit,
+    ): Set<JunqiMove> {
         if (observation.viewer !in observation.revealedFlags) return emptySet()
         val flagPosition = observation.ownPieces.singleOrNull { it.type == JunqiPieceType.FLAG }?.position
             ?: return emptySet()
-        val possibleTypes = observation.opponentPieces.associate { opponent ->
-            val candidates = knowledge.candidatesFor(opponent.id)
-            val possibleType = when {
-                JunqiPieceType.ENGINEER in candidates -> JunqiPieceType.ENGINEER
-                else -> candidates.firstOrNull { it.movable } ?: candidates.first()
+        if (sampledStates.none { state ->
+                hasImmediateFlagThreat(state, observation.viewer, flagPosition, checkDeadline)
             }
-            opponent.id to possibleType
+        ) {
+            return emptySet()
         }
-        val threatState = observation.toSampleState(possibleTypes)
-        return JunqiRules.legalMoves(threatState, other(observation.viewer))
-            .filterTo(linkedSetOf()) { move -> move.to == flagPosition }
-            .mapTo(linkedSetOf()) { it.from }
+        return legalMoves.filterTo(linkedSetOf()) { move ->
+            sampledStates.all { state ->
+                checkDeadline()
+                val resultingState = JunqiRules.applyMove(state, move)
+                checkDeadline()
+                resultingState.result?.winner == observation.viewer ||
+                    resultingState.pieces.values
+                        .singleOrNull { piece ->
+                            piece.side == observation.viewer && piece.type == JunqiPieceType.FLAG
+                        }
+                        ?.let { flag ->
+                            !hasImmediateFlagThreat(
+                                resultingState,
+                                observation.viewer,
+                                flag.position,
+                                checkDeadline,
+                            )
+                        } == true
+            }
+        }
     }
 
-    private fun JunqiKnowledge.highRankProbability(pieceId: String): Double {
-        val candidates = candidatesFor(pieceId)
-        val totalWeight = candidates.sumOf { JUNQI_INITIAL_INVENTORY.getValue(it) }
-        if (totalWeight == 0) return 0.0
-        val highRankWeight = candidates
-            .filter { it in highRanks }
-            .sumOf { JUNQI_INITIAL_INVENTORY.getValue(it) }
-        return highRankWeight.toDouble() / totalWeight
+    private fun hasImmediateFlagThreat(
+        state: JunqiState,
+        defendingSide: JunqiSide,
+        flagPosition: JunqiPosition,
+        checkDeadline: () -> Unit,
+    ): Boolean {
+        checkDeadline()
+        val threatened = JunqiRules.legalMoves(state, other(defendingSide)).any { move -> move.to == flagPosition }
+        checkDeadline()
+        return threatened
     }
+
+    private fun tacticalSampleSeed(baseSeed: Long, sampleIndex: Int): Long =
+        baseSeed xor ((sampleIndex + 1L) * -7_046_029_254_386_353_131L)
+
+    private fun highRankSampleShare(
+        pieceId: String,
+        sampledAssignments: List<Map<String, JunqiPieceType>>,
+    ): Double = sampledAssignments.count { assignment -> assignment.getValue(pieceId) in highRanks }.toDouble() /
+        sampledAssignments.size
 
     private val highRanks = setOf(
         JunqiPieceType.COMMANDER,
@@ -134,7 +176,8 @@ internal object JunqiTactics {
     private const val FLAG_DEFENSE_PRIORITY = 3
     private const val MINE_CLEAR_PRIORITY = 2
     private const val BOMB_EXCHANGE_PRIORITY = 1
-    private const val BOMB_EXCHANGE_THRESHOLD = 0.5
+    private const val BOMB_EXCHANGE_SAMPLE_SHARE_THRESHOLD = 0.5
+    private const val TACTICAL_SAMPLE_COUNT = 8
 }
 
 internal data class JunqiTacticalMove(val move: JunqiMove, val priority: Int)
@@ -146,7 +189,7 @@ internal val moveComparator = compareBy<JunqiMove>(
     { it.to.column },
 )
 
-internal const val AI_PACKAGE_SALT = 0x4A_55_4E_51_49_00_00_01L
+internal const val AI_PACKAGE_SALT = 0x4A_55_4E_51_49_00_00_02L
 
 internal fun other(side: JunqiSide): JunqiSide =
     if (side == JunqiSide.RED) JunqiSide.BLUE else JunqiSide.RED

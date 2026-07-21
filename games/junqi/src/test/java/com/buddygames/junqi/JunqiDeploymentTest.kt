@@ -36,6 +36,28 @@ class JunqiDeploymentTest {
     }
 
     @Test
+    fun deploymentIdsAreOpaqueAndIndependentOfHiddenRanks() {
+        for (side in JunqiSide.entries) {
+            val first = JunqiDeployment.random(side, 42).associateBy { it.position }
+            val second = JunqiDeployment.random(side, 43).associateBy { it.position }
+
+            assertTrue(first.keys.any { position -> first.getValue(position).type != second.getValue(position).type })
+            assertEquals(
+                first.mapValues { (_, piece) -> piece.id },
+                second.mapValues { (_, piece) -> piece.id },
+            )
+            assertTrue(
+                first.values.all { piece ->
+                    JunqiPieceType.entries.none { type ->
+                        piece.id.contains(type.name, ignoreCase = true) ||
+                            piece.id.contains(type.name.lowercase().replace("_", "-"))
+                    }
+                },
+            )
+        }
+    }
+
+    @Test
     fun deploymentRejectsEveryInventoryAndOwnershipViolation() {
         val deployment = JunqiDeployment.default(JunqiSide.RED)
 

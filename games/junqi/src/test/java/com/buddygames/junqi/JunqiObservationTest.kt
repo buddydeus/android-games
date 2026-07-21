@@ -151,12 +151,84 @@ class JunqiObservationTest {
         )
         val knowledge = JunqiKnowledge.from(observation)
 
-        val first = knowledge.sampleTypes(2048L)
-        val second = knowledge.sampleTypes(2048L)
+        val first = knowledge.sampleTypes(observation, 2048L)
+        val second = knowledge.sampleTypes(observation, 2048L)
 
         assertEquals(first, second)
         assertEquals(25, first.size)
         assertEquals(JUNQI_INITIAL_INVENTORY, first.values.groupingBy { it }.eachCount())
+    }
+
+    @Test
+    fun postCaptureSamplesContainOnlyActiveIdentitiesAndPreserveActiveCommanderFacts() {
+        val state = JunqiState(
+            pieces = listOf(
+                piece("blue-commander", JunqiSide.BLUE, JunqiPieceType.COMMANDER, 4, 0, hasMoved = true),
+                piece("blue-captured", JunqiSide.BLUE, JunqiPieceType.COMPANY, 5, 0, hasMoved = true),
+                piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
+            ).associateBy { it.position },
+        )
+        val knowledge = JunqiKnowledge.from(JunqiObservation.from(state, JunqiSide.RED))
+            .update(
+                JunqiKnowledgeEvent.Battle(
+                    enemyPieceId = "blue-commander",
+                    ownPieceType = JunqiPieceType.ARMY_COMMANDER,
+                    enemyWasAttacker = false,
+                    outcome = JunqiBattleOutcome.DEFENDER_WINS,
+                ),
+            )
+            .update(
+                JunqiKnowledgeEvent.Battle(
+                    enemyPieceId = "blue-captured",
+                    ownPieceType = JunqiPieceType.COMMANDER,
+                    enemyWasAttacker = false,
+                    outcome = JunqiBattleOutcome.ATTACKER_WINS,
+                ),
+            )
+
+        val postCaptureState = JunqiState(
+            pieces = state.pieces.values
+                .filterNot { it.id == "blue-captured" }
+                .associateBy { it.position },
+        )
+        val postCaptureObservation = JunqiObservation.from(postCaptureState, JunqiSide.RED)
+        val sample = knowledge.sampleTypes(postCaptureObservation, 91L)
+
+        assertEquals(setOf("blue-commander", "blue-flag"), knowledge.activePieceIds)
+        assertEquals(knowledge.activePieceIds, sample.keys)
+        assertEquals(JunqiPieceType.COMMANDER, sample.getValue("blue-commander"))
+    }
+
+    @Test
+    fun postCaptureSamplingAppliesNewlyRevealedFlagFactsFromTheObservation() {
+        val beforeCapture = JunqiState(
+            pieces = listOf(
+                piece("blue-captured", JunqiSide.BLUE, JunqiPieceType.COMMANDER, 5, 0, hasMoved = true),
+                piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
+                piece("blue-mover", JunqiSide.BLUE, JunqiPieceType.COMPANY, 4, 0, hasMoved = true),
+            ).associateBy { it.position },
+        )
+        val knowledgeAfterCapture = JunqiKnowledge.from(JunqiObservation.from(beforeCapture, JunqiSide.RED))
+            .update(
+                JunqiKnowledgeEvent.Battle(
+                    enemyPieceId = "blue-captured",
+                    ownPieceType = JunqiPieceType.BOMB,
+                    enemyWasAttacker = false,
+                    outcome = JunqiBattleOutcome.BOTH_REMOVED,
+                ),
+            )
+        val afterCapture = JunqiState(
+            pieces = beforeCapture.pieces.values
+                .filterNot { it.id == "blue-captured" }
+                .associateBy { it.position },
+            revealedFlags = setOf(JunqiSide.BLUE),
+        )
+        val revealedObservation = JunqiObservation.from(afterCapture, JunqiSide.RED)
+
+        val sample = knowledgeAfterCapture.sampleTypes(revealedObservation, 92L)
+
+        assertEquals(setOf("blue-flag", "blue-mover"), sample.keys)
+        assertEquals(JunqiPieceType.FLAG, sample.getValue("blue-flag"))
     }
 
     @Test

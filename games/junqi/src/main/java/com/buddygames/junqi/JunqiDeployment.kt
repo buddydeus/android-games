@@ -66,17 +66,15 @@ object JunqiDeployment {
         }
         placements += remainingTypes.zip(remainingPositions)
 
-        val typeOccurrences = mutableMapOf<JunqiPieceType, Int>()
-        return placements.sortedWith(compareBy({ it.second.row }, { it.second.column })).map { (type, position) ->
-            val occurrence = typeOccurrences.getOrDefault(type, 0) + 1
-            typeOccurrences[type] = occurrence
-            JunqiPiece(
-                id = "${side.name.lowercase()}-${type.name.lowercase()}-$occurrence",
-                side = side,
-                type = type,
-                position = position,
-            )
-        }
+        return placements.sortedWith(compareBy({ it.second.row }, { it.second.column }))
+            .mapIndexed { index, (type, position) ->
+                JunqiPiece(
+                    id = "${side.name.lowercase()}-piece-${(index + 1).toString().padStart(2, '0')}",
+                    side = side,
+                    type = type,
+                    position = position,
+                )
+            }
     }
 
     private fun deploymentPositions(side: JunqiSide): List<JunqiPosition> {

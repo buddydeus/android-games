@@ -3,6 +3,7 @@ package com.buddygames.junqi
 import java.lang.reflect.Modifier
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -36,6 +37,34 @@ class JunqiAiTest {
         assertEquals(commanderObservation, engineerObservation)
         assertEquals(commanderKnowledge, engineerKnowledge)
         assertEquals(first, second)
+    }
+
+    @Test
+    fun realRandomDeploymentsWithDifferentHiddenTruthChooseIdentically() {
+        val red = JunqiDeployment.default(JunqiSide.RED)
+        val firstBlue = JunqiDeployment.random(JunqiSide.BLUE, 42)
+        val secondBlue = JunqiDeployment.random(JunqiSide.BLUE, 43)
+        val firstTruth = firstBlue.associate { piece -> piece.position to piece.type }
+        val secondTruth = secondBlue.associate { piece -> piece.position to piece.type }
+        val firstObservation = JunqiObservation.from(
+            JunqiState((red + firstBlue).associateBy { it.position }),
+            JunqiSide.RED,
+        )
+        val secondObservation = JunqiObservation.from(
+            JunqiState((red + secondBlue).associateBy { it.position }),
+            JunqiSide.RED,
+        )
+        val firstKnowledge = JunqiKnowledge.from(firstObservation)
+        val secondKnowledge = JunqiKnowledge.from(secondObservation)
+
+        assertNotEquals(firstTruth, secondTruth)
+        assertEquals(firstObservation, secondObservation)
+        assertEquals(firstObservation.deterministicHash(), secondObservation.deterministicHash())
+        assertEquals(firstKnowledge, secondKnowledge)
+        assertEquals(
+            JunqiAi.chooseMove(firstObservation, firstKnowledge, JunqiAiLevel.LEVEL_1),
+            JunqiAi.chooseMove(secondObservation, secondKnowledge, JunqiAiLevel.LEVEL_1),
+        )
     }
 
     @Test
@@ -110,6 +139,34 @@ class JunqiAiTest {
     }
 
     @Test
+    fun exposedFlagDefenseRejectsAWeakSacrificeWhenAnEffectiveDefenseExists() {
+        val state = stateOf(
+            piece("red-weak", JunqiSide.RED, JunqiPieceType.ENGINEER, 10, 0),
+            piece("red-bomb", JunqiSide.RED, JunqiPieceType.BOMB, 10, 2),
+            piece("red-other", JunqiSide.RED, JunqiPieceType.COMPANY, 6, 4),
+            piece("red-flag", JunqiSide.RED, JunqiPieceType.FLAG, 11, 1),
+            piece("blue-threat", JunqiSide.BLUE, JunqiPieceType.COMMANDER, 10, 1, hasMoved = true),
+            piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
+            revealedFlags = setOf(JunqiSide.RED, JunqiSide.BLUE),
+        )
+        val observation = JunqiObservation.from(state, JunqiSide.RED)
+        val knowledge = JunqiKnowledge.from(observation).update(
+            JunqiKnowledgeEvent.Battle(
+                enemyPieceId = "blue-threat",
+                ownPieceType = JunqiPieceType.ARMY_COMMANDER,
+                enemyWasAttacker = false,
+                outcome = JunqiBattleOutcome.DEFENDER_WINS,
+            ),
+        )
+
+        assertEquals(setOf(JunqiPieceType.COMMANDER), knowledge.candidatesFor("blue-threat"))
+        assertEquals(
+            JunqiMove(at(10, 2), at(10, 1)),
+            JunqiAi.chooseMove(observation, knowledge, JunqiAiLevel.LEVEL_10),
+        )
+    }
+
+    @Test
     fun engineerAttacksAMineConfirmedByPublicBattleEvidence() {
         val state = stateOf(
             piece("red-engineer", JunqiSide.RED, JunqiPieceType.ENGINEER, 1, 1),
@@ -162,6 +219,60 @@ class JunqiAiTest {
     }
 
     @Test
+    fun bombExchangeEstimateRespectsGloballyConsumedHighRankCapacity() {
+        val highOnlyPieces = listOf(
+            piece("blue-high-1", JunqiSide.BLUE, JunqiPieceType.COMMANDER, 1, 0, hasMoved = true),
+            piece("blue-high-2", JunqiSide.BLUE, JunqiPieceType.ARMY_COMMANDER, 1, 1, hasMoved = true),
+            piece("blue-high-3", JunqiSide.BLUE, JunqiPieceType.DIVISION_COMMANDER, 1, 2, hasMoved = true),
+            piece("blue-high-4", JunqiSide.BLUE, JunqiPieceType.DIVISION_COMMANDER, 1, 3, hasMoved = true),
+            piece("blue-high-5", JunqiSide.BLUE, JunqiPieceType.BRIGADE_COMMANDER, 1, 4, hasMoved = true),
+            piece("blue-high-6", JunqiSide.BLUE, JunqiPieceType.BRIGADE_COMMANDER, 2, 0, hasMoved = true),
+        )
+        val state = stateOf(
+            piece("red-bomb", JunqiSide.RED, JunqiPieceType.BOMB, 5, 2),
+            piece("red-other", JunqiSide.RED, JunqiPieceType.COMPANY, 6, 4),
+            piece("red-flag", JunqiSide.RED, JunqiPieceType.FLAG, 11, 1),
+            piece("blue-target", JunqiSide.BLUE, JunqiPieceType.REGIMENT, 6, 2, hasMoved = true),
+            piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
+            *highOnlyPieces.toTypedArray(),
+        )
+        val observation = JunqiObservation.from(state, JunqiSide.RED)
+        var knowledge = JunqiKnowledge.from(observation)
+        for (piece in highOnlyPieces) {
+            knowledge = knowledge.update(
+                JunqiKnowledgeEvent.Battle(
+                    enemyPieceId = piece.id,
+                    ownPieceType = JunqiPieceType.REGIMENT,
+                    enemyWasAttacker = false,
+                    outcome = JunqiBattleOutcome.DEFENDER_WINS,
+                ),
+            )
+        }
+        knowledge = knowledge.update(
+            JunqiKnowledgeEvent.Battle(
+                enemyPieceId = "blue-target",
+                ownPieceType = JunqiPieceType.BATTALION,
+                enemyWasAttacker = false,
+                outcome = JunqiBattleOutcome.DEFENDER_WINS,
+            ),
+        )
+        val bombMove = JunqiMove(at(5, 2), at(6, 2))
+
+        repeat(8) { sampleIndex ->
+            assertEquals(
+                JunqiPieceType.REGIMENT,
+                knowledge.sampleTypes(observation, sampleIndex.toLong()).getValue("blue-target"),
+            )
+        }
+        assertEquals(
+            0,
+            JunqiTactics.rankedMoves(observation, knowledge)
+                .single { tactical -> tactical.move == bombMove }
+                .priority,
+        )
+    }
+
+    @Test
     fun deterministicWeakeningIsLimitedToLevelsOneThroughFive() {
         val seed = 0x1234_5678L
         val candidateCount = 8
@@ -191,11 +302,11 @@ class JunqiAiTest {
     }
 
     @Test
-    fun sampledSearchStopsAtTheTimeBudgetAndKeepsADeterministicFallback() {
-        var time = 0L
+    fun sampledSearchStartsTheDeadlineBeforeSamplingPreprocessing() {
+        val readings = longArrayOf(0L, 0L, 81_000_000L)
+        var index = 0
         val clock = {
-            time += 100_000_000L
-            time
+            readings[minOf(index++, readings.lastIndex)]
         }
         val observation = fullDeploymentObservation()
 
@@ -207,6 +318,28 @@ class JunqiAiTest {
 
         assertTrue(result.budgetExhausted)
         assertEquals(0, result.nodes)
+        assertEquals(0, result.samplesCompleted)
+        assertTrue(result.rankedMoves.isEmpty())
+    }
+
+    @Test
+    fun sampledSearchChecksTheDeadlineAfterRootApplyBeforeEnteringTheTree() {
+        var calls = 0
+        val clock = {
+            calls += 1
+            if (calls >= 11) 81_000_000L else 0L
+        }
+        val observation = fullDeploymentObservation()
+
+        val result = JunqiSearchEngine(clock).search(
+            observation,
+            JunqiKnowledge.from(observation),
+            JunqiAiLevel.LEVEL_1,
+        )
+
+        assertTrue(result.budgetExhausted)
+        assertEquals(0, result.nodes)
+        assertEquals(0, result.samplesCompleted)
         assertNotNull(result.rankedMoves.firstOrNull())
     }
 
