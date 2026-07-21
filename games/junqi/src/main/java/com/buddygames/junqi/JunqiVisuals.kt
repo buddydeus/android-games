@@ -2,16 +2,45 @@ package com.buddygames.junqi
 
 internal data class JunqiBitmapPoint(val x: Float, val y: Float)
 
+internal data class JunqiTextureContract(
+    val path: String,
+    val width: Int,
+    val height: Int,
+)
+
 /** Package-local bitmap registration and Compose fallback tokens for the Junqi board. */
 internal object JunqiVisuals {
     const val ICON_TEXTURE_PATH = "icon.png"
     const val BOARD_TEXTURE_PATH = "board/junqi-board.png"
     const val SHELF_TEXTURE_PATH = "textures/junqi-shelf.png"
 
+    const val ICON_TEXTURE_WIDTH = 1024
+    const val ICON_TEXTURE_HEIGHT = 1024
     const val BOARD_TEXTURE_WIDTH = 1400
     const val BOARD_TEXTURE_HEIGHT = 1680
     const val SHELF_TEXTURE_WIDTH = 1400
     const val SHELF_TEXTURE_HEIGHT = 360
+
+    val ICON_TEXTURE_CONTRACT = JunqiTextureContract(
+        path = ICON_TEXTURE_PATH,
+        width = ICON_TEXTURE_WIDTH,
+        height = ICON_TEXTURE_HEIGHT,
+    )
+    val BOARD_TEXTURE_CONTRACT = JunqiTextureContract(
+        path = BOARD_TEXTURE_PATH,
+        width = BOARD_TEXTURE_WIDTH,
+        height = BOARD_TEXTURE_HEIGHT,
+    )
+    val SHELF_TEXTURE_CONTRACT = JunqiTextureContract(
+        path = SHELF_TEXTURE_PATH,
+        width = SHELF_TEXTURE_WIDTH,
+        height = SHELF_TEXTURE_HEIGHT,
+    )
+    val textureContracts = listOf(
+        ICON_TEXTURE_CONTRACT,
+        BOARD_TEXTURE_CONTRACT,
+        SHELF_TEXTURE_CONTRACT,
+    )
 
     const val BOARD_GRID_LEFT_FRACTION = 220f / BOARD_TEXTURE_WIDTH
     const val BOARD_GRID_TOP_FRACTION = 180f / BOARD_TEXTURE_HEIGHT

@@ -13,8 +13,8 @@ class JunqiPluginTest {
 
         assertEquals("junqi", manifest.gameId)
         assertEquals("军棋", manifest.displayName)
-        assertEquals(6, manifest.versionCode)
-        assertEquals("0.0.6", manifest.versionName)
+        assertEquals(7, manifest.versionCode)
+        assertEquals("0.0.7", manifest.versionName)
         assertEquals("com.buddygames.junqi.JunqiPlugin", manifest.entryClass)
         assertEquals(1, manifest.minShellApi)
         assertEquals("landscape", manifest.orientation)
@@ -25,7 +25,7 @@ class JunqiPluginTest {
     fun menuUsesSharedLabelsAndManifestVersion() {
         assertEquals("军棋", JunqiUiText.TITLE)
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), JunqiUiText.MENU_LABELS)
-        assertEquals("版本 0.0.6", JunqiUiText.versionLabel)
+        assertEquals("版本 0.0.7", JunqiUiText.versionLabel)
         assertEquals("版本 7.8.9", JunqiUiText.versionLabel("7.8.9"))
     }
 

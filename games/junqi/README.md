@@ -10,7 +10,7 @@
 | --- | --- |
 | `gameId` | `junqi` |
 | 显示名称 | 军棋 |
-| 当前版本 | `0.0.6` (`versionCode = 6`) |
+| 当前版本 | `0.0.7` (`versionCode = 7`) |
 | 入口类 | `com.buddygames.junqi.JunqiPlugin` |
 | 最低外壳 API | `1` |
 | 屏幕方向 | 横屏 |
@@ -23,7 +23,7 @@
 - `package/assets/board/junqi-board.png` 是 1400x1680 RGBA 完整棋盘底图，含全部公路、铁路、行营、大本营及中部边界，不包含棋子。
 - `package/assets/textures/junqi-shelf.png` 是 1400x360 RGBA 开始界面浅浮雕陈列纹理。
 - `JunqiVisuals.BOARD_GRID` 注册 12x5 节点的精确中心：左上 `(220, 180)`、右下 `(1180, 1500)`，列距 240、行距 120；缺失或无效位图时，`JunqiVisuals` 的后备颜色常量可供 Compose 重绘使用。
-- `JunqiTextures` 从当前安装包的 `assetsDir` 解码棋盘、Logo 与陈列纹理，按包目录和清单版本在 Compose 中缓存；任何文件缺失或无效时使用纯 Compose 棋盘、Logo 或陈列纹理后备绘制。
+- `JunqiTextures` 从当前安装包的 `assetsDir` 解码棋盘、Logo 与陈列纹理，按包目录和清单版本在 Compose 中缓存；在完整解码前必须由 `BitmapFactory` bounds 确认 PNG MIME 与精确尺寸：Logo `1024x1024`、棋盘 `1400x1680`、陈列纹理 `1400x360`，完整解码后再次核对尺寸。任何文件缺失或无效时使用纯 Compose 棋盘、Logo 或陈列纹理后备绘制。
 - 运行 `python3 games/junqi/tools/generate_junqi_assets.py` 可确定性地重建三张 PNG。`JunqiAssetsTest` 检查尺寸、透明角、路径、注册坐标、道路/铁路/行营/大本营颜色和共享最后移动标记常量。
 
 ## Compose 界面
@@ -68,7 +68,7 @@
 npm run verify
 ```
 
-Task 4 重点测试位于 `JunqiDeploymentTest`、`JunqiObservationTest` 和 `JunqiAiTest`，覆盖交换后的槽位身份保密、真实布阵公平性、存活与阵亡身份的完整容量分配、非终局军旗与司令阵亡约束、战术安全及立即超时后备走法。Task 5 的 `JunqiSessionTest` 覆盖完整阶段流、遮屏隐私、布阵操作、身份比分、换边、和棋、快照悔棋、最后移动和 AI 过期结果拒绝。Task 6 的 `JunqiAssetsTest` 锁定包内视觉资源与注册几何。Task 7 的 `JunqiPluginTest` 锁定插件清单、共享文案、800x600 并排几何、180 度映射、观察态棋子投影、合法点击解析和通用碰子文案。
+Task 4 重点测试位于 `JunqiDeploymentTest`、`JunqiObservationTest` 和 `JunqiAiTest`，覆盖交换后的槽位身份保密、真实布阵公平性、存活与阵亡身份的完整容量分配、非终局军旗与司令阵亡约束、战术安全及立即超时后备走法。Task 5 的 `JunqiSessionTest` 覆盖完整阶段流、遮屏隐私、布阵操作、身份比分、换边、和棋、快照悔棋、最后移动和 AI 过期结果拒绝。Task 6 的 `JunqiAssetsTest` 锁定包内视觉资源与注册几何。Task 7 的 `JunqiPluginTest` 锁定插件清单、共享文案、800x600 并排几何、180 度映射、观察态棋子投影、合法点击解析和通用碰子文案；`JunqiTexturesTest` 锁定三项资源的精确 PNG 输入契约和解码后尺寸复核。
 
 ## 更新要求
 

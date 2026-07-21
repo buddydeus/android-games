@@ -16,8 +16,18 @@ class JunqiAssetsTest {
         assertEquals("icon.png", JunqiVisuals.ICON_TEXTURE_PATH)
         assertEquals("board/junqi-board.png", JunqiVisuals.BOARD_TEXTURE_PATH)
         assertEquals("textures/junqi-shelf.png", JunqiVisuals.SHELF_TEXTURE_PATH)
+        assertEquals(1024, JunqiVisuals.ICON_TEXTURE_WIDTH)
+        assertEquals(1024, JunqiVisuals.ICON_TEXTURE_HEIGHT)
         assertEquals(1400, JunqiVisuals.BOARD_TEXTURE_WIDTH)
         assertEquals(1680, JunqiVisuals.BOARD_TEXTURE_HEIGHT)
+        assertEquals(
+            listOf(
+                JunqiTextureContract("icon.png", 1024, 1024),
+                JunqiTextureContract("board/junqi-board.png", 1400, 1680),
+                JunqiTextureContract("textures/junqi-shelf.png", 1400, 360),
+            ),
+            JunqiVisuals.textureContracts,
+        )
         assertEquals(5, JunqiVisuals.BOARD_GRID.first().size)
         assertEquals(12, JunqiVisuals.BOARD_GRID.size)
         assertEquals(JunqiBitmapPoint(220f, 180f), JunqiVisuals.BOARD_GRID.first().first())
