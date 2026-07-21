@@ -226,7 +226,7 @@ class JunqiSession private constructor(
 
     fun undo(): JunqiSessionState {
         if (!canUndo()) return state
-        val snapshot = history.removeLast()
+        val snapshot = history.removeAt(history.lastIndex)
         invalidateRobotRequest()
         game = snapshot.game
         knowledge = snapshot.knowledge
