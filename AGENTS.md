@@ -164,6 +164,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [docs/superpowers/specs/2026-07-18-xiangqi-ai-search-calibration-design.md](docs/superpowers/specs/2026-07-18-xiangqi-ai-search-calibration-design.md) | Xiangqi search-position optimization, effective-depth observability, and statistical level-calibration gates |
 | [docs/superpowers/specs/2026-07-18-international-chess-game-design.md](docs/superpowers/specs/2026-07-18-international-chess-game-design.md) | International Chess rules, session behavior, UI, packaging, and offline 1-10 AI |
 | [docs/superpowers/specs/2026-07-21-usb-adb-connect-script-design.md](docs/superpowers/specs/2026-07-21-usb-adb-connect-script-design.md) | USB ADB device listing and exact-serial connection command contract |
+| [docs/superpowers/plans/2026-07-21-usb-adb-connect-script.md](docs/superpowers/plans/2026-07-21-usb-adb-connect-script.md) | TDD implementation steps for USB ADB device listing and exact-serial verification |
 | [docs/agents/game-plugins.md](docs/agents/game-plugins.md) | GamePlugin contract, zip layout, adding a game |
 | [designs/specs/android-games-home.md](designs/specs/android-games-home.md) | Current home-screen visual SSOT |
 | [designs/specs/android-games-family-versus-logo.md](designs/specs/android-games-family-versus-logo.md) | Approved family-versus Logo and launcher-icon SSOT |
