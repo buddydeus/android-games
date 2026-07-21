@@ -2,6 +2,7 @@ package com.buddygames.junqi
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class JunqiBoardTest {
@@ -34,6 +35,30 @@ class JunqiBoardTest {
     @Test
     fun railGraphContainsExactlyTheApprovedEdges() {
         assertEquals(expectedRailNeighbors(), JunqiBoard.railNeighbors)
+    }
+
+    @Test
+    fun headquartersRejectMutationThroughMutableSetCast() {
+        val headquarters = JunqiBoard.headquarters as MutableSet<JunqiPosition>
+
+        try {
+            headquarters += JunqiPosition(0, 0)
+            fail("Headquarters must be unmodifiable through a MutableSet cast")
+        } catch (_: UnsupportedOperationException) {
+            assertEquals(4, JunqiBoard.headquarters.size)
+        }
+    }
+
+    @Test
+    fun campsRejectMutationThroughMutableSetCast() {
+        val camps = JunqiBoard.camps as MutableSet<JunqiPosition>
+
+        try {
+            camps += JunqiPosition(1, 1)
+            fail("Camps must be unmodifiable through a MutableSet cast")
+        } catch (_: UnsupportedOperationException) {
+            assertEquals(10, JunqiBoard.camps.size)
+        }
     }
 
     private fun expectedRoadNeighbors(): Map<JunqiPosition, Set<JunqiPosition>> = expectedNeighbors {

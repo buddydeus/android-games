@@ -3,14 +3,14 @@ package com.buddygames.junqi
 import java.util.Collections
 
 object JunqiBoard {
-    val headquarters: Set<JunqiPosition> = setOf(
+    val headquarters: Set<JunqiPosition> = immutablePositions(
         JunqiPosition(0, 1),
         JunqiPosition(0, 3),
         JunqiPosition(11, 1),
         JunqiPosition(11, 3),
     )
 
-    val camps: Set<JunqiPosition> = setOf(
+    val camps: Set<JunqiPosition> = immutablePositions(
         JunqiPosition(2, 1), JunqiPosition(2, 3), JunqiPosition(3, 2), JunqiPosition(4, 1), JunqiPosition(4, 3),
         JunqiPosition(7, 1), JunqiPosition(7, 3), JunqiPosition(8, 2), JunqiPosition(9, 1), JunqiPosition(9, 3),
     )
@@ -60,6 +60,9 @@ object JunqiBoard {
             builder.neighbors.mapValues { (_, neighbors) -> Collections.unmodifiableSet(neighbors.toSet()) },
         )
     }
+
+    private fun immutablePositions(vararg positions: JunqiPosition): Set<JunqiPosition> =
+        Collections.unmodifiableSet(positions.toSet())
 
     private class GraphBuilder {
         val neighbors = (0..11).flatMap { row ->
