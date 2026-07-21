@@ -1,6 +1,6 @@
 # 军棋
 
-军棋模块是游戏中心中的二国暗棋包基础，当前实现 12x5 棋盘、合法布阵、完整碰子与终局规则、观察者受限知识、不读取敌方真实军衔的离线 1-10 级 AI，以及单人和双人的完整会话状态机。Compose 界面、包内素材及内置包集成由后续任务完成。
+军棋模块是游戏中心中的二国暗棋包基础，当前实现 12x5 棋盘、合法布阵、完整碰子与终局规则、观察者受限知识、不读取敌方真实军衔的离线 1-10 级 AI、单人和双人的完整会话状态机，以及包内可重复生成的视觉素材。Compose 界面和内置包集成由后续任务完成。
 
 [返回项目说明](../../README.md)
 
@@ -10,12 +10,20 @@
 | --- | --- |
 | `gameId` | `junqi` |
 | 显示名称 | 军棋 |
-| 当前版本 | `0.0.4` (`versionCode = 4`) |
+| 当前版本 | `0.0.5` (`versionCode = 5`) |
 | 入口类 | `com.buddygames.junqi.JunqiPlugin` |
 | 最低外壳 API | `1` |
 | 屏幕方向 | 横屏 |
 
 版本信息同时维护在 `JunqiManifest.kt` 和 `package/manifest.json`。军棋尚未加入当前四个内置游戏包的构建门禁。
+
+## 包内素材
+
+- `package/assets/icon.png` 是 1024x1024、透明圆角、圆形安全区的军棋 Logo；朱红与靛蓝军棋牌围绕铁路交汇点，未包含小字。
+- `package/assets/board/junqi-board.png` 是 1400x1680 RGBA 完整棋盘底图，含全部公路、铁路、行营、大本营及中部边界，不包含棋子。
+- `package/assets/textures/junqi-shelf.png` 是 1400x360 RGBA 开始界面浅浮雕陈列纹理。
+- `JunqiVisuals.BOARD_GRID` 注册 12x5 节点的精确中心：左上 `(220, 180)`、右下 `(1180, 1500)`，列距 240、行距 120；缺失或无效位图时，`JunqiVisuals` 的后备颜色常量可供 Compose 重绘使用。
+- 运行 `python3 games/junqi/tools/generate_junqi_assets.py` 可确定性地重建三张 PNG。`JunqiAssetsTest` 检查尺寸、透明角、路径、注册坐标、道路/铁路/行营/大本营颜色和共享最后移动标记常量。
 
 ## 当前规则
 
@@ -51,7 +59,7 @@
 npm run verify
 ```
 
-Task 4 重点测试位于 `JunqiDeploymentTest`、`JunqiObservationTest` 和 `JunqiAiTest`，覆盖交换后的槽位身份保密、真实布阵公平性、存活与阵亡身份的完整容量分配、非终局军旗与司令阵亡约束、战术安全及立即超时后备走法。Task 5 的 `JunqiSessionTest` 覆盖完整阶段流、遮屏隐私、布阵操作、身份比分、换边、和棋、快照悔棋、最后移动和 AI 过期结果拒绝。
+Task 4 重点测试位于 `JunqiDeploymentTest`、`JunqiObservationTest` 和 `JunqiAiTest`，覆盖交换后的槽位身份保密、真实布阵公平性、存活与阵亡身份的完整容量分配、非终局军旗与司令阵亡约束、战术安全及立即超时后备走法。Task 5 的 `JunqiSessionTest` 覆盖完整阶段流、遮屏隐私、布阵操作、身份比分、换边、和棋、快照悔棋、最后移动和 AI 过期结果拒绝。Task 6 的 `JunqiAssetsTest` 锁定包内视觉资源与注册几何。
 
 ## 更新要求
 
