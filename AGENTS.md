@@ -1,6 +1,6 @@
 # Android Games — Agent Instructions
 
-For humans: start with [README.md](README.md). The approved product and architecture baseline is the [design spec](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md).
+For humans: start with [README.md](README.md), then use the README inside each `games/<gameId>/` module for game-specific rules, AI, assets, and commands. The approved product and architecture baseline is the [design spec](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md).
 
 ## Project
 
@@ -81,10 +81,10 @@ Run from repository root:
 | ---- | ---- |
 | `app/` | Game center shell UI, package install/discovery, dex plugin loader |
 | `game-api/` | `GamePlugin`, `GameContext`, `GameManifest`, `CURRENT_SHELL_API` |
-| `games/gomoku/` | Gomoku plugin module + `package/` assets/manifest |
-| `games/othello/` | Othello plugin module + package layout |
-| `games/xiangqi/` | Xiangqi plugin module + package layout |
-| `games/chess/` | International Chess plugin module + package layout |
+| `games/gomoku/` | Gomoku plugin module + package layout + game README |
+| `games/othello/` | Othello plugin module + package layout + game README |
+| `games/xiangqi/` | Xiangqi plugin module + package layout + game README |
+| `games/chess/` | International Chess plugin module + package layout + game README |
 | `build.gradle.kts` | Registers `package*Game` zip tasks (jar → d8 → plugin.apk → zip) |
 | `scripts/connect-android-device.sh` | Lists USB ADB transports and verifies one exact device serial |
 | `scripts/test-connect-android-device.sh` | Fake-ADB regression tests for host-side device connection states |
@@ -104,6 +104,7 @@ Run from repository root:
 - Increment only the touched game's `versionCode` and semantic `versionName` for every rules, robot, UI, or package-asset update. Keep the plugin manifest and `games/<name>/package/manifest.json` exactly aligned.
 - Keep each built-in package's `assets/icon.png` readable, square, `1024 x 1024`, circular-safe, and aligned with the manifest `icon` path.
 - Keep robot strategy and its regression tests in the same game module; threat-priority changes must include deterministic board-state tests.
+- Keep each `games/<gameId>/README.md` aligned with that game's manifest version, implemented rules, robot behavior, session flow, package assets, and supported commands. Documentation-only changes do not increment game versions.
 - Xiangqi AI changes must preserve safe-move filtering and cover immediate general capture, checkmate preference, and poisoned-capture avoidance.
 - Keep Xiangqi intelligence levels centralized in immutable configuration, monotonic in depth and node budget, deterministic for a given position and level, and derived from the human player's accumulated single-player win score rather than a fixed board side.
 - Xiangqi black-side perspective changes must map model/display coordinates in both directions and keep two-player plus red-side layouts unchanged.
@@ -159,6 +160,10 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | Doc | Purpose |
 | --- | ------- |
 | [README.md](README.md) | Human setup, build, runtime, package format, and current game capabilities |
+| [games/gomoku/README.md](games/gomoku/README.md) | Gomoku rules, robot priority, session behavior, assets, and commands |
+| [games/othello/README.md](games/othello/README.md) | Othello rules, robot priority, pass flow, assets, and commands |
+| [games/xiangqi/README.md](games/xiangqi/README.md) | Xiangqi rules, ten-level AI, ceramic assets, calibration, and commands |
+| [games/chess/README.md](games/chess/README.md) | International Chess rules, ten-level AI, draw handling, textures, and commands |
 | [docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md) | Product scope, architecture, non-goals |
 | [docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md](docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md) | MVP task breakdown and file map |
 | [docs/superpowers/plans/2026-07-18-xiangqi-intelligence-gradient.md](docs/superpowers/plans/2026-07-18-xiangqi-intelligence-gradient.md) | TDD implementation steps for the Xiangqi ten-level search engine and score-driven single-player flow |
@@ -181,4 +186,5 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 - [ ] No secrets or build artifacts staged
 - [ ] If `app/` changed, the game-center `versionCode` and `versionName` were incremented together
 - [ ] Each touched game has matching, incremented versions in plugin code and `package/manifest.json`
+- [ ] Each touched game's README still matches its implementation, manifest, assets, and commands
 - [ ] If `game-api` changed, all four games still build and load

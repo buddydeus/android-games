@@ -4,10 +4,10 @@
 
 当前内置：
 
-- 五子棋
-- 黑白棋
-- 象棋
-- 国际象棋
+- [五子棋](games/gomoku/README.md) `0.0.5`
+- [黑白棋](games/othello/README.md) `0.0.5`
+- [象棋](games/xiangqi/README.md) `0.0.13`
+- [国际象棋](games/chess/README.md) `0.0.9`
 
 四款游戏均支持“单人模式”“双人对战”“退出游戏”，单人模式由各游戏包自行实现机器人对手。
 
@@ -189,6 +189,10 @@ $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
 
 ## 文档
 
+- [五子棋模块说明](games/gomoku/README.md)
+- [黑白棋模块说明](games/othello/README.md)
+- [象棋模块说明](games/xiangqi/README.md)
+- [国际象棋模块说明](games/chess/README.md)
 - [产品与架构设计](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md)
 - [MVP 实施计划](docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md)
 - [游戏插件开发说明](docs/agents/game-plugins.md)
