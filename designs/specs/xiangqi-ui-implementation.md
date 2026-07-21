@@ -17,6 +17,8 @@
 - Red and Black piece families share identical shape, size, lighting, and crop.
 - The upper-left glaze highlight, double gold rim, lower-right bevel shade, and soft cast shadow remain visible after runtime scaling.
 - Piece edges remain distinguishable over every board area.
+- Runtime piece diameter remains at 80% of one grid step, and bottom-row pieces retain visible space above the inner frame.
+- The generated PNG's first and last grid lines exactly match the registered top and bottom coordinates.
 - Latest-move and selection overlays remain outside the visible piece boundary.
 - No generated watermark, background, accidental extra glyph, or mixed visual style remains.
 

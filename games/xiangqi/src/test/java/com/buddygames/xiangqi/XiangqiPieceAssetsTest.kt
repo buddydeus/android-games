@@ -37,11 +37,24 @@ class XiangqiPieceAssetsTest {
         assertEquals(1600, XIANGQI_BOARD_TEXTURE_WIDTH)
         assertEquals(1500, XIANGQI_BOARD_TEXTURE_HEIGHT)
         assertEquals(128f / 1600f, XIANGQI_GRID_LEFT_FRACTION, 0.0001f)
-        assertEquals(90f / 1500f, XIANGQI_GRID_TOP_FRACTION, 0.0001f)
+        assertEquals(110f / 1500f, XIANGQI_GRID_TOP_FRACTION, 0.0001f)
         assertEquals(1472f / 1600f, XIANGQI_GRID_RIGHT_FRACTION, 0.0001f)
-        assertEquals(1410f / 1500f, XIANGQI_GRID_BOTTOM_FRACTION, 0.0001f)
+        assertEquals(1360f / 1500f, XIANGQI_GRID_BOTTOM_FRACTION, 0.0001f)
         assertEquals(1600f / 1500f, XIANGQI_BOARD_ASPECT_RATIO, 0.0001f)
-        assertEquals(0.90f, XIANGQI_PIECE_TEXTURE_SCALE, 0.0001f)
+        assertEquals(0.80f, XIANGQI_PIECE_TEXTURE_SCALE, 0.0001f)
+    }
+
+    @Test
+    fun bottomRowLeavesVisibleClearanceInsideTheBoardFrame() {
+        val gridHeight =
+            XIANGQI_BOARD_TEXTURE_HEIGHT *
+                (XIANGQI_GRID_BOTTOM_FRACTION - XIANGQI_GRID_TOP_FRACTION)
+        val cellHeight = gridHeight / 9f
+        val bottomInset =
+            XIANGQI_BOARD_TEXTURE_HEIGHT * (1f - XIANGQI_GRID_BOTTOM_FRACTION)
+        val visibleClearance = bottomInset - cellHeight * XIANGQI_PIECE_TEXTURE_SCALE / 2f
+
+        assertTrue("bottom-row pieces need clear space above the frame", visibleClearance >= 80f)
     }
 
     @Test
@@ -88,6 +101,18 @@ class XiangqiPieceAssetsTest {
             board.getRGB(800, 750),
             expected = 0xFFE2ECE7.toInt(),
             tolerance = 20
+        )
+        assertColorNear(
+            "registered top grid line",
+            board.getRGB(700, 110),
+            expected = 0xFF27443F.toInt(),
+            tolerance = 16
+        )
+        assertColorNear(
+            "registered bottom grid line",
+            board.getRGB(700, 1360),
+            expected = 0xFF27443F.toInt(),
+            tolerance = 16
         )
     }
 

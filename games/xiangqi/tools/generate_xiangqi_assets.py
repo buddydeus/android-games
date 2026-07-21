@@ -12,9 +12,9 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 BOARD_SIZE = (1600, 1500)
 GRID_LEFT = 128
-GRID_TOP = 90
+GRID_TOP = 110
 GRID_RIGHT = 1472
-GRID_BOTTOM = 1410
+GRID_BOTTOM = 1360
 PIECE_SIZE = 1024
 REQUIRED_GLYPHS = "帥俥傌炮相仕兵將車馬砲象士卒楚河漢界"
 PIECE_MASTER = Path(__file__).resolve().parent / "source" / "ceramic-piece-master.png"
@@ -164,13 +164,7 @@ def generate_board(output: Path, font_spec: FontSpec) -> None:
         (33, 27, width - 33, height - 39),
         8,
         outline=(226, 239, 234, 210),
-        width=4,
-    )
-    draw.rounded_rectangle(
-        (42, 36, width - 42, height - 48),
-        6,
-        outline=(126, 160, 150, 190),
-        width=3,
+        width=2,
     )
 
     field_box = (52, 48, width - 52, height - 52)
@@ -189,29 +183,36 @@ def generate_board(output: Path, font_spec: FontSpec) -> None:
     )
 
     line_color = (39, 68, 63, 245)
-    line_width = 3
-    dx = (GRID_RIGHT - GRID_LEFT) // 8
-    dy = (GRID_BOTTOM - GRID_TOP) // 9
+    line_width = 2
+    dx = (GRID_RIGHT - GRID_LEFT) / 8
+    dy = (GRID_BOTTOM - GRID_TOP) / 9
+
+    def x_at(col: int) -> int:
+        return round(GRID_LEFT + col * dx)
+
+    def y_at(row: int) -> int:
+        return round(GRID_TOP + row * dy)
+
     river_top = GRID_TOP + 4 * dy
     river_bottom = GRID_TOP + 5 * dy
     draw.rectangle(
-        (GRID_LEFT + 2, river_top + 2, GRID_RIGHT - 2, river_bottom - 2),
+        (GRID_LEFT + 2, round(river_top) + 2, GRID_RIGHT - 2, round(river_bottom) - 2),
         fill=(226, 236, 231, 242),
     )
     for row in range(10):
-        y = GRID_TOP + row * dy
+        y = y_at(row)
         draw.line((GRID_LEFT, y, GRID_RIGHT, y), fill=line_color, width=line_width)
     for col in range(9):
-        x = GRID_LEFT + col * dx
-        draw.line((x, GRID_TOP, x, GRID_TOP + 4 * dy), fill=line_color, width=line_width)
-        draw.line((x, GRID_TOP + 5 * dy, x, GRID_BOTTOM), fill=line_color, width=line_width)
+        x = x_at(col)
+        draw.line((x, GRID_TOP, x, y_at(4)), fill=line_color, width=line_width)
+        draw.line((x, y_at(5), x, GRID_BOTTOM), fill=line_color, width=line_width)
 
-    draw.line((GRID_LEFT + 3 * dx, GRID_TOP, GRID_LEFT + 5 * dx, GRID_TOP + 2 * dy), fill=line_color, width=line_width)
-    draw.line((GRID_LEFT + 5 * dx, GRID_TOP, GRID_LEFT + 3 * dx, GRID_TOP + 2 * dy), fill=line_color, width=line_width)
-    draw.line((GRID_LEFT + 3 * dx, GRID_TOP + 7 * dy, GRID_LEFT + 5 * dx, GRID_BOTTOM), fill=line_color, width=line_width)
-    draw.line((GRID_LEFT + 5 * dx, GRID_TOP + 7 * dy, GRID_LEFT + 3 * dx, GRID_BOTTOM), fill=line_color, width=line_width)
+    draw.line((x_at(3), y_at(0), x_at(5), y_at(2)), fill=line_color, width=line_width)
+    draw.line((x_at(5), y_at(0), x_at(3), y_at(2)), fill=line_color, width=line_width)
+    draw.line((x_at(3), y_at(7), x_at(5), y_at(9)), fill=line_color, width=line_width)
+    draw.line((x_at(5), y_at(7), x_at(3), y_at(9)), fill=line_color, width=line_width)
 
-    river_font = load_font(font_spec, 78)
+    river_font = load_font(font_spec, 60)
     river_y = GRID_TOP + int(4.5 * dy)
     centered_text(
         draw,

@@ -3,7 +3,7 @@
 **Slug:** `xiangqi-ui`
 **User brief (verbatim summary):** "设计 象棋 游戏界面偏向明亮、简洁、中式，每个棋子和完整棋盘需要单独一个 png 图片保存用于做贴图"
 **Stack:** Kotlin, Jetpack Compose, Material 3, offline Android Pad game package
-**Iteration:** 2026-07-19T19:30:00+08:00
+**Iteration:** 2026-07-21T00:00:00+08:00
 
 ## Base System (Step 1 - ui-ux-pro-max)
 
@@ -169,9 +169,10 @@ The board is the dominant unframed play surface; a single full-height score-shee
 - The PNG owns the complete grid, palace diagonals, river band, `楚河` / `漢界`, rim, and surface material.
 - Preserve interaction registration:
   - grid left: `128 / 1600`
-  - grid top: `90 / 1500`
+  - grid top: `110 / 1500`
   - grid right: `1472 / 1600`
-  - grid bottom: `1410 / 1500`
+  - grid bottom: `1360 / 1500`
+- Generate every row and column from these complete floating-point bounds, rounding each final coordinate independently so the first and last PNG lines exactly match Compose interaction registration.
 - Camera is perfectly orthographic and front-facing. The board uses a thin celadon frame, warm-white inset field, and restrained lower-right elevation shadow matching `designs/previews/xiangqi-ui-menu.png`.
 - No perspective, board rotation, pieces, hands, room, table, text outside the river labels, watermark, thick nested frame, or position marks absent from the approved menu preview.
 - Surface texture is subtle enough that every grid line remains crisp at tablet resolution.
@@ -190,7 +191,7 @@ The board is the dominant unframed play surface; a single full-height score-shee
 - Glyphs must be upright, centered, legible, and use a consistent Song-style engraved/inked treatment.
 - No board, opaque background, floor plane, extra symbol, English, watermark, wood grain, stone texture, or decorative motif.
 - `games/xiangqi/tools/source/ceramic-piece-master.png` is the approved blank material master. The generator must resize this same master and add exact local-font glyphs so all fourteen output files retain identical ceramic lighting and geometry.
-- Compose renders with `ContentScale.Fit`; selection and latest-move overlays remain code-drawn above the texture.
+- Compose renders the trimmed visible piece at `80%` of one grid step with `ContentScale.Fit`; selection and latest-move overlays remain code-drawn above the texture. At the bottom row this leaves at least 80 source pixels between the visible piece boundary and the board edge.
 
 ## Board State Language
 
