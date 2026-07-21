@@ -10,6 +10,8 @@ Gradle multi-module layout: `app` (shell), `game-api` (shell↔game contract), `
 
 The approved International Chess design is `docs/superpowers/specs/2026-07-18-international-chess-game-design.md`. Its package uses complete standard legal moves, legal-only public state application with internal unchecked search transitions, and deterministic player-score-driven 1-10 iterative-deepening Negamax with alpha-beta pruning, a primitive incremental make/unmake position, allocation-free automatic draw checks, bounded transposition storage, mature move ordering, and draw-aware quiescence. It follows Xiangqi-family session behavior and has no external runtime dependency.
 
+The approved implementation baseline for the planned two-player hidden-information Junqi package is `docs/superpowers/specs/2026-07-21-junqi-game-design.md`. Keep its 12x5 graph, deployment constraints, observer-limited information model, no-cheating AI boundary, pass-and-play privacy flow, and package-only ownership intact when implementation begins.
+
 Current game behavior:
 
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
@@ -172,6 +174,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [docs/superpowers/specs/2026-07-18-xiangqi-intelligence-gradient-design.md](docs/superpowers/specs/2026-07-18-xiangqi-intelligence-gradient-design.md) | Xiangqi ten-level offline intelligence gradient, score mapping, search boundary, and calibration |
 | [docs/superpowers/specs/2026-07-18-xiangqi-ai-search-calibration-design.md](docs/superpowers/specs/2026-07-18-xiangqi-ai-search-calibration-design.md) | Xiangqi search-position optimization, effective-depth observability, and statistical level-calibration gates |
 | [docs/superpowers/specs/2026-07-18-international-chess-game-design.md](docs/superpowers/specs/2026-07-18-international-chess-game-design.md) | International Chess rules, session behavior, UI, packaging, and offline 1-10 AI |
+| [docs/superpowers/specs/2026-07-21-junqi-game-design.md](docs/superpowers/specs/2026-07-21-junqi-game-design.md) | Approved two-player hidden-information Junqi rules, AI boundary, UI, packaging, and tests |
 | [docs/superpowers/specs/2026-07-21-usb-adb-connect-script-design.md](docs/superpowers/specs/2026-07-21-usb-adb-connect-script-design.md) | USB ADB device listing and exact-serial connection command contract |
 | [docs/superpowers/plans/2026-07-21-usb-adb-connect-script.md](docs/superpowers/plans/2026-07-21-usb-adb-connect-script.md) | TDD implementation steps for USB ADB device listing and exact-serial verification |
 | [docs/agents/game-plugins.md](docs/agents/game-plugins.md) | GamePlugin contract, zip layout, adding a game |
