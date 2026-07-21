@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "gameId": "junqi",
+  "displayName": "军棋",
+  "versionCode": 1,
+  "versionName": "0.0.1",
+  "entryClass": "com.buddygames.junqi.JunqiPlugin",
+  "minShellApi": 1,
+  "orientation": "landscape",
+  "icon": "assets/icon.png"
+}

@@ -4,7 +4,7 @@ For humans: start with [README.md](README.md), then use the README inside each `
 
 ## Project
 
-Offline Android Pad game center (Kotlin + Jetpack Compose). The `app` module is a stable loading shell; each game ships as a zip package with dex plugin code loaded via `DexClassLoader`. Built-in games: Gomoku, Othello, Xiangqi, and International Chess.
+Offline Android Pad game center (Kotlin + Jetpack Compose). The `app` module is a stable loading shell; each game ships as a zip package with dex plugin code loaded via `DexClassLoader`. Built-in games: Gomoku, Othello, Xiangqi, International Chess, and the Task 1 Junqi package scaffold.
 
 Gradle multi-module layout: `app` (shell), `game-api` (shell↔game contract), `games/*` (per-game modules + package assets).
 
@@ -87,6 +87,7 @@ Run from repository root:
 | `games/othello/` | Othello plugin module + package layout + game README |
 | `games/xiangqi/` | Xiangqi plugin module + package layout + game README |
 | `games/chess/` | International Chess plugin module + package layout + game README |
+| `games/junqi/` | Junqi package module scaffold, manifest metadata, and contract test |
 | `build.gradle.kts` | Registers `package*Game` zip tasks (jar → d8 → plugin.apk → zip) |
 | `scripts/connect-android-device.sh` | Lists USB ADB transports and verifies one exact device serial |
 | `scripts/test-connect-android-device.sh` | Fake-ADB regression tests for host-side device connection states |
