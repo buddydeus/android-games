@@ -17,7 +17,7 @@ Current game behavior:
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
 - The game-center shell currently uses `versionCode = 3` and `versionName = 0.0.3`; the home top bar displays `BuildConfig.VERSION_NAME`.
 - Home game names and logos come only from each installed package's `displayName` and `icon` manifest fields. The shell supports bounded package-local PNG, WebP, JPEG, and compact text icon files and must not branch on known game IDs for presentation.
-- All five built-in packages provide a `1024 x 1024` circular-safe PNG at `assets/icon.png`, following `designs/specs/android-game-package-logos.md`; package verification requires that entry.
+- All five built-in packages provide a `1024 x 1024` circular-safe PNG at `assets/icon.png`; Gomoku, Othello, Xiangqi, and International Chess follow `designs/specs/android-game-package-logos.md`, while Junqi follows `docs/superpowers/specs/2026-07-21-junqi-game-design.md`. Package verification requires that entry.
 - The home game order is the descending persisted count of successful plugin loads. Equal counts use package display name and then game ID for deterministic, package-agnostic ordering.
 - All game menus use `单人模式`, `双人对战`, and `退出游戏`.
 - Every game owns an independent version starting at `0.0.1`, and its main menu displays `GameManifest.versionName`.

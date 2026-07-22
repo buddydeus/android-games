@@ -1,9 +1,8 @@
 package com.buddygames.junqi
 
-import com.google.gson.JsonParser
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-import java.nio.file.Path
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -17,19 +16,35 @@ class JunqiManifestTest {
 
     @Test
     fun packageManifestMatchesThePluginManifest() {
-        val packageManifest = JsonParser.parseString(
-            String(Files.readAllBytes(Path.of("package", "manifest.json")), StandardCharsets.UTF_8),
-        ).asJsonObject
+        val packageManifest = StrictJsonParser.parseObject(
+            String(
+                Files.readAllBytes(
+                    repositoryRoot().resolve("games/junqi/package/manifest.json").toPath(),
+                ),
+                StandardCharsets.UTF_8,
+            ),
+        )
         val pluginManifest = JunqiPlugin.manifest
 
-        assertEquals(pluginManifest.gameId, packageManifest["gameId"].asString)
-        assertEquals(pluginManifest.displayName, packageManifest["displayName"].asString)
-        assertEquals(pluginManifest.versionCode, packageManifest["versionCode"].asInt)
-        assertEquals(pluginManifest.versionName, packageManifest["versionName"].asString)
-        assertEquals(pluginManifest.entryClass, packageManifest["entryClass"].asString)
-        assertEquals(pluginManifest.icon, packageManifest["icon"].asString)
-        assertEquals(1, packageManifest["schemaVersion"].asInt)
-        assertEquals(1, packageManifest["minShellApi"].asInt)
-        assertEquals("landscape", packageManifest["orientation"].asString)
+        assertEquals(pluginManifest.schemaVersion, packageManifest.int("schemaVersion"))
+        assertEquals(pluginManifest.gameId, packageManifest.string("gameId"))
+        assertEquals(pluginManifest.displayName, packageManifest.string("displayName"))
+        assertEquals(pluginManifest.versionCode, packageManifest.int("versionCode"))
+        assertEquals(pluginManifest.versionName, packageManifest.string("versionName"))
+        assertEquals(pluginManifest.entryClass, packageManifest.string("entryClass"))
+        assertEquals(pluginManifest.minShellApi, packageManifest.int("minShellApi"))
+        assertEquals(pluginManifest.orientation, packageManifest.string("orientation"))
+        assertEquals(pluginManifest.icon, packageManifest.string("icon"))
+    }
+
+    private tailrec fun repositoryRoot(
+        directory: File = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile,
+    ): File {
+        if (directory.resolve("settings.gradle.kts").isFile) return directory
+        return repositoryRoot(
+            requireNotNull(directory.parentFile) {
+                ("Could not locate repository root from ${System.getProperty("user.dir")}")
+            },
+        )
     }
 }

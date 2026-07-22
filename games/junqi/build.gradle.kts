@@ -23,5 +23,4 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui")
     testImplementation("junit:junit:4.13.2")
-    testImplementation("com.google.code.gson:gson:2.13.1")
 }
