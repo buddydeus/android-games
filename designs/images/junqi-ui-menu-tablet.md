@@ -16,7 +16,7 @@ Wide Android tablet landscape mockup using the current verified runtime aspect r
 
 ## Visual details
 
-Use exact palette from SSOT: canvas `#E8EDE9`, surface `#F6F7F3`, board `#D8C98F`, board light `#E9DCAA`, frame `#68745D`, road `#494233`, rail dark `#2D2A23`, rail light `#F1E5B9`, ink `#292B23`, red `#B4312B`, blue `#2D5578`, camp `#BBC2A6`. The board is a refined digital reconstruction of the provided classic Junqi reference, not a generic parchment texture. Right rail is flat and quiet. Chinese typography uses restrained serif for title and clean sans serif for controls.
+Use exact palette from SSOT: canvas `#E8EDE9`, surface `#F6F7F3`, board `#D8C98F`, board light `#E9DCAA`, frame `#68745D`, road `#494233`, rail dark `#2D2A23`, rail light `#F1E5B9`, ink `#292B23`, green piece `#23704B`, orange piece `#C65012`, piece text `#FFFFFF`, headquarters `#B4312B`, camp `#BBC2A6`. The board is a refined digital reconstruction of the provided classic Junqi reference, not a generic parchment texture. Right rail is flat and quiet. Chinese typography uses restrained serif for title and clean sans serif for controls.
 
 ## Image prompt
 
@@ -29,7 +29,7 @@ Subject: The runtime source's complete empty 12-by-5 Junqi board fills the left 
 Style/medium: polished production UI mockup, respectful modern reconstruction of a traditional Chinese Junqi railway board, subtle fiberboard grain, crisp print-like labels, precise Android Compose proportions.
 Composition/framing: orthographic front view, board and right rail fully visible, no scrolling, no overlapping text, 800x600dp-equivalent spacing, system status and navigation bars may be omitted.
 Lighting/mood: soft diffuse studio light, subtle material depth, no dramatic shadows.
-Color palette: exact #E8EDE9, #F6F7F3, #D8C98F, #E9DCAA, #68745D, #494233, #2D2A23, #F1E5B9, #292B23, #B4312B, #2D5578, #BBC2A6.
+Color palette: exact #E8EDE9, #F6F7F3, #D8C98F, #E9DCAA, #68745D, #494233, #2D2A23, #F1E5B9, #292B23, #23704B, #C65012, #FFFFFF, #B4312B, #BBC2A6.
 Text (verbatim): "军棋", "版本 0.0.8", "单人模式", "双人对战", "退出游戏".
 Constraints: preserve the exact board graph and all source text; no pieces; title in restrained Chinese serif, controls in clean Chinese sans serif, zero letter spacing, buttons no more than 8px corner radius, one solid primary button, no cards inside cards.
 Avoid: copying the reference watermark, low-resolution blur, orange vintage cast, camouflage, guns, bullets, explosions, battle scenes, neon HUD, black full-screen theme, blue-orange SaaS UI, glassmorphism, gradients, floating cards, pill chips, decorative numbers, English labels, illegible Chinese, watermarks.
