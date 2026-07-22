@@ -40,6 +40,7 @@ Current game behavior:
 
 Current design direction:
 
+- `designs/specs/junqi-ui.md` is the current proposed Junqi visual SSOT pending the user direction gate. Its previews use a bright mineral-grey shell around a deep field-green command board, bone roads, brass railways and center bridge, red/blue enamel military tiles, and a flat order-ledger rail. Do not implement or replace the approved runtime visuals until the user selects Option 1; if selected, preserve all existing rules, privacy projections, 800x600dp geometry, package ownership, fallback behavior, and shared last-move marker.
 - `designs/specs/android-games-home.md` defines the light mineral-grey, matte-porcelain home screen with equal-size package-driven game buttons and no game-specific shell styling; its wide style starts only when four 240dp buttons fit without a breakpoint shrink.
 - `designs/specs/android-game-package-logos.md` defines the four package-owned circular PNG logos and their shared cool-porcelain medallion style.
 - `designs/specs/android-games-family-versus-logo.md` records the approved game-center brand Logo: two face-to-face players around a shared game table. Root `logo.svg` and all launcher resources must preserve the user-selected 1254×1254 artwork without cropping or reinterpretation.
@@ -197,6 +198,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [designs/specs/android-games-home.md](designs/specs/android-games-home.md) | Current home-screen visual SSOT |
 | [designs/specs/android-games-family-versus-logo.md](designs/specs/android-games-family-versus-logo.md) | Approved family-versus Logo and launcher-icon SSOT |
 | [designs/specs/xiangqi-ui.md](designs/specs/xiangqi-ui.md) | Approved bright, simple Chinese Xiangqi UI and board/piece texture SSOT |
+| [designs/specs/junqi-ui.md](designs/specs/junqi-ui.md) | Proposed Junqi command-table UI SSOT and preview index, pending user direction selection |
 
 ## Done checklist
 
