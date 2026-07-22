@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 
 BOARD_SIZE = (1400, 1680)
@@ -17,13 +17,22 @@ GRID_TOP = 180
 GRID_COLUMN_STEP = 240
 GRID_ROW_STEP = 120
 
-ROAD = (83, 103, 98, 255)
-RAIL = (33, 79, 69, 255)
-CAMP = (220, 234, 227, 255)
-HEADQUARTERS_FILL = (201, 183, 121, 255)
-BOUNDARY = (32, 49, 46, 255)
-FIELD = (247, 246, 240, 255)
-RIM = (185, 204, 198, 255)
+ROAD = (73, 66, 51, 255)
+RAIL_DARK = (45, 42, 35, 255)
+RAIL_LIGHT = (241, 229, 185, 255)
+CAMP = (187, 194, 166, 255)
+STATION = (233, 220, 170, 255)
+HEADQUARTERS_LABEL = (180, 49, 43, 255)
+BOUNDARY = (104, 116, 93, 255)
+FIELD = (216, 201, 143, 255)
+RIM = (104, 116, 93, 255)
+
+FONT_CANDIDATES = (
+    Path("/System/Library/Fonts/STHeiti Medium.ttc"),
+    Path("/System/Library/Fonts/PingFang.ttc"),
+    Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"),
+    Path("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"),
+)
 
 CAMPS = {
     (2, 1), (2, 3), (3, 2), (4, 1), (4, 3),
@@ -67,16 +76,48 @@ def rail_links() -> list[tuple[tuple[int, int], tuple[int, int]]]:
     return links
 
 
-def draw_rail_ties(draw: ImageDraw.ImageDraw, first: tuple[int, int], second: tuple[int, int]) -> None:
+def draw_rail(draw: ImageDraw.ImageDraw, first: tuple[int, int], second: tuple[int, int]) -> None:
     x1, y1 = point(*first)
     x2, y2 = point(*second)
-    tie = (180, 199, 190, 255)
+    draw.line((x1, y1, x2, y2), fill=RAIL_DARK, width=24)
     if y1 == y2:
-        for x in range(min(x1, x2) + 28, max(x1, x2), 48):
-            draw.line((x, y1 - 12, x, y1 + 12), fill=tie, width=3)
+        for x in range(min(x1, x2) + 16, max(x1, x2) - 8, 48):
+            draw.rectangle((x, y1 - 7, min(x + 27, max(x1, x2)), y1 + 7), fill=RAIL_LIGHT)
     else:
-        for y in range(min(y1, y2) + 24, max(y1, y2), 48):
-            draw.line((x1 - 12, y, x1 + 12, y), fill=tie, width=3)
+        for y in range(min(y1, y2) + 12, max(y1, y2) - 8, 40):
+            draw.rectangle((x1 - 7, y, x1 + 7, min(y + 23, max(y1, y2))), fill=RAIL_LIGHT)
+
+
+def load_board_font(size: int) -> ImageFont.FreeTypeFont:
+    required = "兵站行营大本"
+    for candidate in FONT_CANDIDATES:
+        if not candidate.is_file():
+            continue
+        try:
+            font = ImageFont.truetype(str(candidate), size=size, index=0)
+        except OSError:
+            continue
+        if all(font.getmask(character).getbbox() is not None for character in required):
+            return font
+    raise RuntimeError("No installed bold CJK font can render the Junqi board labels")
+
+
+def draw_centered_label(
+    draw: ImageDraw.ImageDraw,
+    center: tuple[int, int],
+    label: str,
+    font: ImageFont.FreeTypeFont,
+    fill: tuple[int, int, int, int],
+) -> None:
+    bounds = draw.textbbox((0, 0), label, font=font)
+    width = bounds[2] - bounds[0]
+    height = bounds[3] - bounds[1]
+    draw.text(
+        (center[0] - width / 2 - bounds[0], center[1] - height / 2 - bounds[1]),
+        label,
+        fill=fill,
+        font=font,
+    )
 
 
 def generate_icon(output: Path) -> None:
@@ -88,8 +129,8 @@ def generate_icon(output: Path) -> None:
     draw.ellipse((116, 106, 908, 898), fill=(241, 246, 243, 255), outline=(133, 165, 156, 255), width=16)
     draw.ellipse((146, 136, 878, 868), outline=(201, 183, 121, 255), width=8)
     for offset in (-84, 0, 84):
-        draw.line((260, 512 + offset, 764, 512 + offset), fill=RAIL, width=18)
-        draw.line((512 + offset, 260, 512 + offset, 764), fill=RAIL, width=18)
+        draw.line((260, 512 + offset, 764, 512 + offset), fill=(33, 79, 69, 255), width=18)
+        draw.line((512 + offset, 260, 512 + offset, 764), fill=(33, 79, 69, 255), width=18)
     for offset in range(-216, 217, 54):
         draw.line((512 + offset, 410, 512 + offset, 614), fill=(184, 204, 196, 255), width=5)
         draw.line((410, 512 + offset, 614, 512 + offset), fill=(184, 204, 196, 255), width=5)
@@ -106,26 +147,49 @@ def generate_board(output: Path) -> None:
     ImageDraw.Draw(shadow).rounded_rectangle((44, 38, 1372, 1652), radius=48, fill=(32, 49, 46, 66))
     board.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(18)))
     draw = ImageDraw.Draw(board, "RGBA")
-    draw.rounded_rectangle((28, 20, 1372, 1652), radius=48, fill=RIM, outline=(83, 103, 98, 255), width=7)
-    draw.rounded_rectangle((58, 50, 1342, 1622), radius=32, fill=FIELD, outline=(224, 234, 229, 255), width=6)
-    draw.rounded_rectangle((82, 74, 1318, 1598), radius=20, outline=(125, 153, 145, 255), width=4)
-
-    for first, second in road_links():
-        draw_link(draw, first, second, ROAD, 13)
-    for first, second in rail_links():
-        draw_link(draw, first, second, RAIL, 16)
-        draw_rail_ties(draw, first, second)
+    draw.rounded_rectangle((28, 20, 1372, 1652), radius=42, fill=RIM, outline=(73, 83, 66, 255), width=7)
+    draw.rounded_rectangle((58, 50, 1342, 1622), radius=24, fill=FIELD, outline=(164, 151, 99, 255), width=6)
+    for y in range(72, 1600, 14):
+        line_color = (220, 205, 149, 255) if (y // 14) % 2 == 0 else (212, 197, 139, 255)
+        draw.line((80, y, 1320, y), fill=line_color, width=1)
+    draw.rounded_rectangle((82, 74, 1318, 1598), radius=14, outline=(73, 66, 51, 255), width=4)
 
     draw.line((112, 840, 1288, 840), fill=BOUNDARY, width=9)
-    draw.line((700, 780, 700, 900), fill=BOUNDARY, width=10)
+
+    for first, second in road_links():
+        draw_link(draw, first, second, ROAD, 7)
+    for first, second in rail_links():
+        draw_rail(draw, first, second)
+
+    label_font = load_board_font(30)
+    for row in range(12):
+        for column in range(5):
+            if (row, column) in CAMPS or (row, column) in HEADQUARTERS:
+                continue
+            x, y = point(row, column)
+            draw.rounded_rectangle(
+                (x - 88, y - 36, x + 88, y + 36),
+                radius=5,
+                fill=STATION,
+                outline=ROAD,
+                width=4,
+            )
+            draw_centered_label(draw, (x, y), "兵站", label_font, ROAD)
 
     for row, column in CAMPS:
         x, y = point(row, column)
-        draw.regular_polygon((x, y, 54), n_sides=4, rotation=45, fill=CAMP, outline=(83, 125, 115, 255), width=5)
+        draw.ellipse((x - 74, y - 40, x + 74, y + 40), fill=CAMP, outline=BOUNDARY, width=5)
+        draw_centered_label(draw, (x, y), "行营", label_font, ROAD)
     for row, column in HEADQUARTERS:
         x, y = point(row, column)
-        draw.rounded_rectangle((x - 57, y - 42, x + 57, y + 42), radius=14, fill=HEADQUARTERS_FILL, outline=(128, 109, 61, 255), width=5)
-        draw.line((x - 31, y, x + 31, y), fill=(246, 240, 212, 255), width=3)
+        draw.rounded_rectangle(
+            (x - 88, y - 36, x + 88, y + 36),
+            radius=5,
+            fill=STATION,
+            outline=HEADQUARTERS_LABEL,
+            width=5,
+        )
+        draw_centered_label(draw, (x, y), "大本营", label_font, HEADQUARTERS_LABEL)
 
     draw.rectangle((0, 0, 9, 9), fill=(0, 0, 0, 0))
     draw.rectangle((1390, 0, 1399, 9), fill=(0, 0, 0, 0))

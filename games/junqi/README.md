@@ -10,7 +10,7 @@
 | --- | --- |
 | `gameId` | `junqi` |
 | 显示名称 | 军棋 |
-| 当前版本 | `0.0.8` (`versionCode = 8`) |
+| 当前版本 | `0.0.9` (`versionCode = 9`) |
 | 入口类 | `com.buddygames.junqi.JunqiPlugin` |
 | 最低外壳 API | `1` |
 | 屏幕方向 | 横屏 |
@@ -20,16 +20,17 @@
 ## 包内素材
 
 - `package/assets/icon.png` 是 1024x1024、透明圆角、圆形安全区的军棋 Logo；朱红与靛蓝军棋牌围绕铁路交汇点，未包含小字。
-- `package/assets/board/junqi-board.png` 是 1400x1680 RGBA 完整棋盘底图，含全部公路、铁路、行营、大本营及中部边界，不包含棋子。
+- `package/assets/board/junqi-board.png` 是 1400x1680 RGBA 完整棋盘底图，使用低饱和麦秆金盘面、灰绿包边、墨色公路、黑白枕木铁路、矩形 `兵站`、椭圆 `行营`、红字 `大本营` 和三条中央桥路，不包含棋子。
 - `package/assets/textures/junqi-shelf.png` 是 1400x360 RGBA 开始界面浅浮雕陈列纹理。
-- `JunqiVisuals.BOARD_GRID` 注册 12x5 节点的精确中心：左上 `(220, 180)`、右下 `(1180, 1500)`，列距 240、行距 120；缺失或无效位图时，`JunqiVisuals` 的后备颜色常量可供 Compose 重绘使用。
+- `JunqiVisuals.BOARD_GRID` 注册 12x5 节点的精确中心：左上 `(220, 180)`、右下 `(1180, 1500)`，列距 240、行距 120；缺失或无效位图时，Compose 使用同一麦秆金、灰绿、墨色和黑白铁路 token 重绘节点形状与标签。
 - `JunqiTextures` 从当前安装包的 `assetsDir` 解码棋盘、Logo 与陈列纹理，按包目录和清单版本在 Compose 中缓存；在完整解码前必须由 `BitmapFactory` bounds 确认 PNG MIME 与精确尺寸：Logo `1024x1024`、棋盘 `1400x1680`、陈列纹理 `1400x360`，完整解码后再次核对尺寸。任何文件缺失或无效时使用纯 Compose 棋盘、Logo 或陈列纹理后备绘制。
-- 运行 `python3 games/junqi/tools/generate_junqi_assets.py` 可确定性地重建三张 PNG。`JunqiAssetsTest` 检查尺寸、透明角、路径、注册坐标、道路/铁路/行营/大本营颜色和共享最后移动标记常量。
+- 运行 `python3 games/junqi/tools/generate_junqi_assets.py` 可确定性地重建三张 PNG；棋盘标签优先使用本机可覆盖全部所需汉字的黑体。`JunqiAssetsTest` 检查尺寸、透明角、路径、注册坐标、道路、深浅铁路、兵站、行营、大本营、标签区域、阵营棋子颜色和共享最后移动标记常量。
 
 ## Compose 界面
 
 - `JunqiPlugin.MainScreen` 显示完整包内棋盘预览、军棋 Logo、清单版本和统一的 `单人模式`、`双人对战`、`退出游戏` 菜单。
-- `GameScreen` 在 800x600 横屏及更大视口始终保持棋盘与固定右栏并排；当前人类方位于下侧，蓝方视角使用 180 度坐标映射，棋子标签保持正向。
+- `GameScreen` 在 800x600 横屏及更大视口始终保持棋盘与固定右栏并排；当前人类方位于下侧，绿方（内部 `BLUE`）视角使用 180 度坐标映射，但棋盘节点文字和棋子标签始终保持正向。
+- 橙方（内部 `RED`）棋子使用 `#C65012`，绿方（内部 `BLUE`）棋子使用 `#23704B`；明棋军衔与暗棋背面标志统一使用纯白无衬线 `FontWeight.Black`，字号按棋子高度 `64%` 动态计算并保留最少 `6%` 横向内边距。
 - 布阵阶段支持点击两子合法交换、随机、重置和 `出战`。对局阶段只从 `JunqiObservation` 生成己方军衔、敌方棋背、公开军旗、选择和合法落点，不读取或保存权威隐藏状态。
 - `HANDOFF` 与 `BATTLE_RESULT` 使用独立、完全不透明的 Compose 页面，不挂载棋盘或棋子语义节点；碰子页只显示 `进攻方胜`、`防守方胜` 或 `同归于尽`。
 - 右栏显示身份比分、当前回合、单人智能等级、悔棋、终局重开和返回菜单。胜局隐藏悔棋，和棋保留悔棋，最后一步使用共享亮蓝四角框。
@@ -52,12 +53,12 @@
 
 ## 会话流程
 
-- `JunqiSession` 完整覆盖 `DEPLOYMENT`、`HANDOFF`、`PLAYING`、`BATTLE_RESULT` 和 `FINISHED`。布阵支持合法双选交换、种子随机、重置和准备；红方始终先行。
-- 双人模式分别完成红蓝布阵，并在每步后用不含棋盘、最后移动或军衔数据的不透明交接状态切换观察者。碰子阶段只公开通用裁决，不公开双方军衔。
-- 单人状态显式记录玩家与智能执方。玩家执蓝的新局先经过一次遮屏确认；传给 AI 的请求只含 AI 方观察、知识、等级和请求世代，不含真实隐藏状态。
+- `JunqiSession` 完整覆盖 `DEPLOYMENT`、`HANDOFF`、`PLAYING`、`BATTLE_RESULT` 和 `FINISHED`。布阵支持合法双选交换、种子随机、重置和准备；橙方（内部 `RED`）始终先行。
+- 双人模式分别完成橙绿双方布阵，并在每步后用不含棋盘、最后移动或军衔数据的不透明交接状态切换观察者。碰子阶段只公开通用裁决，不公开双方军衔。
+- 单人状态显式记录玩家与智能执方。玩家执绿的新局先经过一次遮屏确认；传给 AI 的请求只含 AI 方观察、知识、等级和请求世代，不含真实隐藏状态。
 - AI 搜索保持同步 API；Compose 界面在专用单线程后台执行器中运行 `JunqiAi.chooseMove`，仅当请求与当前世代仍匹配时把结果交给 `applyRobotMove`，并在界面离开组合时关闭调度器和执行器。会话继续拒绝世代或局面已过期的结果。
 - 单人悔棋快照位于玩家合法行动之前，并一起回退随后的 AI 行动、知识、比分、连续不碰子计数和最后移动；双人悔棋只回退一步并重新进入应行动方交接。
-- 单人比分按玩家/智能身份记录，玩家胜利后换边、失败后恢复红方、和棋保持执方且不改比分或智能等级。双人比分按红/蓝记录且重开固定红方。胜局隐藏悔棋，和棋保留悔棋，重开清空历史。
+- 单人比分按玩家/智能身份记录，玩家胜利后换边、失败后恢复橙方先手、和棋保持执方且不改比分或智能等级。双人比分按橙/绿显示并继续映射内部红/蓝状态，重开固定橙方先手。胜局隐藏悔棋，和棋保留悔棋，重开清空历史。
 
 ## 构建与测试
 
@@ -76,4 +77,4 @@ Task 4 重点测试位于 `JunqiDeploymentTest`、`JunqiObservationTest` 和 `Ju
 
 ## 更新要求
 
-修改军棋规则、AI、界面或包内素材时，同步递增 `JunqiManifest.kt` 与 `package/manifest.json` 中的 `versionCode`、`versionName`，并更新对应测试、本文档和根 `AGENTS.md`。通用游戏包契约见 [游戏插件开发说明](../../docs/agents/game-plugins.md)，批准设计见 [军棋游戏设计](../../docs/superpowers/specs/2026-07-21-junqi-game-design.md)。
+修改军棋规则、AI、界面或包内素材时，同步递增 `JunqiManifest.kt` 与 `package/manifest.json` 中的 `versionCode`、`versionName`，并更新对应测试、本文档和根 `AGENTS.md`。通用游戏包契约见 [游戏插件开发说明](../../docs/agents/game-plugins.md)，规则与 AI 基线见 [军棋游戏设计](../../docs/superpowers/specs/2026-07-21-junqi-game-design.md)，已实现视觉见 [军棋 UI 设计](../../designs/specs/junqi-ui.md)。

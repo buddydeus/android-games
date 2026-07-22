@@ -50,7 +50,7 @@ internal object JunqiUiText {
 
     fun versionLabel(versionName: String): String = "版本 $versionName"
 
-    fun sideLabel(side: JunqiSide): String = if (side == JunqiSide.RED) "红方" else "蓝方"
+    fun sideLabel(side: JunqiSide): String = if (side == JunqiSide.RED) "橙方" else "绿方"
 
     fun battleOutcomeLabel(outcome: JunqiBattleOutcome): String = when (outcome) {
         JunqiBattleOutcome.ATTACKER_WINS -> "进攻方胜"
@@ -404,7 +404,7 @@ private fun JunqiScoreBlock(state: JunqiSessionState) {
     val singlePlayer = state.mode == JunqiMode.SINGLE_PLAYER
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text = if (singlePlayer) "玩家 : 智能" else "红方 : 蓝方",
+            text = if (singlePlayer) "玩家 : 智能" else "橙方 : 绿方",
             color = JunqiInk,
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
@@ -433,6 +433,11 @@ private fun JunqiScoreBlock(state: JunqiSessionState) {
 
 @Composable
 private fun JunqiStatusBlock(state: JunqiSessionState, robotThinking: Boolean) {
+    val activeSide = when (state.phase) {
+        JunqiPhase.DEPLOYMENT -> state.currentSide
+        JunqiPhase.PLAYING -> state.observation?.currentSide ?: state.currentSide
+        else -> null
+    }
     val title = when (state.phase) {
         JunqiPhase.DEPLOYMENT -> "${JunqiUiText.sideLabel(state.currentSide)}布阵"
         JunqiPhase.FINISHED -> JunqiUiText.resultLabel(
@@ -448,13 +453,30 @@ private fun JunqiStatusBlock(state: JunqiSessionState, robotThinking: Boolean) {
         else -> ""
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = title,
-            color = if (state.phase == JunqiPhase.FINISHED) JunqiRed else JunqiInk,
-            fontSize = 19.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                Modifier
+                    .width(3.dp)
+                    .height(26.dp)
+                    .background(
+                        when {
+                            state.phase == JunqiPhase.FINISHED -> JunqiHeadquarters
+                            activeSide != null -> junqiFactionColor(activeSide)
+                            else -> JunqiPine
+                        },
+                    ),
+            )
+            Text(
+                text = title,
+                color = JunqiInk,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+            )
+        }
         if (state.phase == JunqiPhase.DEPLOYMENT && state.selectedDeploymentPiece != null) {
             Spacer(Modifier.height(8.dp))
             Text("已选择棋子", color = JunqiMutedInk, fontSize = 14.sp)
@@ -462,7 +484,7 @@ private fun JunqiStatusBlock(state: JunqiSessionState, robotThinking: Boolean) {
         if (state.phase == JunqiPhase.PLAYING && state.mode == JunqiMode.SINGLE_PLAYER) {
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "玩家执${if (state.playerSide == JunqiSide.RED) "红" else "蓝"}",
+                text = "玩家执${if (state.playerSide == JunqiSide.RED) "橙" else "绿"}",
                 color = JunqiMutedInk,
                 fontSize = 14.sp,
             )
@@ -541,7 +563,7 @@ private fun JunqiButton(
 ) {
     val contentColor = when {
         primary -> Color.White
-        danger -> JunqiRed
+        danger -> JunqiHeadquarters
         else -> JunqiInk
     }
     Button(
@@ -576,8 +598,8 @@ private fun JunqiIconFallback() {
             strokeWidth = size.minDimension * 0.08f,
             cap = StrokeCap.Round,
         )
-        drawCircle(JunqiRed, radius = size.minDimension * 0.17f, center = Offset(size.width * 0.34f, size.height * 0.38f))
-        drawCircle(JunqiBlue, radius = size.minDimension * 0.17f, center = Offset(size.width * 0.66f, size.height * 0.62f))
+        drawCircle(JunqiOrange, radius = size.minDimension * 0.17f, center = Offset(size.width * 0.34f, size.height * 0.38f))
+        drawCircle(JunqiGreen, radius = size.minDimension * 0.17f, center = Offset(size.width * 0.66f, size.height * 0.62f))
     }
 }
 
@@ -613,14 +635,18 @@ private fun JunqiBackdrop(content: @Composable () -> Unit) {
 private const val JUNQI_BOARD_ASPECT_RATIO =
     JunqiVisuals.BOARD_TEXTURE_WIDTH.toFloat() / JunqiVisuals.BOARD_TEXTURE_HEIGHT
 
-private val JunqiCanvas = Color(0xFFE9EFEC)
-private val JunqiInk = Color(0xFF20312E)
-private val JunqiMutedInk = Color(0xFF60706C)
-private val JunqiPine = Color(0xFF214F45)
-private val JunqiRed = Color(0xFFB83A32)
-private val JunqiBlue = Color(0xFF315B83)
-private val JunqiBrass = Color(0xFFC9B779)
-private val JunqiRailSurface = Color(0xFFF7F8F5)
-private val JunqiRailOutline = Color(0xFFAAB8B4)
+private fun junqiFactionColor(side: JunqiSide): Color =
+    if (side == JunqiSide.RED) JunqiOrange else JunqiGreen
+
+private val JunqiCanvas = Color(JunqiVisuals.FALLBACK_CANVAS_COLOR)
+private val JunqiInk = Color(0xFF292B23)
+private val JunqiMutedInk = Color(0xFF6D7065)
+private val JunqiPine = Color(JunqiVisuals.FALLBACK_BOUNDARY_COLOR)
+private val JunqiOrange = Color(JunqiVisuals.ORANGE_PIECE_COLOR)
+private val JunqiGreen = Color(JunqiVisuals.GREEN_PIECE_COLOR)
+private val JunqiHeadquarters = Color(JunqiVisuals.FALLBACK_HEADQUARTERS_LABEL_COLOR)
+private val JunqiBrass = Color(JunqiVisuals.FALLBACK_STATION_COLOR)
+private val JunqiRailSurface = Color(0xFFF6F7F3)
+private val JunqiRailOutline = Color(JunqiVisuals.FALLBACK_BOUNDARY_COLOR)
 private val JunqiPrivacy = Color(0xFF182523)
 private val JunqiPrivacyMuted = Color(0xFFB8C7C2)

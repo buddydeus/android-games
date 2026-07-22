@@ -4,7 +4,7 @@
 **User brief (verbatim summary):** 使用 `ai-everything:designer` 重新设计二国军棋，棋盘参考用户提供的传统二国军棋盘图片；棋子改为绿色/橙色底，军衔使用尽量大的白色黑体。
 **Stack:** Android Kotlin + Jetpack Compose，离线动态游戏包，横屏 Android Pad
 **Iteration:** 2026-07-22T22:14:07+08:00
-**Status:** 设计方向待用户选择；本文件是本轮预览与后续实现的视觉 SSOT。
+**Status:** 用户已选择方案 1；本文件是军棋 `0.0.9` 已实现界面的视觉 SSOT。
 
 ## Base System
 
@@ -88,7 +88,7 @@
 ┌──────────────────────────────┬──────────────────┐
 │                              │    package logo  │
 │  classic railway board       │       军棋       │
-│  clean, unoccupied topology  │    版本 0.0.8    │
+│  clean, unoccupied topology  │    版本 0.0.9    │
 │                              │                  │
 │╫╫ three striped bridges ╫╫╫╫│──────────────────│
 │                              │   [单人模式]     │

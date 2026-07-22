@@ -48,6 +48,24 @@ class JunqiAssetsTest {
     }
 
     @Test
+    fun visualConstantsExposeTheClassicBoardAndHighContrastFactionPieces() {
+        assertEquals(0xFFE8EDE9L, JunqiVisuals.FALLBACK_CANVAS_COLOR)
+        assertEquals(0xFFD8C98FL, JunqiVisuals.FALLBACK_BOARD_COLOR)
+        assertEquals(0xFF494233L, JunqiVisuals.FALLBACK_ROAD_COLOR)
+        assertEquals(0xFF2D2A23L, JunqiVisuals.FALLBACK_RAIL_DARK_COLOR)
+        assertEquals(0xFFF1E5B9L, JunqiVisuals.FALLBACK_RAIL_LIGHT_COLOR)
+        assertEquals(0xFFBBC2A6L, JunqiVisuals.FALLBACK_CAMP_COLOR)
+        assertEquals(0xFFE9DCAAL, JunqiVisuals.FALLBACK_STATION_COLOR)
+        assertEquals(0xFFB4312BL, JunqiVisuals.FALLBACK_HEADQUARTERS_LABEL_COLOR)
+        assertEquals(0xFF68745DL, JunqiVisuals.FALLBACK_BOUNDARY_COLOR)
+        assertEquals(0xFF23704BL, JunqiVisuals.GREEN_PIECE_COLOR)
+        assertEquals(0xFFC65012L, JunqiVisuals.ORANGE_PIECE_COLOR)
+        assertEquals(0xFFFFFFFFL, JunqiVisuals.PIECE_TEXT_COLOR)
+        assertEquals(0.64f, JunqiVisuals.PIECE_LABEL_HEIGHT_FRACTION, 0f)
+        assertEquals(0.06f, JunqiVisuals.PIECE_LABEL_MIN_INSET_FRACTION, 0f)
+    }
+
+    @Test
     fun packageContainsReadableCircularSafeIconBoardAndShelf() {
         val assets = repositoryRoot().resolve("games/junqi/package/assets")
         val icon = readPng(assets.resolve(JunqiVisuals.ICON_TEXTURE_PATH))
@@ -79,11 +97,13 @@ class JunqiAssetsTest {
                 .resolve(JunqiVisuals.BOARD_TEXTURE_PATH)
         )
 
-        assertColorNear("road", board.getRGB(340, 180), 0xFF536762.toInt(), 18)
-        assertColorNear("rail", board.getRGB(340, 300), 0xFF214F45.toInt(), 18)
-        assertColorNear("camp", board.getRGB(460, 420), 0xFFDCEAE3.toInt(), 18)
-        assertColorNear("headquarters", board.getRGB(460, 200), 0xFFC9B779.toInt(), 18)
-        assertColorNear("central boundary", board.getRGB(700, 840), 0xFF20312E.toInt(), 18)
+        assertColorNear("road", board.getRGB(340, 180), ROAD_COLOR, 18)
+        assertColorNear("rail dark", board.getRGB(318, 300), RAIL_DARK_COLOR, 18)
+        assertColorNear("rail light", board.getRGB(350, 300), RAIL_LIGHT_COLOR, 18)
+        assertColorNear("camp", board.getRGB(460, 420), CAMP_COLOR, 18)
+        assertColorNear("station", board.getRGB(700, 180), STATION_COLOR, 18)
+        assertColorNear("headquarters", board.getRGB(460, 200), HEADQUARTERS_COLOR, 18)
+        assertColorNear("central boundary", board.getRGB(820, 840), BOUNDARY_COLOR, 18)
         assertEquals(60, JunqiVisuals.BOARD_GRID.flatten().size)
         assertEquals(10, JunqiBoard.camps.size)
         assertEquals(4, JunqiBoard.headquarters.size)
@@ -99,12 +119,12 @@ class JunqiAssetsTest {
             assertEdgeColor(
                 board = board,
                 edge = edge,
-                expectedColor = if (edge in railEdges) RAIL_COLOR else ROAD_COLOR,
+                expectedColor = if (edge in railEdges) RAIL_DARK_COLOR else ROAD_COLOR,
                 label = "road $edge"
             )
         }
         railEdges.forEach { edge ->
-            assertEdgeColor(board, edge, RAIL_COLOR, "rail $edge")
+            assertEdgeColor(board, edge, RAIL_DARK_COLOR, "rail $edge")
         }
     }
 
@@ -129,9 +149,7 @@ class JunqiAssetsTest {
             val expectedColor = when {
                 position in JunqiBoard.camps -> CAMP_COLOR
                 position in JunqiBoard.headquarters -> HEADQUARTERS_DETAIL_COLOR
-                position.column == 2 && position.row in 5..6 -> BOUNDARY_COLOR
-                JunqiBoard.railNeighbors.getValue(position).isNotEmpty() -> RAIL_COLOR
-                else -> ROAD_COLOR
+                else -> STATION_COLOR
             }
             assertColorNear(
                 "registered center $position",
@@ -139,29 +157,33 @@ class JunqiAssetsTest {
                 expectedColor,
                 COLOR_TOLERANCE
             )
+            assertRegionContainsColor(
+                label = "registered label $position",
+                image = board,
+                center = JunqiVisuals.pointAt(position),
+                expectedColor = if (position in JunqiBoard.headquarters) {
+                    HEADQUARTERS_DETAIL_COLOR
+                } else {
+                    ROAD_COLOR
+                },
+                xRadius = 50,
+                yRadius = 17,
+            )
         }
 
         JunqiBoard.camps.forEach { camp ->
             val center = JunqiVisuals.pointAt(camp)
             assertColorNear("camp $camp center", colorAt(board, center), CAMP_COLOR, COLOR_TOLERANCE)
-            cardinalOffsets(20).forEach { (x, y) ->
+            listOf(-55 to 0, 55 to 0, 0 to -25, 0 to 25).forEach { (x, y) ->
                 assertColorNear("camp $camp fill at $x,$y", colorAt(board, center, x, y), CAMP_COLOR, COLOR_TOLERANCE)
             }
-            cardinalOffsets(54).forEach { (x, y) ->
+            listOf(-74 to 0, 74 to 0, 0 to -40, 0 to 40).forEach { (x, y) ->
                 assertColorNear("camp $camp outline at $x,$y", colorAt(board, center, x, y), CAMP_OUTLINE_COLOR, COLOR_TOLERANCE)
             }
         }
 
         JunqiBoard.headquarters.forEach { headquarters ->
             val center = JunqiVisuals.pointAt(headquarters)
-            listOf(-20, 0, 20).forEach { x ->
-                assertColorNear(
-                    "headquarters $headquarters center detail at $x,0",
-                    colorAt(board, center, x, 0),
-                    HEADQUARTERS_DETAIL_COLOR,
-                    COLOR_TOLERANCE
-                )
-            }
             listOf(-20, 20).forEach { y ->
                 assertColorNear(
                     "headquarters $headquarters fill at 0,$y",
@@ -170,7 +192,7 @@ class JunqiAssetsTest {
                     COLOR_TOLERANCE
                 )
             }
-            listOf(-57 to 0, 57 to 0, 0 to -42, 0 to 42).forEach { (x, y) ->
+            listOf(-88 to 0, 88 to 0, 0 to -36, 0 to 36).forEach { (x, y) ->
                 assertColorNear(
                     "headquarters $headquarters outline at $x,$y",
                     colorAt(board, center, x, y),
@@ -272,6 +294,24 @@ class JunqiAssetsTest {
         )
     }
 
+    private fun assertRegionContainsColor(
+        label: String,
+        image: BufferedImage,
+        center: JunqiBitmapPoint,
+        expectedColor: Int,
+        xRadius: Int,
+        yRadius: Int,
+    ) {
+        val centerX = center.x.roundToInt()
+        val centerY = center.y.roundToInt()
+        val found = (centerY - yRadius..centerY + yRadius).any { y ->
+            (centerX - xRadius..centerX + xRadius).any { x ->
+                isColorNear(image.getRGB(x, y), expectedColor, COLOR_TOLERANCE)
+            }
+        }
+        assertTrue("$label must contain ${expectedColor.toUInt().toString(16)}", found)
+    }
+
     private fun isColorNear(actual: Int, expected: Int, tolerance: Int): Boolean {
         listOf(16, 8, 0).forEach { shift ->
             if (kotlin.math.abs((actual ushr shift and 0xff) - (expected ushr shift and 0xff)) > tolerance) {
@@ -294,14 +334,16 @@ class JunqiAssetsTest {
 
     private companion object {
         const val COLOR_TOLERANCE = 18
-        const val ROAD_COLOR = 0xFF536762.toInt()
-        const val RAIL_COLOR = 0xFF214F45.toInt()
-        const val CAMP_COLOR = 0xFFDCEAE3.toInt()
-        const val CAMP_OUTLINE_COLOR = 0xFF537D73.toInt()
-        const val HEADQUARTERS_COLOR = 0xFFC9B779.toInt()
-        const val HEADQUARTERS_OUTLINE_COLOR = 0xFF806D3D.toInt()
-        const val HEADQUARTERS_DETAIL_COLOR = 0xFFF6F0D4.toInt()
-        const val BOUNDARY_COLOR = 0xFF20312E.toInt()
+        const val ROAD_COLOR = 0xFF494233.toInt()
+        const val RAIL_DARK_COLOR = 0xFF2D2A23.toInt()
+        const val RAIL_LIGHT_COLOR = 0xFFF1E5B9.toInt()
+        const val CAMP_COLOR = 0xFFBBC2A6.toInt()
+        const val CAMP_OUTLINE_COLOR = 0xFF68745D.toInt()
+        const val STATION_COLOR = 0xFFE9DCAA.toInt()
+        const val HEADQUARTERS_COLOR = 0xFFE9DCAA.toInt()
+        const val HEADQUARTERS_OUTLINE_COLOR = 0xFFB4312B.toInt()
+        const val HEADQUARTERS_DETAIL_COLOR = 0xFFB4312B.toInt()
+        const val BOUNDARY_COLOR = 0xFF68745D.toInt()
     }
 
     private tailrec fun repositoryRoot(

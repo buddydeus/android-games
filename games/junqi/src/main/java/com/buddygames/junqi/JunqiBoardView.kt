@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,18 +18,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -153,9 +158,7 @@ internal fun JunqiBoardView(
             Image(
                 bitmap = boardTexture,
                 contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .rotate(if (bottomSide == JunqiSide.BLUE) 180f else 0f),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.FillBounds,
             )
         } else {
@@ -212,6 +215,19 @@ internal fun JunqiBoardView(
                         .clickable(enabled = interactive) { onTap(modelPosition) },
                     contentAlignment = Alignment.Center,
                 ) {
+                    if (boardTexture == null && piece == null) {
+                        Text(
+                            text = junqiBoardNodeLabel(modelPosition),
+                            color = if (modelPosition in JunqiBoard.headquarters) {
+                                Color(JunqiVisuals.FALLBACK_HEADQUARTERS_LABEL_COLOR)
+                            } else {
+                                Color(JunqiVisuals.FALLBACK_ROAD_COLOR)
+                            },
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                        )
+                    }
                     if (isLegal) {
                         if (piece == null) {
                             Box(
@@ -223,7 +239,7 @@ internal fun JunqiBoardView(
                             Box(
                                 Modifier
                                     .size(pieceWidth * 1.04f, pieceHeight * 1.12f)
-                                    .border(2.dp, JunqiBrass, RoundedCornerShape(5.dp)),
+                                    .border(2.dp, JunqiTarget, RoundedCornerShape(5.dp)),
                             )
                         }
                     }
@@ -256,21 +272,31 @@ internal fun JunqiBoardView(
 
 @Composable
 private fun JunqiPieceView(piece: JunqiVisiblePiece, modifier: Modifier) {
-    val sideColor = if (piece.side == JunqiSide.RED) JunqiRed else JunqiBlue
-    Box(
+    val sideColor = junqiSideColor(piece.side)
+    val shape = RoundedCornerShape(4.dp)
+    BoxWithConstraints(
         modifier = modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(if (piece.isBack) sideColor else JunqiPieceFace)
-            .border(2.dp, sideColor, RoundedCornerShape(4.dp)),
+            .shadow(2.dp, shape)
+            .clip(shape)
+            .background(sideColor)
+            .border(1.dp, Color.Black.copy(alpha = 0.34f), shape),
         contentAlignment = Alignment.Center,
     ) {
+        val labelSize = with(LocalDensity.current) {
+            (maxHeight * JunqiVisuals.PIECE_LABEL_HEIGHT_FRACTION).toSp()
+        }
         Text(
             text = piece.label ?: "★",
-            color = if (piece.isBack) Color.White else sideColor,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
+            color = Color(JunqiVisuals.PIECE_TEXT_COLOR),
+            modifier = Modifier.padding(horizontal = maxWidth * JunqiVisuals.PIECE_LABEL_MIN_INSET_FRACTION),
+            fontFamily = FontFamily.SansSerif,
+            fontSize = labelSize,
+            lineHeight = labelSize,
+            fontWeight = FontWeight.Black,
             textAlign = TextAlign.Center,
             maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Clip,
         )
     }
 }
@@ -304,11 +330,21 @@ private fun JunqiFallbackBoard(bottomSide: JunqiSide) {
         JunqiBoard.railNeighbors.forEach { (from, neighbors) ->
             neighbors.filter { to -> boardIndex(from) < boardIndex(to) }.forEach { to ->
                 drawLine(
-                    color = Color(JunqiVisuals.FALLBACK_RAIL_COLOR),
+                    color = Color(JunqiVisuals.FALLBACK_RAIL_DARK_COLOR),
                     start = center(from),
                     end = center(to),
                     strokeWidth = size.minDimension * 0.014f,
-                    cap = StrokeCap.Round,
+                    cap = StrokeCap.Butt,
+                )
+                drawLine(
+                    color = Color(JunqiVisuals.FALLBACK_RAIL_LIGHT_COLOR),
+                    start = center(from),
+                    end = center(to),
+                    strokeWidth = size.minDimension * 0.007f,
+                    cap = StrokeCap.Butt,
+                    pathEffect = PathEffect.dashPathEffect(
+                        floatArrayOf(size.minDimension * 0.025f, size.minDimension * 0.018f),
+                    ),
                 )
             }
         }
@@ -323,16 +359,43 @@ private fun JunqiFallbackBoard(bottomSide: JunqiSide) {
             strokeWidth = size.minDimension * 0.008f,
         )
 
+        repeat(12) { row ->
+            repeat(5) { column ->
+                val position = JunqiPosition(row, column)
+                if (position !in JunqiBoard.camps && position !in JunqiBoard.headquarters) {
+                    val node = center(position)
+                    val width = size.width * 0.112f
+                    val height = size.height * 0.042f
+                    drawRoundRect(
+                        color = Color(JunqiVisuals.FALLBACK_STATION_COLOR),
+                        topLeft = Offset(node.x - width / 2f, node.y - height / 2f),
+                        size = Size(width, height),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(height * 0.08f),
+                    )
+                    drawRoundRect(
+                        color = Color(JunqiVisuals.FALLBACK_ROAD_COLOR),
+                        topLeft = Offset(node.x - width / 2f, node.y - height / 2f),
+                        size = Size(width, height),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(height * 0.08f),
+                        style = Stroke(width = size.minDimension * 0.003f),
+                    )
+                }
+            }
+        }
+
         JunqiBoard.camps.forEach { position ->
-            drawCircle(
+            val node = center(position)
+            val width = size.width * 0.104f
+            val height = size.height * 0.048f
+            drawOval(
                 color = Color(JunqiVisuals.FALLBACK_CAMP_COLOR),
-                radius = size.minDimension * 0.032f,
-                center = center(position),
+                topLeft = Offset(node.x - width / 2f, node.y - height / 2f),
+                size = Size(width, height),
             )
-            drawCircle(
-                color = Color(JunqiVisuals.FALLBACK_RAIL_COLOR),
-                radius = size.minDimension * 0.032f,
-                center = center(position),
+            drawOval(
+                color = Color(JunqiVisuals.FALLBACK_BOUNDARY_COLOR),
+                topLeft = Offset(node.x - width / 2f, node.y - height / 2f),
+                size = Size(width, height),
                 style = Stroke(width = size.minDimension * 0.004f),
             )
         }
@@ -341,16 +404,16 @@ private fun JunqiFallbackBoard(bottomSide: JunqiSide) {
             val width = size.width * 0.082f
             val height = size.height * 0.040f
             drawRoundRect(
-                color = Color(JunqiVisuals.FALLBACK_HEADQUARTERS_COLOR),
+                color = Color(JunqiVisuals.FALLBACK_STATION_COLOR),
                 topLeft = Offset(node.x - width / 2f, node.y - height / 2f),
                 size = Size(width, height),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(height * 0.18f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(height * 0.08f),
             )
             drawRoundRect(
-                color = Color(JunqiVisuals.FALLBACK_BOUNDARY_COLOR),
+                color = Color(JunqiVisuals.FALLBACK_HEADQUARTERS_LABEL_COLOR),
                 topLeft = Offset(node.x - width / 2f, node.y - height / 2f),
                 size = Size(width, height),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(height * 0.18f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(height * 0.08f),
                 style = Stroke(width = size.minDimension * 0.004f),
             )
         }
@@ -406,7 +469,7 @@ private fun junqiNodeDescription(
     append("第${position.row + 1}行第${position.column + 1}列")
     piece?.let {
         append("，")
-        append(if (it.side == JunqiSide.RED) "红方" else "蓝方")
+        append(JunqiUiText.sideLabel(it.side))
         if (it.isBack && it.label == null) {
             append("棋背")
         } else if (it.isBack) {
@@ -420,11 +483,18 @@ private fun junqiNodeDescription(
     if (lastMove) append("，最后一步")
 }
 
+private fun junqiBoardNodeLabel(position: JunqiPosition): String = when (position) {
+    in JunqiBoard.camps -> "行营"
+    in JunqiBoard.headquarters -> "大本营"
+    else -> "兵站"
+}
+
+private fun junqiSideColor(side: JunqiSide): Color = Color(
+    if (side == JunqiSide.RED) JunqiVisuals.ORANGE_PIECE_COLOR else JunqiVisuals.GREEN_PIECE_COLOR,
+)
+
 private fun boardIndex(position: JunqiPosition): Int = position.row * 5 + position.column
 
 private val JunqiInk = Color(0xFF20312E)
-private val JunqiRed = Color(0xFFB83A32)
-private val JunqiBlue = Color(0xFF315B83)
-private val JunqiBrass = Color(0xFFC9B779)
-private val JunqiPieceFace = Color(0xFFF7F6F0)
 private val JunqiSelection = Color(0xFF08758A)
+private val JunqiTarget = Color(0xFF68745D)
