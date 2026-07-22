@@ -207,3 +207,4 @@ $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
 - [国际象棋实施计划](docs/superpowers/plans/2026-07-18-international-chess-game.md)
 - [军棋设计](docs/superpowers/specs/2026-07-21-junqi-game-design.md)
 - [军棋实施计划](docs/superpowers/plans/2026-07-21-junqi-game.md)
+- [军棋模拟器运行验收](docs/superpowers/reports/2026-07-22-junqi-runtime-acceptance.md)

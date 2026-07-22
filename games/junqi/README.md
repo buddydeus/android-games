@@ -72,6 +72,8 @@ npm run verify
 
 Task 4 重点测试位于 `JunqiDeploymentTest`、`JunqiObservationTest` 和 `JunqiAiTest`，覆盖交换后的槽位身份保密、真实布阵公平性、存活与阵亡身份的完整容量分配、非终局军旗与司令阵亡约束、共享确定化预算、战术安全及立即超时后备走法。`JunqiBattleTest` 还直接锁定不可移动棋子不能通过底层裁决进攻。Task 5 的 `JunqiSessionTest` 覆盖完整阶段流、遮屏隐私、嵌套军衔泄漏负例、布阵操作、身份比分、换边、和棋、快照悔棋、最后移动和 AI 过期结果拒绝。Task 6 的 `JunqiAssetsTest` 锁定包内视觉资源与注册几何。Task 7 的 `JunqiPluginTest` 锁定插件清单、共享文案、800x600 并排几何、180 度映射、观察态棋子投影、合法点击解析和通用碰子文案；`JunqiTexturesTest` 锁定三项资源的精确 PNG 输入契约和解码后尺寸复核。Task 8 的 `JunqiManifestTest` 解析静态包清单并锁定与 `JunqiPlugin.manifest` 的发布字段对齐。
 
+模拟器上的首页发现、单人流程、双人遮屏隐私、800x600dp 布局和棋盘素材后备结果记录在 [军棋模拟器运行验收](../../docs/superpowers/reports/2026-07-22-junqi-runtime-acceptance.md)。
+
 ## 更新要求
 
 修改军棋规则、AI、界面或包内素材时，同步递增 `JunqiManifest.kt` 与 `package/manifest.json` 中的 `versionCode`、`versionName`，并更新对应测试、本文档和根 `AGENTS.md`。通用游戏包契约见 [游戏插件开发说明](../../docs/agents/game-plugins.md)，批准设计见 [军棋游戏设计](../../docs/superpowers/specs/2026-07-21-junqi-game-design.md)。
