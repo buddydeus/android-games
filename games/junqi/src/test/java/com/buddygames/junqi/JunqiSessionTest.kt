@@ -137,6 +137,17 @@ class JunqiSessionTest {
     }
 
     @Test
+    fun battlePrivacyDetectorRejectsNestedPieceRankEnums() {
+        val leakedProjection = PrivacyLeakFixture(
+            payload = listOf(mapOf("nested-rank" to JunqiPieceType.COMMANDER)),
+        )
+
+        assertThrows(AssertionError::class.java) {
+            assertBattleProjectionHasNoHiddenValues(leakedProjection)
+        }
+    }
+
+    @Test
     fun singlePlayerBattleAcknowledgementGeneratesOnlyTheRobotPublicRequest() {
         val session = JunqiSession.started(
             mode = JunqiMode.SINGLE_PLAYER,
@@ -402,8 +413,15 @@ class JunqiSessionTest {
 
     private fun assertBattleProjectionHasNoHiddenValues(value: Any?, visited: MutableSet<Any>) {
         when (value) {
-            null, is String, is Number, is Boolean, is Enum<*> -> return
-            is JunqiState, is JunqiPiece, is JunqiPieceType, is JunqiPosition, is JunqiMove, is JunqiObservation -> {
+            null, is String, is Number, is Boolean -> return
+            is JunqiPieceType -> {
+                throw AssertionError("Battle result leaked hidden game data through ${value::class.java.name}")
+            }
+            is JunqiPhase, is JunqiMode, is JunqiSide, is JunqiBattleOutcome, is JunqiResult -> return
+            is Enum<*> -> {
+                throw AssertionError("Battle result exposed non-public enum ${value::class.java.name}")
+            }
+            is JunqiState, is JunqiPiece, is JunqiPosition, is JunqiMove, is JunqiObservation -> {
                 throw AssertionError("Battle result leaked hidden game data through ${value::class.java.name}")
             }
             is Iterable<*> -> {
@@ -425,6 +443,8 @@ class JunqiSessionTest {
             assertBattleProjectionHasNoHiddenValues(field.get(value), visited)
         }
     }
+
+    private data class PrivacyLeakFixture(val payload: Any)
 
     private fun quietState(): JunqiState = stateOf(
         piece("red-engineer", JunqiSide.RED, JunqiPieceType.ENGINEER, 3, 1),

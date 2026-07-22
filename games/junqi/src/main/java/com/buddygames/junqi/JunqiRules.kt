@@ -23,6 +23,7 @@ object JunqiRules {
     }
 
     fun battleOutcome(attacker: JunqiPieceType, defender: JunqiPieceType): JunqiBattleOutcome {
+        require(attacker.movable) { "Immobile Junqi piece cannot attack: $attacker" }
         if (attacker == JunqiPieceType.BOMB || defender == JunqiPieceType.BOMB) {
             return JunqiBattleOutcome.BOTH_REMOVED
         }

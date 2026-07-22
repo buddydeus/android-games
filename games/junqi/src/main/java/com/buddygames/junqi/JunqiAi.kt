@@ -1,5 +1,15 @@
 package com.buddygames.junqi
 
+internal typealias JunqiTypeSampler = (
+    JunqiKnowledge,
+    JunqiObservation,
+    Long,
+) -> Map<String, JunqiPieceType>
+
+internal val defaultJunqiTypeSampler: JunqiTypeSampler = { knowledge, observation, seed ->
+    knowledge.sampleTypes(observation, seed)
+}
+
 enum class JunqiAiLevel(
     val level: Int,
     val sampleCount: Int,
@@ -55,20 +65,12 @@ internal object JunqiTactics {
     fun rankedMoves(
         observation: JunqiObservation,
         knowledge: JunqiKnowledge,
-        sampleCount: Int = TACTICAL_SAMPLE_COUNT,
+        determinizations: List<JunqiDeterminization>,
         checkDeadline: () -> Unit = {},
     ): List<JunqiTacticalMove> {
-        require(sampleCount > 0) { "Junqi tactics need at least one determinization" }
-        val sampledAssignments = (0 until sampleCount).map { sampleIndex ->
-            checkDeadline()
-            val assignment = knowledge.sampleTypes(
-                observation,
-                tacticalSampleSeed(observation.deterministicHash(), sampleIndex),
-            )
-            checkDeadline()
-            assignment
-        }
-        val sampledStates = sampledAssignments.map(observation::toSampleState)
+        require(determinizations.isNotEmpty()) { "Junqi tactics need at least one determinization" }
+        val sampledAssignments = determinizations.map { it.opponentTypes }
+        val sampledStates = determinizations.map { it.state }
         val rootState = sampledStates.first()
         checkDeadline()
         val legalMoves = JunqiRules.legalMoves(rootState, observation.viewer).sortedWith(moveComparator)
@@ -156,9 +158,6 @@ internal object JunqiTactics {
         return threatened
     }
 
-    private fun tacticalSampleSeed(baseSeed: Long, sampleIndex: Int): Long =
-        baseSeed xor ((sampleIndex + 1L) * -7_046_029_254_386_353_131L)
-
     private fun highRankSampleShare(
         pieceId: String,
         sampledAssignments: List<Map<String, JunqiPieceType>>,
@@ -177,7 +176,6 @@ internal object JunqiTactics {
     private const val MINE_CLEAR_PRIORITY = 2
     private const val BOMB_EXCHANGE_PRIORITY = 1
     private const val BOMB_EXCHANGE_SAMPLE_SHARE_THRESHOLD = 0.5
-    private const val TACTICAL_SAMPLE_COUNT = 8
 }
 
 internal data class JunqiTacticalMove(val move: JunqiMove, val priority: Int)
@@ -189,7 +187,7 @@ internal val moveComparator = compareBy<JunqiMove>(
     { it.to.column },
 )
 
-internal const val AI_PACKAGE_SALT = 0x4A_55_4E_51_49_00_00_07L
+internal const val AI_PACKAGE_SALT = 0x4A_55_4E_51_49_00_00_08L
 
 internal fun other(side: JunqiSide): JunqiSide =
     if (side == JunqiSide.RED) JunqiSide.BLUE else JunqiSide.RED

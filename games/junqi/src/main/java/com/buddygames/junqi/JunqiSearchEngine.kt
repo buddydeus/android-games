@@ -16,8 +16,14 @@ internal data class JunqiSearchResult(
     val budgetExhausted: Boolean,
 )
 
+internal data class JunqiDeterminization(
+    val opponentTypes: Map<String, JunqiPieceType>,
+    val state: JunqiState,
+)
+
 internal class JunqiSearchEngine(
     private val nanoTime: () -> Long = System::nanoTime,
+    private val sampleTypes: JunqiTypeSampler = defaultJunqiTypeSampler,
 ) {
     fun search(
         observation: JunqiObservation,
@@ -41,33 +47,37 @@ internal class JunqiSearchEngine(
         var priorities = emptyMap<JunqiMove, Int>()
         val fallbackScores = linkedMapOf<JunqiMove, Int>()
         val aggregates = linkedMapOf<JunqiMove, ScoreAggregate>()
+        val determinizations = mutableListOf<JunqiDeterminization>()
         var samplesCompleted = 0
         rootMoves.forEach { move -> aggregates[move] = ScoreAggregate() }
 
         try {
-            val firstAssignment = budget.timed {
-                knowledge.sampleTypes(observation, sampleSeed(baseSeed, 0))
+            for (sampleIndex in 0 until level.sampleCount) {
+                budget.checkTime()
+                val assignment = sampleTypes(knowledge, observation, sampleSeed(baseSeed, sampleIndex))
+                determinizations += JunqiDeterminization(
+                    opponentTypes = assignment,
+                    state = observation.toSampleState(assignment),
+                )
+                samplesCompleted = determinizations.size
+                budget.checkTime()
             }
-            val firstState = observation.toSampleState(firstAssignment)
             priorities = JunqiTactics.rankedMoves(
                 observation = observation,
                 knowledge = knowledge,
-                sampleCount = minOf(level.sampleCount, TACTICAL_SEARCH_SAMPLE_LIMIT),
+                determinizations = determinizations,
                 checkDeadline = budget::checkTime,
             ).associate { it.move to it.priority }
+            val firstState = determinizations.first().state
             for (move in rootMoves) {
                 val moved = budget.timed { JunqiRules.applyMove(firstState, move) }
                 fallbackScores[move] = budget.timed { evaluate(moved, observation.viewer) }
             }
 
-            for (sampleIndex in 0 until level.sampleCount) {
-                val assignment = budget.timed {
-                    knowledge.sampleTypes(observation, sampleSeed(baseSeed, sampleIndex))
-                }
-                val state = observation.toSampleState(assignment)
+            for (determinization in determinizations) {
                 val completedScores = linkedMapOf<JunqiMove, Int>()
                 for (move in rootMoves) {
-                    val moved = budget.timed { JunqiRules.applyMove(state, move) }
+                    val moved = budget.timed { JunqiRules.applyMove(determinization.state, move) }
                     val score = alphaBeta(
                         state = moved,
                         depth = level.searchDepth - 1,
@@ -79,7 +89,6 @@ internal class JunqiSearchEngine(
                     completedScores[move] = score
                 }
                 for ((move, score) in completedScores) aggregates.getValue(move).add(score)
-                samplesCompleted += 1
             }
         } catch (_: SearchBudgetExceeded) {
             // Return only work completed before the end-to-end deadline.
@@ -263,8 +272,6 @@ internal class JunqiSearchEngine(
         const val FLAG_DISTANCE_SCORE = 12
         const val QUIET_RISK_START = 24
         const val QUIET_RISK_SCORE = 25
-        const val TACTICAL_SEARCH_SAMPLE_LIMIT = 8
-
         val pieceValues = mapOf(
             JunqiPieceType.COMMANDER to 900,
             JunqiPieceType.ARMY_COMMANDER to 800,

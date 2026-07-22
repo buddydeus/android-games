@@ -74,6 +74,17 @@ class JunqiBattleTest {
     }
 
     @Test
+    fun battleOutcomeRejectsImmobileAttackersBeforeBombAndOrdinaryBranches() {
+        for (attacker in listOf(JunqiPieceType.MINE, JunqiPieceType.FLAG)) {
+            for (defender in listOf(JunqiPieceType.BOMB, JunqiPieceType.COMPANY)) {
+                assertThrows("$attacker attacking $defender", IllegalArgumentException::class.java) {
+                    JunqiRules.battleOutcome(attacker, defender)
+                }
+            }
+        }
+    }
+
+    @Test
     fun attackerWinMovesSurvivorAndRecordsBattleOutcome() {
         val state = stateOf(
             piece("red", JunqiSide.RED, JunqiPieceType.COMMANDER, 3, 0),

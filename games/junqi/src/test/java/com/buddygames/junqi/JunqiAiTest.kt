@@ -138,6 +138,27 @@ class JunqiAiTest {
     }
 
     @Test
+    fun everyLevelUsesExactlyItsSharedDeterminizationAllowance() {
+        val observation = revealedFlagBudgetObservation()
+        val knowledge = JunqiKnowledge.from(observation)
+
+        for (level in JunqiAiLevel.entries) {
+            var samplerInvocations = 0
+            val result = JunqiSearchEngine(
+                nanoTime = { 0L },
+                sampleTypes = { requestedKnowledge, requestedObservation, seed ->
+                    samplerInvocations += 1
+                    requestedKnowledge.sampleTypes(requestedObservation, seed)
+                },
+            ).search(observation, knowledge, level)
+
+            assertEquals("Level ${level.level} sampler calls", level.sampleCount, samplerInvocations)
+            assertEquals("Level ${level.level} completed samples", samplerInvocations, result.samplesCompleted)
+            assertTrue("Level ${level.level} nodes", result.nodes <= level.nodeBudget)
+        }
+    }
+
+    @Test
     fun immediateRevealedFlagCaptureHasFirstPriority() {
         val state = stateOf(
             piece("red-engineer", JunqiSide.RED, JunqiPieceType.ENGINEER, 5, 2),
@@ -253,6 +274,39 @@ class JunqiAiTest {
     }
 
     @Test
+    fun sharedDeterminizationPoolPreservesBombExchangePriority() {
+        val state = stateOf(
+            piece("red-bomb", JunqiSide.RED, JunqiPieceType.BOMB, 5, 2),
+            piece("red-other", JunqiSide.RED, JunqiPieceType.COMPANY, 6, 4),
+            piece("red-flag", JunqiSide.RED, JunqiPieceType.FLAG, 11, 1),
+            piece("blue-large", JunqiSide.BLUE, JunqiPieceType.COMMANDER, 6, 2, hasMoved = true),
+            piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
+        )
+        val observation = JunqiObservation.from(state, JunqiSide.RED)
+        val knowledge = JunqiKnowledge.from(observation).update(
+            JunqiKnowledgeEvent.Battle(
+                enemyPieceId = "blue-large",
+                ownPieceType = JunqiPieceType.REGIMENT,
+                enemyWasAttacker = false,
+                outcome = JunqiBattleOutcome.DEFENDER_WINS,
+            ),
+        )
+        var samplerInvocations = 0
+
+        val result = JunqiSearchEngine(
+            nanoTime = { 0L },
+            sampleTypes = { requestedKnowledge, requestedObservation, seed ->
+                samplerInvocations += 1
+                requestedKnowledge.sampleTypes(requestedObservation, seed)
+            },
+        ).search(observation, knowledge, JunqiAiLevel.LEVEL_1)
+
+        assertEquals(JunqiAiLevel.LEVEL_1.sampleCount, samplerInvocations)
+        assertEquals(JunqiMove(at(5, 2), at(6, 2)), result.rankedMoves.first().move)
+        assertEquals(1, result.rankedMoves.first().tacticalPriority)
+    }
+
+    @Test
     fun bombExchangeEstimateRespectsGloballyConsumedHighRankCapacity() {
         val highOnlyPieces = listOf(
             piece("blue-high-1", JunqiSide.BLUE, JunqiPieceType.COMMANDER, 1, 0, hasMoved = true),
@@ -292,15 +346,14 @@ class JunqiAiTest {
         )
         val bombMove = JunqiMove(at(5, 2), at(6, 2))
 
-        repeat(8) { sampleIndex ->
-            assertEquals(
-                JunqiPieceType.REGIMENT,
-                knowledge.sampleTypes(observation, sampleIndex.toLong()).getValue("blue-target"),
-            )
+        val determinizations = (0 until 8).map { sampleIndex ->
+            val assignment = knowledge.sampleTypes(observation, sampleIndex.toLong())
+            assertEquals(JunqiPieceType.REGIMENT, assignment.getValue("blue-target"))
+            JunqiDeterminization(assignment, observation.toSampleState(assignment))
         }
         assertEquals(
             0,
-            JunqiTactics.rankedMoves(observation, knowledge)
+            JunqiTactics.rankedMoves(observation, knowledge, determinizations)
                 .single { tactical -> tactical.move == bombMove }
                 .priority,
         )
@@ -344,8 +397,15 @@ class JunqiAiTest {
         }
         val observation = fullDeploymentObservation()
         val expectedMoves = JunqiRules.legalMoves(fullDeploymentState(), JunqiSide.RED).sortedWith(moveComparator)
+        var samplerInvocations = 0
 
-        val result = JunqiSearchEngine(clock).search(
+        val result = JunqiSearchEngine(
+            nanoTime = clock,
+            sampleTypes = { knowledge, requestedObservation, seed ->
+                samplerInvocations += 1
+                knowledge.sampleTypes(requestedObservation, seed)
+            },
+        ).search(
             observation,
             JunqiKnowledge.from(observation),
             JunqiAiLevel.LEVEL_1,
@@ -353,7 +413,7 @@ class JunqiAiTest {
 
         assertTrue(result.budgetExhausted)
         assertEquals(0, result.nodes)
-        assertEquals(0, result.samplesCompleted)
+        assertEquals(samplerInvocations, result.samplesCompleted)
         assertNotNull(result.rankedMoves.firstOrNull())
         assertEquals(expectedMoves, result.rankedMoves.map { it.move })
         assertNotNull(
@@ -382,7 +442,7 @@ class JunqiAiTest {
 
         assertTrue(result.budgetExhausted)
         assertEquals(0, result.nodes)
-        assertEquals(0, result.samplesCompleted)
+        assertEquals(1, result.samplesCompleted)
         assertNotNull(result.rankedMoves.firstOrNull())
     }
 
@@ -404,6 +464,15 @@ class JunqiAiTest {
         val pieces = JunqiDeployment.default(JunqiSide.RED) + JunqiDeployment.default(JunqiSide.BLUE)
         return JunqiState(pieces.associateBy { it.position })
     }
+
+    private fun revealedFlagBudgetObservation(): JunqiObservation = JunqiObservation.from(
+        stateOf(
+            piece("red-engineer", JunqiSide.RED, JunqiPieceType.ENGINEER, 1, 0),
+            piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 1, 1),
+            revealedFlags = setOf(JunqiSide.BLUE),
+        ),
+        JunqiSide.RED,
+    )
 
     private fun stateOf(
         vararg pieces: JunqiPiece,
