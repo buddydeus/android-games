@@ -4,7 +4,7 @@ For humans: start with [README.md](README.md), then use the README inside each `
 
 ## Project
 
-Offline Android Pad game center (Kotlin + Jetpack Compose). The `app` module is a stable loading shell; each game ships as a zip package with dex plugin code loaded via `DexClassLoader`. Built-in games: Gomoku, Othello, Xiangqi, International Chess, and the Junqi package foundation.
+Offline Android Pad game center (Kotlin + Jetpack Compose). The `app` module is a stable loading shell; each game ships as a zip package with dex plugin code loaded via `DexClassLoader`. Built-in games: Gomoku, Othello, Xiangqi, International Chess, and Junqi.
 
 Gradle multi-module layout: `app` (shell), `game-api` (shell↔game contract), `games/*` (per-game modules + package assets).
 
@@ -17,7 +17,7 @@ Current game behavior:
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
 - The game-center shell currently uses `versionCode = 3` and `versionName = 0.0.3`; the home top bar displays `BuildConfig.VERSION_NAME`.
 - Home game names and logos come only from each installed package's `displayName` and `icon` manifest fields. The shell supports bounded package-local PNG, WebP, JPEG, and compact text icon files and must not branch on known game IDs for presentation.
-- All four built-in packages provide a `1024 x 1024` circular-safe PNG at `assets/icon.png`, following `designs/specs/android-game-package-logos.md`; package verification requires that entry.
+- All five built-in packages provide a `1024 x 1024` circular-safe PNG at `assets/icon.png`, following `designs/specs/android-game-package-logos.md`; package verification requires that entry.
 - The home game order is the descending persisted count of successful plugin loads. Equal counts use package display name and then game ID for deterministic, package-agnostic ordering.
 - All game menus use `单人模式`, `双人对战`, and `退出游戏`.
 - Every game owns an independent version starting at `0.0.1`, and its main menu displays `GameManifest.versionName`.
@@ -31,12 +31,12 @@ Current game behavior:
 - International Chess version `0.0.9` uses standard square placement, complete special moves and draw rules, legal-move-equivalent threefold-repetition keys, player-score-driven 1-10 offline search, explicit draw session state, Xiangqi-family score/undo/restart behavior, and a 180-degree Black-player view with upright pieces. Every draw type leaves score, current player side, and intelligence level unchanged. Player tap resolution always regenerates candidates from the current position after robot replies so subsequent moves and captures cannot use a stale previous-turn move list. Its package owns 12 transparent 1024×1024 Staunton piece PNGs under `assets/pieces/`; keep their names, dimensions, alpha corners, package ownership, exact piece mapping, transparent-margin trim, and 82% board-square render scale covered by `ChessPieceAssetsTest`. The menu board, active board, and promotion picker load and cache these package-owned textures once per installed package version, while any missing or invalid texture falls back to the corresponding Unicode glyph. Runtime decoding trims only fully transparent outer pixels in memory so the physical pieces match the approved scale without modifying package assets. Its cool mineral rim, tournament-green/ivory squares, rim coordinates, flat score-sheet rail, and state overlays follow `designs/specs/international-chess-ui.md`; the square board and right rail remain side by side at 800×600 landscape, and the rail distinguishes the active side, check, terminal result, AI level, undo, and restart.
 - International Chess promotion must expose queen, rook, bishop, and knight choices to human players; its search must preserve checkmate precedence over automatic draws and include session repetition history.
 - Junqi Task 3 owns deterministic legal default/random/swap deployment, the complete rank/bomb/mine/flag battle matrix, permanent commander-death flag reveal, immutable move adjudication, flag-capture wins, no-move loss, both-immobile draw, and the completing-mover loss on quiet half-move 31. Keep these rules together with Task 2's immutable 12x5 movement foundation inside `games/junqi/`.
-- Junqi version `0.0.7` keeps Task 4's rank-free opponent observations, opaque position-stable deployment IDs, immutable inventory-consistent knowledge, all-retained-identity determinizations filtered to active pieces, exactly one live flag in nonterminal samples, commander-death survivor exclusion, sampled-safe flag defense, globally capacity-consistent bomb-exchange estimates, deterministic legal fallback before timed sampling, end-to-end bounded sampled alpha-beta, the exact monotonic 1-10 sample/depth/node/time table, and deterministic weakening only at levels 1-5. Task 5 adds the complete `DEPLOYMENT`/`HANDOFF`/`PLAYING`/`BATTLE_RESULT`/`FINISHED` session state machine, legal swap/random/reset/ready setup, opaque handoffs, generic battle acknowledgement, identity-based score/restart policy, snapshot undo, last move, and generation-bound robot requests. Task 6 adds deterministic package-owned `assets/icon.png`, `assets/board/junqi-board.png`, and `assets/textures/junqi-shelf.png`; keep their literal `JunqiVisuals` paths, all 60 unique in-bounds bitmap centers, every undirected road and rail edge (including the central bridge), complete camp/headquarters styling, transparent corners, shared last-move constants, and generator/tests aligned. Task 7 adds the package `JunqiPlugin`, cached package-local texture loading with Compose fallbacks, fixed board-and-rail landscape geometry, complete deployment/play/result controls, observer-only upright piece rendering with bottom-side 180-degree mapping, fully opaque handoff and generic battle pages with no board or rank semantics, and a dedicated disposable background executor that applies only matching generation-bound AI requests. Road/rail overlaps use the generator's rail-over-road paint order in visual assertions. `JunqiAi.chooseMove` accepts only `JunqiObservation`, `JunqiKnowledge`, and `JunqiAiLevel`; default, random, and legal-swap deployments with identical public observations must remain independent of hidden enemy truth.
+- Junqi version `0.0.7` keeps Task 4's rank-free opponent observations, opaque position-stable deployment IDs, immutable inventory-consistent knowledge, all-retained-identity determinizations filtered to active pieces, exactly one live flag in nonterminal samples, commander-death survivor exclusion, sampled-safe flag defense, globally capacity-consistent bomb-exchange estimates, deterministic legal fallback before timed sampling, end-to-end bounded sampled alpha-beta, the exact monotonic 1-10 sample/depth/node/time table, and deterministic weakening only at levels 1-5. Task 5 adds the complete `DEPLOYMENT`/`HANDOFF`/`PLAYING`/`BATTLE_RESULT`/`FINISHED` session state machine, legal swap/random/reset/ready setup, opaque handoffs, generic battle acknowledgement, identity-based score/restart policy, snapshot undo, last move, and generation-bound robot requests. Task 6 adds deterministic package-owned `assets/icon.png`, `assets/board/junqi-board.png`, and `assets/textures/junqi-shelf.png`; keep their literal `JunqiVisuals` paths, all 60 unique in-bounds bitmap centers, every undirected road and rail edge (including the central bridge), complete camp/headquarters styling, transparent corners, shared last-move constants, and generator/tests aligned. Task 7 adds the package `JunqiPlugin`, cached package-local texture loading with Compose fallbacks, fixed board-and-rail landscape geometry, complete deployment/play/result controls, observer-only upright piece rendering with bottom-side 180-degree mapping, fully opaque handoff and generic battle pages with no board or rank semantics, and a dedicated disposable background executor that applies only matching generation-bound AI requests. Task 8 registers `packageJunqiGame`, verifies its package and Debug APK entry, and keeps the wildcard built-in copy intact; it adds a parsed static-manifest alignment test without changing the shell or Junqi versions. Road/rail overlaps use the generator's rail-over-road paint order in visual assertions. `JunqiAi.chooseMove` accepts only `JunqiObservation`, `JunqiKnowledge`, and `JunqiAiLevel`; default, random, and legal-swap deployments with identical public observations must remain independent of hidden enemy truth.
 - International Chess search and session repetition keys must remain identical, including normalized move-counter hash components and both usable and unusable en-passant rights.
 - Mix the full International Chess repetition-count context into transposition-table keys; repetition scores are path-dependent.
 - Keep International Chess piece textures inside the game package at `games/chess/package/assets/pieces/`; the shell must not own, name, or render them.
 - Keep International Chess perft fixtures aligned with the published Position 2, Position 3, and Position 5 FEN strings and pair level-budget assertions with deterministic tactical depth checks.
-- Human-facing documentation must list all four built-in packages and keep the independent shell/game versions aligned with their Gradle and manifest sources.
+- Human-facing documentation must list all five built-in packages and keep the independent shell/game versions aligned with their Gradle and manifest sources.
 
 Current design direction:
 
@@ -59,14 +59,15 @@ Current design direction:
 Run from repository root:
 
 - `npm run test` — all unit tests (`./gradlew test`)
-- `npm run verify` — full MVP gate: tests + four validated game packages + debug APK asset validation
+- `npm run verify` — full MVP gate: tests + five validated game packages + debug APK asset validation
 - `npm run build` — build debug APK and all game package zips
 - `npm run build:apk` — `./gradlew :app:assembleDebug` (also copies built-in game zips into assets)
-- `npm run build:game` — build all four game package zips
+- `npm run build:game` — build all five game package zips
 - `npm run build:game:gomoku` — `./gradlew packageGomokuGame`
 - `npm run build:game:othello` — `./gradlew packageOthelloGame`
 - `npm run build:game:xiangqi` — `./gradlew packageXiangqiGame`
 - `npm run build:game:chess` — `./gradlew packageChessGame`
+- `npm run build:game:junqi` — `./gradlew packageJunqiGame`
 - `pnpm connect list` — list every USB-connected ADB device and its current state
 - `pnpm connect <serial-id>` — select and verify one USB-connected device by exact ADB serial
 - `bash scripts/test-connect-android-device.sh` — run deterministic host-side connect tests with a fake ADB executable
@@ -75,6 +76,7 @@ Run from repository root:
 - `./gradlew :app:testDebugUnitTest` — shell runtime tests only
 - `./gradlew :games:gomoku:testDebugUnitTest` — single game rules tests (swap module name as needed)
 - `./gradlew :games:chess:testDebugUnitTest` — International Chess rules, session, and AI tests
+- `./gradlew :games:junqi:testDebugUnitTest` — Junqi rules, hidden-information AI, session, UI, assets, and manifest-contract tests
 - `./gradlew :games:xiangqi:testDebugUnitTest --tests com.buddygames.xiangqi.XiangqiAiCalibrationTest -PxiangqiCalibration=true -PxiangqiCalibrationPair=1` — opt-in long Xiangqi color-swapped calibration for levels 1 vs 2; use pair values 1-9
 
 `pnpm run <script>` works the same; lockfile has no runtime deps.
@@ -89,7 +91,7 @@ Run from repository root:
 | `games/othello/` | Othello plugin module + package layout + game README |
 | `games/xiangqi/` | Xiangqi plugin module + package layout + game README |
 | `games/chess/` | International Chess plugin module + package layout + game README |
-| `games/junqi/` | Junqi package module, deterministic deployment, immutable rules, hidden-information observations, knowledge, and fair offline AI |
+| `games/junqi/` | Fifth built-in Junqi package: deterministic deployment, immutable rules, hidden-information observations, knowledge, fair offline AI, and package-owned UI/assets |
 | `build.gradle.kts` | Registers `package*Game` zip tasks (jar → d8 → plugin.apk → zip) |
 | `scripts/connect-android-device.sh` | Lists USB ADB transports and verifies one exact device serial |
 | `scripts/test-connect-android-device.sh` | Fake-ADB regression tests for host-side device connection states |
@@ -126,7 +128,7 @@ Run from repository root:
 - Keep single-player side-selection and opening-turn rules in each game's session model; restart behavior changes must cover player win, player loss, and robot opening as second-player tests.
 - Record undo snapshots immediately before legal player actions, include score and terminal state in each snapshot, and keep the initial robot opening outside undo history.
 - Keep the last-move marker in each game's session and undo snapshot. Othello marks only the newly placed disc, Xiangqi marks the destination coordinate after perspective mapping, and robot moves replace the preceding player marker.
-- Keep last-move marker geometry and color constants aligned across all four game packages; marker scale must remain below one cell so adjacent pieces are unaffected.
+- Keep last-move marker geometry and color constants aligned across all five game packages; marker scale must remain below one cell so adjacent pieces are unaffected.
 - Keep undo-button visibility separate from undo availability: hide it only when a winner exists, and keep Othello draws undoable.
 - Keep `game-api` backward-compatible or update every `games/*` plugin in the same change.
 - Keep home presentation package-agnostic: read names and icons from the manifest and rank by successful-launch count without adding game ID branches.
@@ -203,4 +205,4 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 - [ ] If `app/` changed, the game-center `versionCode` and `versionName` were incremented together
 - [ ] Each touched game has matching, incremented versions in plugin code and `package/manifest.json`
 - [ ] Each touched game's README still matches its implementation, manifest, assets, and commands
-- [ ] If `game-api` changed, all four games still build and load
+- [ ] If `game-api` changed, all five games still build and load

@@ -1,6 +1,6 @@
 # 军棋
 
-军棋模块是游戏中心中的二国暗棋包，当前实现 12x5 棋盘、合法布阵、完整碰子与终局规则、观察者受限知识、不读取敌方真实军衔的离线 1-10 级 AI、单人和双人的完整会话状态机、横屏 Compose 界面，以及包内可重复生成的视觉素材。内置包集成由后续任务完成。
+军棋模块是游戏中心中的二国暗棋包，当前实现 12x5 棋盘、合法布阵、完整碰子与终局规则、观察者受限知识、不读取敌方真实军衔的离线 1-10 级 AI、单人和双人的完整会话状态机、横屏 Compose 界面，以及包内可重复生成的视觉素材。它作为第五个内置游戏包随 Debug APK 复制到 `assets/builtin-games/junqi.zip`。
 
 [返回项目说明](../../README.md)
 
@@ -15,7 +15,7 @@
 | 最低外壳 API | `1` |
 | 屏幕方向 | 横屏 |
 
-版本信息同时维护在 `JunqiManifest.kt` 和 `package/manifest.json`。军棋尚未加入当前四个内置游戏包的构建门禁。
+版本信息同时维护在 `JunqiManifest.kt` 和 `package/manifest.json`。`JunqiManifestTest` 解析包清单并锁定 `gameId`、显示名称、版本、入口类和图标路径与插件清单一致；军棋已纳入五个内置游戏包的构建与 Debug APK 验证门禁。
 
 ## 包内素材
 
@@ -64,11 +64,13 @@
 在仓库根目录执行：
 
 ```bash
+./gradlew packageJunqiGame
+npm run build:game:junqi
 ./gradlew :games:junqi:testDebugUnitTest
 npm run verify
 ```
 
-Task 4 重点测试位于 `JunqiDeploymentTest`、`JunqiObservationTest` 和 `JunqiAiTest`，覆盖交换后的槽位身份保密、真实布阵公平性、存活与阵亡身份的完整容量分配、非终局军旗与司令阵亡约束、战术安全及立即超时后备走法。Task 5 的 `JunqiSessionTest` 覆盖完整阶段流、遮屏隐私、布阵操作、身份比分、换边、和棋、快照悔棋、最后移动和 AI 过期结果拒绝。Task 6 的 `JunqiAssetsTest` 锁定包内视觉资源与注册几何。Task 7 的 `JunqiPluginTest` 锁定插件清单、共享文案、800x600 并排几何、180 度映射、观察态棋子投影、合法点击解析和通用碰子文案；`JunqiTexturesTest` 锁定三项资源的精确 PNG 输入契约和解码后尺寸复核。
+Task 4 重点测试位于 `JunqiDeploymentTest`、`JunqiObservationTest` 和 `JunqiAiTest`，覆盖交换后的槽位身份保密、真实布阵公平性、存活与阵亡身份的完整容量分配、非终局军旗与司令阵亡约束、战术安全及立即超时后备走法。Task 5 的 `JunqiSessionTest` 覆盖完整阶段流、遮屏隐私、布阵操作、身份比分、换边、和棋、快照悔棋、最后移动和 AI 过期结果拒绝。Task 6 的 `JunqiAssetsTest` 锁定包内视觉资源与注册几何。Task 7 的 `JunqiPluginTest` 锁定插件清单、共享文案、800x600 并排几何、180 度映射、观察态棋子投影、合法点击解析和通用碰子文案；`JunqiTexturesTest` 锁定三项资源的精确 PNG 输入契约和解码后尺寸复核。Task 8 的 `JunqiManifestTest` 解析静态包清单并锁定与 `JunqiPlugin.manifest` 的发布字段对齐。
 
 ## 更新要求
 

@@ -3,11 +3,12 @@
     "test": "./gradlew test",
     "build": "npm run build:apk && npm run build:game",
     "build:apk": "./gradlew :app:assembleDebug",
-    "build:game": "npm run build:game:gomoku && npm run build:game:othello && npm run build:game:xiangqi && npm run build:game:chess",
+    "build:game": "npm run build:game:gomoku && npm run build:game:othello && npm run build:game:xiangqi && npm run build:game:chess && npm run build:game:junqi",
     "build:game:gomoku": "./gradlew packageGomokuGame",
     "build:game:othello": "./gradlew packageOthelloGame",
     "build:game:xiangqi": "./gradlew packageXiangqiGame",
     "build:game:chess": "./gradlew packageChessGame",
+    "build:game:junqi": "./gradlew packageJunqiGame",
     "verify": "./gradlew test verifyGamePackages",
     "start": "bash scripts/start-android-debug.sh",
     "connect": "bash scripts/connect-android-device.sh"

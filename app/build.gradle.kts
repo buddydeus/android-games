@@ -41,7 +41,8 @@ val copyBuiltinGamePackages = tasks.register<Copy>("copyBuiltinGamePackages") {
         rootProject.tasks.named("packageGomokuGame"),
         rootProject.tasks.named("packageOthelloGame"),
         rootProject.tasks.named("packageXiangqiGame"),
-        rootProject.tasks.named("packageChessGame")
+        rootProject.tasks.named("packageChessGame"),
+        rootProject.tasks.named("packageJunqiGame")
     )
     from(rootProject.layout.buildDirectory.dir("game-packages")) {
         include("*.zip")

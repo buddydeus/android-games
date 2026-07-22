@@ -68,7 +68,7 @@ Root `build.gradle.kts` registers per-game tasks:
 3. `assemble<Name>PluginApk` — zips dex as `plugin.apk`
 4. `package<Name>Game` — merges `games/<name>/package/` + `plugin.apk` → `build/game-packages/<name>.zip`
 
-`app` copies `build/game-packages/*.zip` into generated assets (`builtin-games/`) before `mergeDebugAssets`.
+`app` explicitly depends on every built-in `package*Game` task, then copies `build/game-packages/*.zip` into generated assets (`builtin-games/`) before `mergeDebugAssets`. Keep the wildcard copy so future registered packages are included without a game-ID-specific copy rule.
 
 ## Commands (single game)
 
@@ -79,8 +79,10 @@ From repo root:
 - `./gradlew :games:gomoku:assembleDebug` — compile game library (no zip)
 - `./gradlew packageChessGame` — build international chess zip only
 - `./gradlew :games:chess:testDebugUnitTest` — international chess rules, session, and AI tests
+- `./gradlew packageJunqiGame` — build junqi zip only
+- `./gradlew :games:junqi:testDebugUnitTest` — junqi rules, hidden-information AI, session, UI, assets, and manifest-contract tests
 
-Swap `gomoku` for `othello`, `xiangqi`, or `chess`.
+Swap `gomoku` for `othello`, `xiangqi`, `chess`, or `junqi`.
 
 ## Adding a new built-in game module (checklist)
 
@@ -91,8 +93,8 @@ This checklist is only for adding game source and bundling its zip into this rep
 3. Add `package/manifest.json` with matching `entryClass`.
 4. Register module in `settings.gradle.kts`.
 5. Call `registerGamePackageTask("package<Name>Game", "<gameId>")` in root `build.gradle.kts`.
-6. Add `copyBuiltinGamePackages` dependency and `npm run build:game:<gameId>` script in `package.json`.
-7. Add rules tests under `src/test/`; run `npm run verify`.
+6. Add the `copyBuiltinGamePackages` dependency while preserving its `include("*.zip")` copy rule, then add an `npm run build:game:<gameId>` script in `package.json`.
+7. Add rules and package-manifest alignment tests under `src/test/`; run `npm run verify`.
 
 ## Runtime loading
 
