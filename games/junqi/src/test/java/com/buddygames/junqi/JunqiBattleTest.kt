@@ -3,6 +3,7 @@ package com.buddygames.junqi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -23,9 +24,11 @@ class JunqiBattleTest {
     }
 
     @Test
-    fun bombMutuallyRemovesAgainstEveryEnemyTypeFromEitherDirection() {
+    fun bombMutuallyRemovesAgainstEveryDefenderAndMovableAttacker() {
         for (type in JunqiPieceType.entries) {
             assertEquals(JunqiBattleOutcome.BOTH_REMOVED, JunqiRules.battleOutcome(JunqiPieceType.BOMB, type))
+        }
+        for (type in movableTypes) {
             assertEquals(JunqiBattleOutcome.BOTH_REMOVED, JunqiRules.battleOutcome(type, JunqiPieceType.BOMB))
         }
     }
@@ -53,6 +56,20 @@ class JunqiBattleTest {
                 JunqiBattleOutcome.ATTACKER_WINS,
                 JunqiRules.battleOutcome(type, JunqiPieceType.FLAG),
             )
+        }
+    }
+
+    @Test
+    fun mineAndFlagCannotAttackEvenWhenAnEnemyIsAdjacent() {
+        for (attacker in listOf(JunqiPieceType.MINE, JunqiPieceType.FLAG)) {
+            val state = stateOf(
+                piece("red-$attacker", JunqiSide.RED, attacker, 3, 0),
+                piece("blue", JunqiSide.BLUE, JunqiPieceType.ENGINEER, 3, 1),
+            )
+
+            assertThrows(IllegalArgumentException::class.java) {
+                JunqiRules.applyMove(state, JunqiMove(at(3, 0), at(3, 1)))
+            }
         }
     }
 
@@ -149,5 +166,6 @@ class JunqiBattleTest {
             JunqiPieceType.PLATOON,
             JunqiPieceType.ENGINEER,
         )
+        val movableTypes = rankedTypes + JunqiPieceType.BOMB
     }
 }

@@ -6,6 +6,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -122,11 +123,13 @@ class JunqiSessionTest {
         assertEquals(JunqiBattleOutcome.ATTACKER_WINS, result.battleOutcome)
         assertNull(result.observation)
         assertTrue(result.deployment.isEmpty())
+        assertNull(result.lastMove)
         assertTrue(
             JunqiSessionState::class.java.declaredFields.none { field ->
                 field.type == JunqiPieceType::class.java || field.type == JunqiState::class.java
             },
         )
+        assertBattleProjectionHasNoHiddenValues(result)
 
         val handoff = session.acknowledgeBattle()
         assertOpaqueHandoff(handoff, JunqiSide.BLUE)
@@ -197,6 +200,92 @@ class JunqiSessionTest {
 
         assertSame(before, rejected)
         assertSame(before, session.state)
+    }
+
+    @Test
+    fun staleRobotResponsesAreRejectedAfterInvalidatingTransitions() {
+        val scenarios = listOf(
+            "restart" to {
+                val session = JunqiSession.started(
+                    mode = JunqiMode.SINGLE_PLAYER,
+                    playerSide = JunqiSide.RED,
+                    state = quietState(),
+                )
+                session.play(JunqiMove(at(3, 1), at(3, 2)))
+                val stale = requireNotNull(session.robotRequest)
+                session.restart()
+                session to stale
+            },
+            "accepted handoff" to {
+                val session = JunqiSession.started(
+                    mode = JunqiMode.SINGLE_PLAYER,
+                    playerSide = JunqiSide.BLUE,
+                    state = robotOpeningState(),
+                )
+                val stale = requireNotNull(session.robotRequest)
+                session.restart()
+                session.ready()
+                assertEquals(JunqiPhase.HANDOFF, session.state.phase)
+                session.acceptHandoff()
+                session to stale
+            },
+            "battle acknowledgement" to {
+                val session = JunqiSession.started(
+                    mode = JunqiMode.SINGLE_PLAYER,
+                    playerSide = JunqiSide.RED,
+                    state = robotThenBattleState(),
+                )
+                val stale = requireNotNull(session.robotRequest)
+                session.applyRobotMove(stale, JunqiMove(at(8, 1), at(8, 2)))
+                session.play(JunqiMove(at(3, 0), at(3, 1)))
+                assertEquals(JunqiPhase.BATTLE_RESULT, session.state.phase)
+                session.acknowledgeBattle()
+                session to stale
+            },
+        )
+
+        for ((transition, prepare) in scenarios) {
+            val (session, stale) = prepare()
+            val before = session.state
+
+            val rejected = session.applyRobotMove(stale, JunqiMove(at(0, 0), at(0, 1)))
+
+            assertSame("Stale robot response after $transition must be rejected", before, rejected)
+            assertSame(before, session.state)
+        }
+    }
+
+    @Test
+    fun invalidTransitionsAndHumanMovesDuringRobotTurnAreRejected() {
+        val deployment = JunqiSession(JunqiMode.SINGLE_PLAYER)
+        val playing = JunqiSession.started(JunqiMode.SINGLE_PLAYER, state = quietState())
+        val robotTurn = JunqiSession.started(
+            mode = JunqiMode.SINGLE_PLAYER,
+            playerSide = JunqiSide.RED,
+            state = robotTurnState(),
+        )
+        val battle = JunqiSession.started(JunqiMode.TWO_PLAYERS, state = battleState()).apply {
+            play(JunqiMove(at(3, 0), at(3, 1)))
+        }
+        val finished = JunqiSession.started(
+            mode = JunqiMode.SINGLE_PLAYER,
+            state = flagCaptureState(attacker = JunqiSide.RED),
+        ).apply {
+            play(JunqiMove(at(1, 0), at(1, 1)))
+        }
+        val invalidTransitions: List<Pair<String, () -> Unit>> = listOf(
+            "play during deployment" to { deployment.play(JunqiMove(at(3, 1), at(3, 2))) },
+            "ready during play" to { playing.ready() },
+            "accept handoff during play" to { playing.acceptHandoff() },
+            "acknowledge battle during play" to { playing.acknowledgeBattle() },
+            "ready after finish" to { finished.ready() },
+            "human move during robot turn" to { robotTurn.play(JunqiMove(at(8, 1), at(8, 2))) },
+            "human move during battle result" to { battle.play(JunqiMove(at(3, 0), at(3, 1))) },
+        )
+
+        for ((transition, action) in invalidTransitions) {
+            assertThrows("Expected $transition to be rejected", IllegalStateException::class.java, action)
+        }
     }
 
     @Test
@@ -307,11 +396,70 @@ class JunqiSessionTest {
         assertNull(state.lastMove)
     }
 
+    private fun assertBattleProjectionHasNoHiddenValues(value: Any?) {
+        assertBattleProjectionHasNoHiddenValues(value, mutableSetOf())
+    }
+
+    private fun assertBattleProjectionHasNoHiddenValues(value: Any?, visited: MutableSet<Any>) {
+        when (value) {
+            null, is String, is Number, is Boolean, is Enum<*> -> return
+            is JunqiState, is JunqiPiece, is JunqiPieceType, is JunqiPosition, is JunqiMove, is JunqiObservation -> {
+                throw AssertionError("Battle result leaked hidden game data through ${value::class.java.name}")
+            }
+            is Iterable<*> -> {
+                value.forEach { item -> assertBattleProjectionHasNoHiddenValues(item, visited) }
+                return
+            }
+            is Map<*, *> -> {
+                value.forEach { (key, item) ->
+                    assertBattleProjectionHasNoHiddenValues(key, visited)
+                    assertBattleProjectionHasNoHiddenValues(item, visited)
+                }
+                return
+            }
+        }
+        if (!visited.add(value)) return
+        for (field in value::class.java.declaredFields) {
+            if (java.lang.reflect.Modifier.isStatic(field.modifiers) || field.isSynthetic) continue
+            field.isAccessible = true
+            assertBattleProjectionHasNoHiddenValues(field.get(value), visited)
+        }
+    }
+
     private fun quietState(): JunqiState = stateOf(
         piece("red-engineer", JunqiSide.RED, JunqiPieceType.ENGINEER, 3, 1),
         piece("red-flag", JunqiSide.RED, JunqiPieceType.FLAG, 11, 1),
         piece("blue-engineer", JunqiSide.BLUE, JunqiPieceType.ENGINEER, 8, 1),
         piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
+    )
+
+    private fun robotOpeningState(): JunqiState = JunqiState(
+        pieces = listOf(
+            piece("red-engineer", JunqiSide.RED, JunqiPieceType.ENGINEER, 3, 1),
+            piece("red-flag", JunqiSide.RED, JunqiPieceType.FLAG, 11, 1),
+            piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
+        ).associateBy { it.position },
+        currentSide = JunqiSide.RED,
+    )
+
+    private fun robotTurnState(): JunqiState = JunqiState(
+        pieces = listOf(
+            piece("red-flag", JunqiSide.RED, JunqiPieceType.FLAG, 11, 1),
+            piece("blue-engineer", JunqiSide.BLUE, JunqiPieceType.ENGINEER, 8, 1),
+            piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
+        ).associateBy { it.position },
+        currentSide = JunqiSide.BLUE,
+    )
+
+    private fun robotThenBattleState(): JunqiState = JunqiState(
+        pieces = listOf(
+            piece("red-commander", JunqiSide.RED, JunqiPieceType.COMMANDER, 3, 0),
+            piece("red-flag", JunqiSide.RED, JunqiPieceType.FLAG, 11, 1),
+            piece("blue-engineer", JunqiSide.BLUE, JunqiPieceType.ENGINEER, 3, 1),
+            piece("blue-robot", JunqiSide.BLUE, JunqiPieceType.ENGINEER, 8, 1),
+            piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
+        ).associateBy { it.position },
+        currentSide = JunqiSide.BLUE,
     )
 
     private fun battleState(): JunqiState = stateOf(

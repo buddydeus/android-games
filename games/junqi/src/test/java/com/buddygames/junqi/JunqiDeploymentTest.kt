@@ -20,11 +20,14 @@ class JunqiDeploymentTest {
     }
 
     @Test
-    fun randomDeploymentIsLegalAndRepeatableForBothSides() {
+    fun randomDeploymentIsRepeatableAndLegalAcrossMultipleSeedsForBothSides() {
         for (side in JunqiSide.entries) {
-            assertEquals(JunqiDeployment.random(side, 42), JunqiDeployment.random(side, 42))
-            assertTrue(JunqiDeployment.isLegal(JunqiDeployment.random(side, 42), side))
-            assertFalse(JunqiDeployment.random(side, 42) == JunqiDeployment.random(side, 43))
+            for (seed in listOf(0L, 1L, 42L, 43L)) {
+                val deployment = JunqiDeployment.random(side, seed)
+
+                assertEquals(deployment, JunqiDeployment.random(side, seed))
+                assertTrue(JunqiDeployment.isLegal(deployment, side))
+            }
         }
     }
 

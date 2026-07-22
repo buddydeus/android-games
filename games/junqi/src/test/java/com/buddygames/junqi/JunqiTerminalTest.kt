@@ -109,6 +109,31 @@ class JunqiTerminalTest {
     }
 
     @Test
+    fun sl31TakesPrecedenceWhenTheQuietMoveLeavesBothSidesImmobile() {
+        val cases = listOf(
+            Triple(JunqiSide.RED, at(10, 1), at(11, 1)),
+            Triple(JunqiSide.BLUE, at(1, 1), at(0, 1)),
+        )
+        for ((side, from, to) in cases) {
+            val state = JunqiState(
+                pieces = listOf(
+                    piece("mover-$side", side, JunqiPieceType.ENGINEER, from.row, from.column),
+                    piece("opponent-mine-$side", side.other(), JunqiPieceType.MINE, if (side == JunqiSide.RED) 0 else 11, 0),
+                ).associateBy { it.position },
+                currentSide = side,
+                quietHalfMoves = 30,
+            )
+
+            val moved = JunqiRules.applyMove(state, JunqiMove(from, to))
+
+            assertEquals(JunqiResult.fromWinner(side.other()), moved.result)
+            assertEquals(31, moved.quietHalfMoves)
+            assertEquals(emptyList<JunqiMove>(), JunqiRules.legalMoves(moved, JunqiSide.RED))
+            assertEquals(emptyList<JunqiMove>(), JunqiRules.legalMoves(moved, JunqiSide.BLUE))
+        }
+    }
+
+    @Test
     fun collisionResetsQuietCounterAndDoesNotTriggerSl31() {
         val state = JunqiState(
             pieces = listOf(
