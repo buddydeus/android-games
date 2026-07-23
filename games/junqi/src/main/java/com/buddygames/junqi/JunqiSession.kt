@@ -6,7 +6,6 @@ enum class JunqiPhase {
     DEPLOYMENT,
     HANDOFF,
     PLAYING,
-    BATTLE_RESULT,
     FINISHED,
 }
 
@@ -189,21 +188,6 @@ class JunqiSession private constructor(
         return settleMove(movingSide = current.currentSide)
     }
 
-    fun acknowledgeBattle(): JunqiSessionState {
-        check(phase == JunqiPhase.BATTLE_RESULT) { "Junqi battle acknowledgement requires a battle result" }
-        invalidateRobotRequest()
-        val current = requireNotNull(game)
-        if (mode == JunqiMode.TWO_PLAYERS) {
-            phase = JunqiPhase.HANDOFF
-            surfaceSide = current.currentSide
-        } else {
-            phase = JunqiPhase.PLAYING
-            surfaceSide = current.currentSide
-            prepareRobotRequestIfNeeded()
-        }
-        return refresh()
-    }
-
     fun applyRobotMove(request: JunqiRobotRequest, move: JunqiMove?): JunqiSessionState {
         val current = game
         if (
@@ -280,8 +264,6 @@ class JunqiSession private constructor(
         if (current.result != null) {
             score = score.record(current.result, mode, playerSide)
             phase = JunqiPhase.FINISHED
-        } else if (current.lastBattleOutcome != null) {
-            phase = JunqiPhase.BATTLE_RESULT
         } else if (mode == JunqiMode.TWO_PLAYERS) {
             surfaceSide = current.currentSide
             phase = JunqiPhase.HANDOFF
@@ -376,9 +358,7 @@ class JunqiSession private constructor(
     private fun publish(): JunqiSessionState {
         val currentGame = game
         val observation = when (phase) {
-            JunqiPhase.PLAYING,
-            JunqiPhase.BATTLE_RESULT,
-            -> currentGame?.let { visibleObservation(it) }
+            JunqiPhase.PLAYING -> currentGame?.let { visibleObservation(it) }
             JunqiPhase.FINISHED -> currentGame?.let { visibleObservation(it) }
             else -> null
         }
@@ -396,12 +376,13 @@ class JunqiSession private constructor(
             deployment = deployment,
             selectedDeploymentPiece = selectedDeploymentPiece,
             observation = observation,
-            battleOutcome = currentGame?.lastBattleOutcome.takeIf { phase == JunqiPhase.BATTLE_RESULT },
+            battleOutcome = currentGame?.lastBattleOutcome.takeIf {
+                phase == JunqiPhase.PLAYING || phase == JunqiPhase.FINISHED
+            },
             result = currentGame?.result,
             score = score,
             lastMove = lastMove.takeIf {
                 phase == JunqiPhase.PLAYING ||
-                    phase == JunqiPhase.BATTLE_RESULT ||
                     phase == JunqiPhase.FINISHED
             },
             canUndo = canUndo(),

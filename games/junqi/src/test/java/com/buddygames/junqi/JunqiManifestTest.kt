@@ -10,8 +10,8 @@ class JunqiManifestTest {
     @Test
     fun manifestUsesTheCurrentIndependentVersion() {
         assertEquals(0x4A_55_4E_51_49_00_00_08L, AI_PACKAGE_SALT)
-        assertEquals(10, JUNQI_VERSION_CODE)
-        assertEquals("0.0.10", JUNQI_VERSION_NAME)
+        assertEquals(11, JUNQI_VERSION_CODE)
+        assertEquals("0.0.11", JUNQI_VERSION_NAME)
     }
 
     @Test

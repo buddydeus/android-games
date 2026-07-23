@@ -111,31 +111,29 @@ class JunqiSessionTest {
     }
 
     @Test
-    fun battleResultKeepsTheMoversVisibleBoardAndUsesAGenericSidebarSummary() {
+    fun twoPlayerBattleMovesDirectlyToHandoffThenShowsGenericResultToNextPlayer() {
         val session = JunqiSession.started(
             mode = JunqiMode.TWO_PLAYERS,
             state = battleState(),
         )
 
-        val result = session.play(JunqiMove(at(3, 0), at(3, 1)))
+        val handoff = session.play(JunqiMove(at(3, 0), at(3, 1)))
 
-        assertEquals(JunqiPhase.BATTLE_RESULT, result.phase)
-        assertEquals(JunqiBattleOutcome.ATTACKER_WINS, result.battleOutcome)
-        val observation = requireNotNull(result.observation)
-        assertEquals(JunqiSide.RED, observation.viewer)
-        assertEquals(JunqiMove(at(3, 0), at(3, 1)), result.lastMove)
+        assertOpaqueHandoff(handoff, JunqiSide.BLUE)
+        val playing = session.acceptHandoff()
+        assertEquals(JunqiPhase.PLAYING, playing.phase)
+        assertEquals(JunqiBattleOutcome.ATTACKER_WINS, playing.battleOutcome)
+        val observation = requireNotNull(playing.observation)
+        assertEquals(JunqiSide.BLUE, observation.viewer)
+        assertEquals(JunqiMove(at(3, 0), at(3, 1)), playing.lastMove)
         assertTrue(observation.opponentPieces.all { piece -> piece.id != "blue-engineer" })
-        assertTrue(result.deployment.isEmpty())
+        assertTrue(playing.deployment.isEmpty())
         assertTrue(
             JunqiSessionState::class.java.declaredFields.none { field ->
                 field.type == JunqiPieceType::class.java || field.type == JunqiState::class.java
             },
         )
-        assertBattleProjectionHasNoHiddenValues(result.battleOutcome)
-
-        val handoff = session.acknowledgeBattle()
-        assertOpaqueHandoff(handoff, JunqiSide.BLUE)
-        assertEquals(JunqiPhase.PLAYING, session.acceptHandoff().phase)
+        assertBattleProjectionHasNoHiddenValues(playing.battleOutcome)
     }
 
     @Test
@@ -150,18 +148,18 @@ class JunqiSessionTest {
     }
 
     @Test
-    fun singlePlayerBattleAcknowledgementGeneratesOnlyTheRobotPublicRequest() {
+    fun singlePlayerBattleImmediatelyGeneratesOnlyTheRobotPublicRequest() {
         val session = JunqiSession.started(
             mode = JunqiMode.SINGLE_PLAYER,
             playerSide = JunqiSide.RED,
             state = battleState(),
         )
-        session.play(JunqiMove(at(3, 0), at(3, 1)))
 
-        val playing = session.acknowledgeBattle()
+        val playing = session.play(JunqiMove(at(3, 0), at(3, 1)))
         val request = requireNotNull(session.robotRequest)
 
         assertEquals(JunqiPhase.PLAYING, playing.phase)
+        assertEquals(JunqiBattleOutcome.ATTACKER_WINS, playing.battleOutcome)
         assertEquals(JunqiSide.BLUE, playing.currentSide)
         assertEquals(JunqiSide.RED, playing.observation?.viewer)
         assertEquals(JunqiSide.BLUE, request.observation.viewer)
@@ -242,7 +240,7 @@ class JunqiSessionTest {
                 session.acceptHandoff()
                 session to stale
             },
-            "battle acknowledgement" to {
+            "battle transition" to {
                 val session = JunqiSession.started(
                     mode = JunqiMode.SINGLE_PLAYER,
                     playerSide = JunqiSide.RED,
@@ -251,8 +249,7 @@ class JunqiSessionTest {
                 val stale = requireNotNull(session.robotRequest)
                 session.applyRobotMove(stale, JunqiMove(at(8, 1), at(8, 2)))
                 session.play(JunqiMove(at(3, 0), at(3, 1)))
-                assertEquals(JunqiPhase.BATTLE_RESULT, session.state.phase)
-                session.acknowledgeBattle()
+                assertEquals(JunqiPhase.PLAYING, session.state.phase)
                 session to stale
             },
         )
@@ -277,9 +274,6 @@ class JunqiSessionTest {
             playerSide = JunqiSide.RED,
             state = robotTurnState(),
         )
-        val battle = JunqiSession.started(JunqiMode.TWO_PLAYERS, state = battleState()).apply {
-            play(JunqiMove(at(3, 0), at(3, 1)))
-        }
         val finished = JunqiSession.started(
             mode = JunqiMode.SINGLE_PLAYER,
             state = flagCaptureState(attacker = JunqiSide.RED),
@@ -290,10 +284,8 @@ class JunqiSessionTest {
             "play during deployment" to { deployment.play(JunqiMove(at(3, 1), at(3, 2))) },
             "ready during play" to { playing.ready() },
             "accept handoff during play" to { playing.acceptHandoff() },
-            "acknowledge battle during play" to { playing.acknowledgeBattle() },
             "ready after finish" to { finished.ready() },
             "human move during robot turn" to { robotTurn.play(JunqiMove(at(8, 1), at(8, 2))) },
-            "human move during battle result" to { battle.play(JunqiMove(at(3, 0), at(3, 1))) },
         )
 
         for ((transition, action) in invalidTransitions) {
@@ -371,7 +363,7 @@ class JunqiSessionTest {
     @Test
     fun everyPhaseIsRepresentedByTheApprovedStateMachine() {
         assertEquals(
-            listOf("DEPLOYMENT", "HANDOFF", "PLAYING", "BATTLE_RESULT", "FINISHED"),
+            listOf("DEPLOYMENT", "HANDOFF", "PLAYING", "FINISHED"),
             JunqiPhase.entries.map { it.name },
         )
     }

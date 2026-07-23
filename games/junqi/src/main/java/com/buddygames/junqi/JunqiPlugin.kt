@@ -130,7 +130,6 @@ class JunqiPlugin : GamePlugin {
                 onResetDeployment = { update(session.resetDeployment()) },
                 onReady = { update(session.ready()) },
                 onAcceptHandoff = { update(session.acceptHandoff()) },
-                onAcknowledgeBattle = { update(session.acknowledgeBattle()) },
                 onUndo = { update(session.undo()) },
                 onRestart = { update(session.restart()) },
                 onReturn = context::returnToGameMain,

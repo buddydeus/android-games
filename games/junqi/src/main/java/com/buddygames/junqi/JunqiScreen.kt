@@ -173,7 +173,6 @@ internal fun JunqiGameLayout(
     onResetDeployment: () -> Unit,
     onReady: () -> Unit,
     onAcceptHandoff: () -> Unit,
-    onAcknowledgeBattle: () -> Unit,
     onUndo: () -> Unit,
     onRestart: () -> Unit,
     onReturn: () -> Unit,
@@ -182,7 +181,6 @@ internal fun JunqiGameLayout(
         JunqiPhase.HANDOFF -> JunqiHandoffScreen(state.currentSide, onAcceptHandoff)
         JunqiPhase.DEPLOYMENT,
         JunqiPhase.PLAYING,
-        JunqiPhase.BATTLE_RESULT,
         JunqiPhase.FINISHED,
         -> JunqiBoardAndRail(
             state = state,
@@ -194,7 +192,6 @@ internal fun JunqiGameLayout(
             onRandomize = onRandomize,
             onResetDeployment = onResetDeployment,
             onReady = onReady,
-            onAcknowledgeBattle = onAcknowledgeBattle,
             onUndo = onUndo,
             onRestart = onRestart,
             onReturn = onReturn,
@@ -213,7 +210,6 @@ private fun JunqiBoardAndRail(
     onRandomize: () -> Unit,
     onResetDeployment: () -> Unit,
     onReady: () -> Unit,
-    onAcknowledgeBattle: () -> Unit,
     onUndo: () -> Unit,
     onRestart: () -> Unit,
     onReturn: () -> Unit,
@@ -253,7 +249,6 @@ private fun JunqiBoardAndRail(
                         onRandomize = onRandomize,
                         onResetDeployment = onResetDeployment,
                         onReady = onReady,
-                        onAcknowledgeBattle = onAcknowledgeBattle,
                         onUndo = onUndo,
                         onRestart = onRestart,
                         onReturn = onReturn,
@@ -284,7 +279,6 @@ private fun JunqiBoardAndRail(
                         onRandomize = onRandomize,
                         onResetDeployment = onResetDeployment,
                         onReady = onReady,
-                        onAcknowledgeBattle = onAcknowledgeBattle,
                         onUndo = onUndo,
                         onRestart = onRestart,
                         onReturn = onReturn,
@@ -406,7 +400,6 @@ private fun JunqiInfoRail(
     onRandomize: () -> Unit,
     onResetDeployment: () -> Unit,
     onReady: () -> Unit,
-    onAcknowledgeBattle: () -> Unit,
     onUndo: () -> Unit,
     onRestart: () -> Unit,
     onReturn: () -> Unit,
@@ -449,9 +442,6 @@ private fun JunqiInfoRail(
                     if (junqiShowsUndo(state.result)) {
                         JunqiButton("悔棋", onUndo, enabled = state.canUndo)
                     }
-                }
-                JunqiPhase.BATTLE_RESULT -> {
-                    JunqiButton("确认判定", onAcknowledgeBattle, primary = true)
                 }
                 else -> Unit
             }
@@ -497,7 +487,6 @@ private fun JunqiStatusBlock(state: JunqiSessionState, robotThinking: Boolean) {
     val activeSide = when (state.phase) {
         JunqiPhase.DEPLOYMENT -> state.currentSide
         JunqiPhase.PLAYING -> state.observation?.currentSide ?: state.currentSide
-        JunqiPhase.BATTLE_RESULT -> state.currentSide
         else -> null
     }
     val title = when (state.phase) {
@@ -512,7 +501,6 @@ private fun JunqiStatusBlock(state: JunqiSessionState, robotThinking: Boolean) {
         } else {
             "${JunqiUiText.sideLabel(state.observation?.currentSide ?: state.currentSide)}回合"
         }
-        JunqiPhase.BATTLE_RESULT -> "碰子判定"
         else -> ""
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -552,10 +540,12 @@ private fun JunqiStatusBlock(state: JunqiSessionState, robotThinking: Boolean) {
                 fontSize = 14.sp,
             )
         }
-        if (state.phase == JunqiPhase.BATTLE_RESULT) {
+        if (state.battleOutcome != null) {
             Spacer(Modifier.height(8.dp))
+            Text("碰子判定", color = JunqiMutedInk, fontSize = 13.sp)
+            Spacer(Modifier.height(2.dp))
             Text(
-                text = JunqiUiText.battleOutcomeLabel(requireNotNull(state.battleOutcome)),
+                text = JunqiUiText.battleOutcomeLabel(state.battleOutcome),
                 color = JunqiHeadquarters,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Black,
