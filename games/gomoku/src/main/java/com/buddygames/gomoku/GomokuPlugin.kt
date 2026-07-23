@@ -179,8 +179,8 @@ class GomokuPlugin : GamePlugin {
         val manifest = GameManifest(
             gameId = "gomoku",
             displayName = "五子棋",
-            versionCode = 5,
-            versionName = "0.0.5",
+            versionCode = 6,
+            versionName = "0.0.6",
             entryClass = "com.buddygames.gomoku.GomokuPlugin",
             minShellApi = 1,
             icon = "assets/icon.png"

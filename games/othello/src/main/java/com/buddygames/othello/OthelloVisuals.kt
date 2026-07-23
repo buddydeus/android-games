@@ -56,6 +56,14 @@ private val Green = Color(0xFF174F3D)
 private val Vermilion = Color(0xFFA2362B)
 private val Ivory = Color(0xFFF8F8F4)
 
+internal const val OTHELLO_LAYOUT_PADDING_DP = 28f
+internal const val OTHELLO_LAYOUT_GAP_DP = 34f
+internal const val OTHELLO_MENU_RAIL_WIDTH_DP = 320f
+internal const val OTHELLO_MENU_RAIL_HEIGHT_FRACTION = 0.88f
+internal const val OTHELLO_GAME_RAIL_WIDTH_DP = 300f
+internal const val OTHELLO_GAME_RAIL_HEIGHT_FRACTION = 0.94f
+internal const val OTHELLO_WIDE_LAYOUT_MIN_WIDTH_DP = 900f
+
 @Composable
 internal fun OthelloMenu(
     texture: ImageBitmap?,
@@ -65,12 +73,20 @@ internal fun OthelloMenu(
     onExit: () -> Unit
 ) {
     GameBackdrop {
-        BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
-            if (maxWidth >= 900.dp) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(OTHELLO_LAYOUT_PADDING_DP.dp)) {
+            if (maxWidth >= OTHELLO_WIDE_LAYOUT_MIN_WIDTH_DP.dp) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     OthelloBoard(OthelloState.initial(), Disc.BLACK, { _, _ -> }, Modifier.weight(1f), texture, interactive = false)
-                    Spacer(Modifier.width(34.dp))
-                    OthelloMenuPanel(versionName, onSingle, onTwo, onExit, Modifier.width(310.dp))
+                    Spacer(Modifier.width(OTHELLO_LAYOUT_GAP_DP.dp))
+                    OthelloMenuPanel(
+                        versionName,
+                        onSingle,
+                        onTwo,
+                        onExit,
+                        Modifier
+                            .width(OTHELLO_MENU_RAIL_WIDTH_DP.dp)
+                            .fillMaxHeight(OTHELLO_MENU_RAIL_HEIGHT_FRACTION)
+                    )
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -137,8 +153,8 @@ internal fun OthelloGameLayout(
     texture: ImageBitmap?
 ) {
     GameBackdrop {
-        BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
-            if (maxWidth >= 900.dp) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(OTHELLO_LAYOUT_PADDING_DP.dp)) {
+            if (maxWidth >= OTHELLO_WIDE_LAYOUT_MIN_WIDTH_DP.dp) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     OthelloBoard(
                         state,
@@ -149,7 +165,7 @@ internal fun OthelloGameLayout(
                         showLegalMoveHints = showLegalMoveHints,
                         lastMove = lastMove
                     )
-                    Spacer(Modifier.width(34.dp))
+                    Spacer(Modifier.width(OTHELLO_LAYOUT_GAP_DP.dp))
                     OthelloInfoRail(
                         state,
                         score,
@@ -160,7 +176,9 @@ internal fun OthelloGameLayout(
                         onUndo,
                         onRestart,
                         onExit,
-                        Modifier.width(300.dp).fillMaxHeight(0.88f)
+                        Modifier
+                            .width(OTHELLO_GAME_RAIL_WIDTH_DP.dp)
+                            .fillMaxHeight(OTHELLO_GAME_RAIL_HEIGHT_FRACTION)
                     )
                 }
             } else {

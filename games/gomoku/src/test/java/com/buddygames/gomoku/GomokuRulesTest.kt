@@ -9,9 +9,9 @@ import org.junit.Test
 class GomokuRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(5, GomokuPlugin.manifest.versionCode)
-        assertEquals("0.0.5", GomokuPlugin.manifest.versionName)
-        assertEquals("版本 0.0.5", gomokuVersionLabel(GomokuPlugin.manifest.versionName))
+        assertEquals(6, GomokuPlugin.manifest.versionCode)
+        assertEquals("0.0.6", GomokuPlugin.manifest.versionName)
+        assertEquals("版本 0.0.6", gomokuVersionLabel(GomokuPlugin.manifest.versionName))
     }
 
     @Test
@@ -117,6 +117,17 @@ class GomokuRulesTest {
         assertEquals(280f, gomokuBoardSide(240f, 500f), 0.001f)
         assertEquals(540f, gomokuBoardSide(720f, 540f), 0.001f)
         assertEquals(680f, gomokuBoardSide(900f, 800f), 0.001f)
+    }
+
+    @Test
+    fun boardAndRailGeometryMatchesTheXiangqiReferenceLayout() {
+        assertEquals(28f, GOMOKU_LAYOUT_PADDING_DP, 0f)
+        assertEquals(34f, GOMOKU_LAYOUT_GAP_DP, 0f)
+        assertEquals(320f, GOMOKU_MENU_RAIL_WIDTH_DP, 0f)
+        assertEquals(0.88f, GOMOKU_MENU_RAIL_HEIGHT_FRACTION, 0f)
+        assertEquals(300f, GOMOKU_GAME_RAIL_WIDTH_DP, 0f)
+        assertEquals(0.94f, GOMOKU_GAME_RAIL_HEIGHT_FRACTION, 0f)
+        assertEquals(900f, GOMOKU_WIDE_LAYOUT_MIN_WIDTH_DP, 0f)
     }
 
     @Test

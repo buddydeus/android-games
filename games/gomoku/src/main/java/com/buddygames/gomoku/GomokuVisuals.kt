@@ -58,6 +58,14 @@ private val Walnut = Color(0xFF55371F)
 private val Maple = Color(0xFFD8A35F)
 private val Ivory = Color(0xFFF8F8F4)
 
+internal const val GOMOKU_LAYOUT_PADDING_DP = 28f
+internal const val GOMOKU_LAYOUT_GAP_DP = 34f
+internal const val GOMOKU_MENU_RAIL_WIDTH_DP = 320f
+internal const val GOMOKU_MENU_RAIL_HEIGHT_FRACTION = 0.88f
+internal const val GOMOKU_GAME_RAIL_WIDTH_DP = 300f
+internal const val GOMOKU_GAME_RAIL_HEIGHT_FRACTION = 0.94f
+internal const val GOMOKU_WIDE_LAYOUT_MIN_WIDTH_DP = 900f
+
 @Composable
 internal fun GomokuMenu(
     texture: ImageBitmap?,
@@ -77,12 +85,20 @@ internal fun GomokuMenu(
             .place(9, 7, Stone.BLACK)
     }
     GameBackdrop {
-        BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
-            if (maxWidth >= 900.dp) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(GOMOKU_LAYOUT_PADDING_DP.dp)) {
+            if (maxWidth >= GOMOKU_WIDE_LAYOUT_MIN_WIDTH_DP.dp) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     GomokuBoard(preview, { _, _ -> }, Modifier.weight(1f), texture, interactive = false)
-                    Spacer(Modifier.width(34.dp))
-                    GomokuMenuPanel(versionName, onSingle, onTwo, onExit, Modifier.width(310.dp))
+                    Spacer(Modifier.width(GOMOKU_LAYOUT_GAP_DP.dp))
+                    GomokuMenuPanel(
+                        versionName,
+                        onSingle,
+                        onTwo,
+                        onExit,
+                        Modifier
+                            .width(GOMOKU_MENU_RAIL_WIDTH_DP.dp)
+                            .fillMaxHeight(GOMOKU_MENU_RAIL_HEIGHT_FRACTION)
+                    )
                 }
             } else {
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -146,8 +162,8 @@ internal fun GomokuGameLayout(
     texture: ImageBitmap?
 ) {
     GameBackdrop {
-        BoxWithConstraints(Modifier.fillMaxSize().padding(28.dp)) {
-            if (maxWidth >= 900.dp) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(GOMOKU_LAYOUT_PADDING_DP.dp)) {
+            if (maxWidth >= GOMOKU_WIDE_LAYOUT_MIN_WIDTH_DP.dp) {
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     GomokuBoard(
                         state,
@@ -156,7 +172,7 @@ internal fun GomokuGameLayout(
                         texture,
                         lastMove = lastMove
                     )
-                    Spacer(Modifier.width(34.dp))
+                    Spacer(Modifier.width(GOMOKU_LAYOUT_GAP_DP.dp))
                     GomokuInfoRail(
                         score,
                         status,
@@ -166,7 +182,9 @@ internal fun GomokuGameLayout(
                         onUndo,
                         onRestart,
                         onExit,
-                        Modifier.width(300.dp).fillMaxHeight(0.88f)
+                        Modifier
+                            .width(GOMOKU_GAME_RAIL_WIDTH_DP.dp)
+                            .fillMaxHeight(GOMOKU_GAME_RAIL_HEIGHT_FRACTION)
                     )
                 }
             } else {

@@ -376,7 +376,9 @@ class JunqiSession private constructor(
     private fun publish(): JunqiSessionState {
         val currentGame = game
         val observation = when (phase) {
-            JunqiPhase.PLAYING -> currentGame?.let { visibleObservation(it) }
+            JunqiPhase.PLAYING,
+            JunqiPhase.BATTLE_RESULT,
+            -> currentGame?.let { visibleObservation(it) }
             JunqiPhase.FINISHED -> currentGame?.let { visibleObservation(it) }
             else -> null
         }
@@ -398,7 +400,9 @@ class JunqiSession private constructor(
             result = currentGame?.result,
             score = score,
             lastMove = lastMove.takeIf {
-                phase == JunqiPhase.PLAYING || phase == JunqiPhase.FINISHED
+                phase == JunqiPhase.PLAYING ||
+                    phase == JunqiPhase.BATTLE_RESULT ||
+                    phase == JunqiPhase.FINISHED
             },
             canUndo = canUndo(),
             robotRequestGeneration = pendingRobotRequest?.generation,

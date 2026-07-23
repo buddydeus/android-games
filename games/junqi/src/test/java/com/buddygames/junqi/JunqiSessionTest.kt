@@ -111,7 +111,7 @@ class JunqiSessionTest {
     }
 
     @Test
-    fun battleResultIsGenericAndMustBeAcknowledgedBeforeHandoff() {
+    fun battleResultKeepsTheMoversVisibleBoardAndUsesAGenericSidebarSummary() {
         val session = JunqiSession.started(
             mode = JunqiMode.TWO_PLAYERS,
             state = battleState(),
@@ -121,15 +121,17 @@ class JunqiSessionTest {
 
         assertEquals(JunqiPhase.BATTLE_RESULT, result.phase)
         assertEquals(JunqiBattleOutcome.ATTACKER_WINS, result.battleOutcome)
-        assertNull(result.observation)
+        val observation = requireNotNull(result.observation)
+        assertEquals(JunqiSide.RED, observation.viewer)
+        assertEquals(JunqiMove(at(3, 0), at(3, 1)), result.lastMove)
+        assertTrue(observation.opponentPieces.all { piece -> piece.id != "blue-engineer" })
         assertTrue(result.deployment.isEmpty())
-        assertNull(result.lastMove)
         assertTrue(
             JunqiSessionState::class.java.declaredFields.none { field ->
                 field.type == JunqiPieceType::class.java || field.type == JunqiState::class.java
             },
         )
-        assertBattleProjectionHasNoHiddenValues(result)
+        assertBattleProjectionHasNoHiddenValues(result.battleOutcome)
 
         val handoff = session.acknowledgeBattle()
         assertOpaqueHandoff(handoff, JunqiSide.BLUE)

@@ -75,6 +75,14 @@ private val CheckRed = Color(0xFFB0443D)
 private val FocusTeal = Color(0xFF08758A)
 private val BrightBlue = Color(CHESS_LAST_MOVE_MARKER_HIGHLIGHT_ARGB)
 
+internal const val CHESS_LAYOUT_PADDING_DP = 28f
+internal const val CHESS_LAYOUT_GAP_DP = 34f
+internal const val CHESS_MENU_RAIL_WIDTH_DP = 320f
+internal const val CHESS_MENU_RAIL_HEIGHT_FRACTION = 0.88f
+internal const val CHESS_GAME_RAIL_WIDTH_DP = 300f
+internal const val CHESS_GAME_RAIL_HEIGHT_FRACTION = 0.94f
+internal const val CHESS_WIDE_LAYOUT_MIN_WIDTH_DP = 900f
+
 internal fun chessModelSquare(displayRow: Int, displayCol: Int, rotated: Boolean): Int {
     require(displayRow in 0..7 && displayCol in 0..7)
     return if (rotated) {
@@ -86,8 +94,8 @@ internal fun chessModelSquare(displayRow: Int, displayCol: Int, rotated: Boolean
 
 internal fun chessUsesSideBySideLayout(
     availableWidthDp: Float,
-    availableHeightDp: Float
-): Boolean = availableWidthDp >= 700f && availableWidthDp > availableHeightDp
+    _availableHeightDp: Float
+): Boolean = availableWidthDp >= CHESS_WIDE_LAYOUT_MIN_WIDTH_DP
 
 @Composable
 internal fun ChessMenu(
@@ -98,9 +106,8 @@ internal fun ChessMenu(
     onExit: () -> Unit
 ) {
     ChessBackdrop {
-        BoxWithConstraints(Modifier.fillMaxSize().padding(24.dp)) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(CHESS_LAYOUT_PADDING_DP.dp)) {
             if (chessUsesSideBySideLayout(maxWidth.value, maxHeight.value)) {
-                val panelWidth = (maxWidth * 0.34f).coerceIn(250.dp, 330.dp)
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     ChessBoard(
                         state = ChessState.initial(),
@@ -114,13 +121,15 @@ internal fun ChessMenu(
                         onTap = {},
                         modifier = Modifier.weight(1f)
                     )
-                    Spacer(Modifier.width(24.dp))
+                    Spacer(Modifier.width(CHESS_LAYOUT_GAP_DP.dp))
                     ChessMenuPanel(
                         versionName,
                         onSingle,
                         onTwo,
                         onExit,
-                        Modifier.width(panelWidth).fillMaxHeight(0.88f)
+                        Modifier
+                            .width(CHESS_MENU_RAIL_WIDTH_DP.dp)
+                            .fillMaxHeight(CHESS_MENU_RAIL_HEIGHT_FRACTION)
                     )
                 }
             } else {
@@ -213,9 +222,8 @@ internal fun ChessGameLayout(
     onReturn: () -> Unit
 ) {
     ChessBackdrop {
-        BoxWithConstraints(Modifier.fillMaxSize().padding(24.dp)) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(CHESS_LAYOUT_PADDING_DP.dp)) {
             if (chessUsesSideBySideLayout(maxWidth.value, maxHeight.value)) {
-                val railWidth = (maxWidth * 0.32f).coerceIn(238.dp, 300.dp)
                 Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                     ChessBoard(
                         state,
@@ -229,7 +237,7 @@ internal fun ChessGameLayout(
                         onTap,
                         Modifier.weight(1f)
                     )
-                    Spacer(Modifier.width(24.dp))
+                    Spacer(Modifier.width(CHESS_LAYOUT_GAP_DP.dp))
                     ChessInfoRail(
                         state.sideToMove,
                         status,
@@ -241,7 +249,9 @@ internal fun ChessGameLayout(
                         onUndo,
                         onRestart,
                         onReturn,
-                        Modifier.width(railWidth).fillMaxHeight(0.94f)
+                        Modifier
+                            .width(CHESS_GAME_RAIL_WIDTH_DP.dp)
+                            .fillMaxHeight(CHESS_GAME_RAIL_HEIGHT_FRACTION)
                     )
                 }
             } else {

@@ -13,8 +13,8 @@ class JunqiPluginTest {
 
         assertEquals("junqi", manifest.gameId)
         assertEquals("军棋", manifest.displayName)
-        assertEquals(9, manifest.versionCode)
-        assertEquals("0.0.9", manifest.versionName)
+        assertEquals(10, manifest.versionCode)
+        assertEquals("0.0.10", manifest.versionName)
         assertEquals("com.buddygames.junqi.JunqiPlugin", manifest.entryClass)
         assertEquals(1, manifest.minShellApi)
         assertEquals("landscape", manifest.orientation)
@@ -25,26 +25,26 @@ class JunqiPluginTest {
     fun menuUsesSharedLabelsAndManifestVersion() {
         assertEquals("军棋", JunqiUiText.TITLE)
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), JunqiUiText.MENU_LABELS)
-        assertEquals("版本 0.0.9", JunqiUiText.versionLabel)
+        assertEquals("版本 0.0.10", JunqiUiText.versionLabel)
         assertEquals("版本 7.8.9", JunqiUiText.versionLabel("7.8.9"))
         assertEquals("橙方", JunqiUiText.sideLabel(JunqiSide.RED))
         assertEquals("绿方", JunqiUiText.sideLabel(JunqiSide.BLUE))
     }
 
     @Test
-    fun landscapeGeometryKeepsBoardAndFixedRailSideBySideAtEightHundredBySixHundred() {
-        val layout = junqiLandscapeLayout(availableWidthDp = 800f, availableHeightDp = 600f)
-
-        assertEquals(240f, layout.railWidthDp, 0.001f)
-        assertEquals(20f, layout.gapDp, 0.001f)
-        assertEquals(560f, layout.boardHeightDp, 0.001f)
-        assertEquals(466.66666f, layout.boardWidthDp, 0.001f)
-        assertTrue(layout.boardWidthDp + layout.gapDp + layout.railWidthDp <= 760f)
-        assertEquals(
-            JunqiVisuals.BOARD_TEXTURE_WIDTH.toFloat() / JunqiVisuals.BOARD_TEXTURE_HEIGHT,
-            layout.boardWidthDp / layout.boardHeightDp,
-            0.0001f,
-        )
+    fun boardAndRailGeometryMatchesTheXiangqiReferenceLayout() {
+        assertEquals(28f, JUNQI_LAYOUT_PADDING_DP, 0f)
+        assertEquals(34f, JUNQI_LAYOUT_GAP_DP, 0f)
+        assertEquals(320f, JUNQI_MENU_RAIL_WIDTH_DP, 0f)
+        assertEquals(0.88f, JUNQI_MENU_RAIL_HEIGHT_FRACTION, 0f)
+        assertEquals(300f, JUNQI_GAME_RAIL_WIDTH_DP, 0f)
+        assertEquals(0.94f, JUNQI_GAME_RAIL_HEIGHT_FRACTION, 0f)
+        assertEquals(900f, JUNQI_WIDE_LAYOUT_MIN_WIDTH_DP, 0f)
+        assertTrue(junqiUsesSideBySideLayout(1224f))
+        assertFalse(junqiUsesSideBySideLayout(752f))
+        val board = junqiBoardSize(availableWidthDp = 882f, availableHeightDp = 836f)
+        assertEquals(696.6667f, board.widthDp, 0.001f)
+        assertEquals(836f, board.heightDp, 0.001f)
     }
 
     @Test
@@ -138,6 +138,8 @@ class JunqiPluginTest {
         assertTrue(junqiShowsUndo(null))
         assertTrue(junqiShowsRestart(JunqiResult.DRAW))
         assertFalse(junqiShowsRestart(null))
+        assertTrue(junqiShowsBoardAndRail(JunqiPhase.BATTLE_RESULT))
+        assertFalse(junqiShowsBoardAndRail(JunqiPhase.HANDOFF))
     }
 
     private fun piece(

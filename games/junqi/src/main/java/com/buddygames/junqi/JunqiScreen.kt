@@ -66,52 +66,33 @@ internal object JunqiUiText {
     }
 }
 
-internal data class JunqiLandscapeLayout(
-    val horizontalPaddingDp: Float,
-    val verticalPaddingDp: Float,
-    val gapDp: Float,
-    val boardWidthDp: Float,
-    val boardHeightDp: Float,
-    val railWidthDp: Float,
-    val contentHeightDp: Float,
-) {
-    val contentWidthDp: Float
-        get() = boardWidthDp + gapDp + railWidthDp
-}
+internal const val JUNQI_LAYOUT_PADDING_DP = 28f
+internal const val JUNQI_LAYOUT_GAP_DP = 34f
+internal const val JUNQI_MENU_RAIL_WIDTH_DP = 320f
+internal const val JUNQI_MENU_RAIL_HEIGHT_FRACTION = 0.88f
+internal const val JUNQI_GAME_RAIL_WIDTH_DP = 300f
+internal const val JUNQI_GAME_RAIL_HEIGHT_FRACTION = 0.94f
+internal const val JUNQI_WIDE_LAYOUT_MIN_WIDTH_DP = 900f
 
-internal fun junqiLandscapeLayout(
+internal data class JunqiBoardSize(val widthDp: Float, val heightDp: Float)
+
+internal fun junqiUsesSideBySideLayout(availableWidthDp: Float): Boolean =
+    availableWidthDp >= JUNQI_WIDE_LAYOUT_MIN_WIDTH_DP
+
+internal fun junqiBoardSize(
     availableWidthDp: Float,
     availableHeightDp: Float,
-): JunqiLandscapeLayout {
+): JunqiBoardSize {
     require(availableWidthDp > 0f && availableHeightDp > 0f)
-    val horizontalPadding = 20f
-    val verticalPadding = 20f
-    val gap = 20f
-    val innerWidth = (availableWidthDp - horizontalPadding * 2f).coerceAtLeast(1f)
-    val contentHeight = (availableHeightDp - verticalPadding * 2f).coerceAtLeast(1f)
-    val railWidth = (availableWidthDp * 0.30f)
-        .coerceIn(220f, 280f)
-        .coerceAtMost((innerWidth - gap - 1f).coerceAtLeast(1f))
-    val availableBoardWidth = (innerWidth - gap - railWidth).coerceAtLeast(1f)
-    val boardHeight = minOf(
-        contentHeight,
-        availableBoardWidth / JUNQI_BOARD_ASPECT_RATIO,
-        760f,
-    )
-    return JunqiLandscapeLayout(
-        horizontalPaddingDp = horizontalPadding,
-        verticalPaddingDp = verticalPadding,
-        gapDp = gap,
-        boardWidthDp = boardHeight * JUNQI_BOARD_ASPECT_RATIO,
-        boardHeightDp = boardHeight,
-        railWidthDp = railWidth,
-        contentHeightDp = contentHeight,
-    )
+    val height = minOf(availableHeightDp, availableWidthDp / JUNQI_BOARD_ASPECT_RATIO)
+    return JunqiBoardSize(widthDp = height * JUNQI_BOARD_ASPECT_RATIO, heightDp = height)
 }
 
 internal fun junqiShowsUndo(result: JunqiResult?): Boolean = result?.winner == null
 
 internal fun junqiShowsRestart(result: JunqiResult?): Boolean = result != null
+
+internal fun junqiShowsBoardAndRail(phase: JunqiPhase): Boolean = phase != JunqiPhase.HANDOFF
 
 @Composable
 internal fun JunqiMenu(
@@ -122,38 +103,59 @@ internal fun JunqiMenu(
     onExit: () -> Unit,
 ) {
     JunqiBackdrop {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val layout = junqiLandscapeLayout(maxWidth.value, maxHeight.value)
-            Row(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .width(layout.contentWidthDp.dp)
-                    .height(layout.contentHeightDp.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                JunqiBoardView(
-                    boardTexture = textures.board,
-                    pieces = emptyList(),
-                    bottomSide = JunqiSide.RED,
-                    selected = null,
-                    legalDestinations = emptySet(),
-                    lastMove = null,
-                    interactive = false,
-                    onTap = {},
-                    modifier = Modifier.size(layout.boardWidthDp.dp, layout.boardHeightDp.dp),
-                )
-                Spacer(Modifier.width(layout.gapDp.dp))
-                JunqiMenuPanel(
-                    icon = textures.icon,
-                    shelf = textures.shelf,
-                    versionName = versionName,
-                    onSingle = onSingle,
-                    onTwoPlayers = onTwoPlayers,
-                    onExit = onExit,
-                    modifier = Modifier
-                        .width(layout.railWidthDp.dp)
-                        .height(layout.contentHeightDp.dp),
-                )
+        BoxWithConstraints(Modifier.fillMaxSize().padding(JUNQI_LAYOUT_PADDING_DP.dp)) {
+            if (junqiUsesSideBySideLayout(maxWidth.value)) {
+                Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                    JunqiBoardPane(
+                        boardTexture = textures.board,
+                        pieces = emptyList(),
+                        bottomSide = JunqiSide.RED,
+                        selected = null,
+                        legalDestinations = emptySet(),
+                        lastMove = null,
+                        interactive = false,
+                        onTap = {},
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(JUNQI_LAYOUT_GAP_DP.dp))
+                    JunqiMenuPanel(
+                        icon = textures.icon,
+                        shelf = textures.shelf,
+                        versionName = versionName,
+                        onSingle = onSingle,
+                        onTwoPlayers = onTwoPlayers,
+                        onExit = onExit,
+                        modifier = Modifier
+                            .width(JUNQI_MENU_RAIL_WIDTH_DP.dp)
+                            .fillMaxHeight(JUNQI_MENU_RAIL_HEIGHT_FRACTION),
+                    )
+                }
+            } else {
+                Column(
+                    Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                ) {
+                    JunqiBoardPane(
+                        boardTexture = textures.board,
+                        pieces = emptyList(),
+                        bottomSide = JunqiSide.RED,
+                        selected = null,
+                        legalDestinations = emptySet(),
+                        lastMove = null,
+                        interactive = false,
+                        onTap = {},
+                        modifier = Modifier.weight(1f),
+                    )
+                    JunqiMenuPanel(
+                        icon = textures.icon,
+                        shelf = textures.shelf,
+                        versionName = versionName,
+                        onSingle = onSingle,
+                        onTwoPlayers = onTwoPlayers,
+                        onExit = onExit,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -178,12 +180,9 @@ internal fun JunqiGameLayout(
 ) {
     when (state.phase) {
         JunqiPhase.HANDOFF -> JunqiHandoffScreen(state.currentSide, onAcceptHandoff)
-        JunqiPhase.BATTLE_RESULT -> JunqiBattleResultScreen(
-            outcome = requireNotNull(state.battleOutcome),
-            onConfirm = onAcknowledgeBattle,
-        )
         JunqiPhase.DEPLOYMENT,
         JunqiPhase.PLAYING,
+        JunqiPhase.BATTLE_RESULT,
         JunqiPhase.FINISHED,
         -> JunqiBoardAndRail(
             state = state,
@@ -195,6 +194,7 @@ internal fun JunqiGameLayout(
             onRandomize = onRandomize,
             onResetDeployment = onResetDeployment,
             onReady = onReady,
+            onAcknowledgeBattle = onAcknowledgeBattle,
             onUndo = onUndo,
             onRestart = onRestart,
             onReturn = onReturn,
@@ -213,6 +213,7 @@ private fun JunqiBoardAndRail(
     onRandomize: () -> Unit,
     onResetDeployment: () -> Unit,
     onReady: () -> Unit,
+    onAcknowledgeBattle: () -> Unit,
     onUndo: () -> Unit,
     onRestart: () -> Unit,
     onReturn: () -> Unit,
@@ -231,42 +232,98 @@ private fun JunqiBoardAndRail(
     }
 
     JunqiBackdrop {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val layout = junqiLandscapeLayout(maxWidth.value, maxHeight.value)
-            Row(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .width(layout.contentWidthDp.dp)
-                    .height(layout.contentHeightDp.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                JunqiBoardView(
-                    boardTexture = textures.board,
-                    pieces = pieces,
-                    bottomSide = bottomSide,
-                    selected = selected,
-                    legalDestinations = legalDestinations,
-                    lastMove = state.lastMove,
-                    interactive = interactive,
-                    onTap = onBoardTap,
-                    modifier = Modifier.size(layout.boardWidthDp.dp, layout.boardHeightDp.dp),
-                )
-                Spacer(Modifier.width(layout.gapDp.dp))
-                JunqiInfoRail(
-                    state = state,
-                    robotThinking = robotThinking,
-                    onRandomize = onRandomize,
-                    onResetDeployment = onResetDeployment,
-                    onReady = onReady,
-                    onUndo = onUndo,
-                    onRestart = onRestart,
-                    onReturn = onReturn,
-                    modifier = Modifier
-                        .width(layout.railWidthDp.dp)
-                        .height(layout.contentHeightDp.dp),
-                )
+        BoxWithConstraints(Modifier.fillMaxSize().padding(JUNQI_LAYOUT_PADDING_DP.dp)) {
+            if (junqiUsesSideBySideLayout(maxWidth.value)) {
+                Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                    JunqiBoardPane(
+                        boardTexture = textures.board,
+                        pieces = pieces,
+                        bottomSide = bottomSide,
+                        selected = selected,
+                        legalDestinations = legalDestinations,
+                        lastMove = state.lastMove,
+                        interactive = interactive,
+                        onTap = onBoardTap,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(JUNQI_LAYOUT_GAP_DP.dp))
+                    JunqiInfoRail(
+                        state = state,
+                        robotThinking = robotThinking,
+                        onRandomize = onRandomize,
+                        onResetDeployment = onResetDeployment,
+                        onReady = onReady,
+                        onAcknowledgeBattle = onAcknowledgeBattle,
+                        onUndo = onUndo,
+                        onRestart = onRestart,
+                        onReturn = onReturn,
+                        modifier = Modifier
+                            .width(JUNQI_GAME_RAIL_WIDTH_DP.dp)
+                            .fillMaxHeight(JUNQI_GAME_RAIL_HEIGHT_FRACTION),
+                    )
+                }
+            } else {
+                Column(
+                    Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                ) {
+                    JunqiBoardPane(
+                        boardTexture = textures.board,
+                        pieces = pieces,
+                        bottomSide = bottomSide,
+                        selected = selected,
+                        legalDestinations = legalDestinations,
+                        lastMove = state.lastMove,
+                        interactive = interactive,
+                        onTap = onBoardTap,
+                        modifier = Modifier.weight(1f),
+                    )
+                    JunqiInfoRail(
+                        state = state,
+                        robotThinking = robotThinking,
+                        onRandomize = onRandomize,
+                        onResetDeployment = onResetDeployment,
+                        onReady = onReady,
+                        onAcknowledgeBattle = onAcknowledgeBattle,
+                        onUndo = onUndo,
+                        onRestart = onRestart,
+                        onReturn = onReturn,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun JunqiBoardPane(
+    boardTexture: ImageBitmap?,
+    pieces: List<JunqiVisiblePiece>,
+    bottomSide: JunqiSide,
+    selected: JunqiPosition?,
+    legalDestinations: Set<JunqiPosition>,
+    lastMove: JunqiMove?,
+    interactive: Boolean,
+    onTap: (JunqiPosition) -> Unit,
+    modifier: Modifier,
+) {
+    BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val board = junqiBoardSize(
+            availableWidthDp = (maxWidth.value - 8f).coerceAtLeast(1f),
+            availableHeightDp = (maxHeight.value - 8f).coerceAtLeast(1f),
+        )
+        JunqiBoardView(
+            boardTexture = boardTexture,
+            pieces = pieces,
+            bottomSide = bottomSide,
+            selected = selected,
+            legalDestinations = legalDestinations,
+            lastMove = lastMove,
+            interactive = interactive,
+            onTap = onTap,
+            modifier = Modifier.size(board.widthDp.dp, board.heightDp.dp),
+        )
     }
 }
 
@@ -349,6 +406,7 @@ private fun JunqiInfoRail(
     onRandomize: () -> Unit,
     onResetDeployment: () -> Unit,
     onReady: () -> Unit,
+    onAcknowledgeBattle: () -> Unit,
     onUndo: () -> Unit,
     onRestart: () -> Unit,
     onReturn: () -> Unit,
@@ -391,6 +449,9 @@ private fun JunqiInfoRail(
                     if (junqiShowsUndo(state.result)) {
                         JunqiButton("悔棋", onUndo, enabled = state.canUndo)
                     }
+                }
+                JunqiPhase.BATTLE_RESULT -> {
+                    JunqiButton("确认判定", onAcknowledgeBattle, primary = true)
                 }
                 else -> Unit
             }
@@ -436,6 +497,7 @@ private fun JunqiStatusBlock(state: JunqiSessionState, robotThinking: Boolean) {
     val activeSide = when (state.phase) {
         JunqiPhase.DEPLOYMENT -> state.currentSide
         JunqiPhase.PLAYING -> state.observation?.currentSide ?: state.currentSide
+        JunqiPhase.BATTLE_RESULT -> state.currentSide
         else -> null
     }
     val title = when (state.phase) {
@@ -450,6 +512,7 @@ private fun JunqiStatusBlock(state: JunqiSessionState, robotThinking: Boolean) {
         } else {
             "${JunqiUiText.sideLabel(state.observation?.currentSide ?: state.currentSide)}回合"
         }
+        JunqiPhase.BATTLE_RESULT -> "碰子判定"
         else -> ""
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -489,6 +552,15 @@ private fun JunqiStatusBlock(state: JunqiSessionState, robotThinking: Boolean) {
                 fontSize = 14.sp,
             )
         }
+        if (state.phase == JunqiPhase.BATTLE_RESULT) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = JunqiUiText.battleOutcomeLabel(requireNotNull(state.battleOutcome)),
+                color = JunqiHeadquarters,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Black,
+            )
+        }
     }
 }
 
@@ -513,38 +585,6 @@ private fun JunqiHandoffScreen(side: JunqiSide, onAccept: () -> Unit) {
             JunqiButton(
                 label = "接管棋盘",
                 onClick = onAccept,
-                primary = true,
-                modifier = Modifier.width(220.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun JunqiBattleResultScreen(
-    outcome: JunqiBattleOutcome,
-    onConfirm: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(JunqiPrivacy),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            Text("碰子结果", color = JunqiPrivacyMuted, fontSize = 16.sp)
-            Text(
-                text = JunqiUiText.battleOutcomeLabel(outcome),
-                color = Color.White,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            JunqiButton(
-                label = "确认",
-                onClick = onConfirm,
                 primary = true,
                 modifier = Modifier.width(220.dp),
             )
@@ -649,4 +689,3 @@ private val JunqiBrass = Color(JunqiVisuals.FALLBACK_STATION_COLOR)
 private val JunqiRailSurface = Color(0xFFF6F7F3)
 private val JunqiRailOutline = Color(JunqiVisuals.FALLBACK_BOUNDARY_COLOR)
 private val JunqiPrivacy = Color(0xFF182523)
-private val JunqiPrivacyMuted = Color(0xFFB8C7C2)

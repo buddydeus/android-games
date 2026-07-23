@@ -10,9 +10,9 @@ import org.junit.Test
 class ChessSessionTest {
     @Test
     fun gameVersionAndUnifiedMenuLabelsStayAligned() {
-        assertEquals(9, ChessPlugin.manifest.versionCode)
-        assertEquals("0.0.9", ChessPlugin.manifest.versionName)
-        assertEquals("版本 0.0.9", chessVersionLabel(ChessPlugin.manifest.versionName))
+        assertEquals(10, ChessPlugin.manifest.versionCode)
+        assertEquals("0.0.10", ChessPlugin.manifest.versionName)
+        assertEquals("版本 0.0.10", chessVersionLabel(ChessPlugin.manifest.versionName))
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), chessMenuLabels())
     }
 
@@ -227,9 +227,20 @@ class ChessSessionTest {
 
     @Test
     fun commonLandscapeTabletKeepsBoardAndRailSideBySide() {
-        assertTrue(chessUsesSideBySideLayout(752f, 552f))
         assertTrue(chessUsesSideBySideLayout(1224f, 744f))
+        assertFalse(chessUsesSideBySideLayout(752f, 552f))
         assertFalse(chessUsesSideBySideLayout(552f, 752f))
+    }
+
+    @Test
+    fun boardAndRailGeometryMatchesTheXiangqiReferenceLayout() {
+        assertEquals(28f, CHESS_LAYOUT_PADDING_DP, 0f)
+        assertEquals(34f, CHESS_LAYOUT_GAP_DP, 0f)
+        assertEquals(320f, CHESS_MENU_RAIL_WIDTH_DP, 0f)
+        assertEquals(0.88f, CHESS_MENU_RAIL_HEIGHT_FRACTION, 0f)
+        assertEquals(300f, CHESS_GAME_RAIL_WIDTH_DP, 0f)
+        assertEquals(0.94f, CHESS_GAME_RAIL_HEIGHT_FRACTION, 0f)
+        assertEquals(900f, CHESS_WIDE_LAYOUT_MIN_WIDTH_DP, 0f)
     }
 
     @Test

@@ -107,7 +107,7 @@ TABLET MATCH
 
 ### Responsive Rules
 
-- `>= 1024dp`: three fixed-proportion shelf slots; match layout is board plus 280dp information rail.
+- `>= 900dp` available game width: match layout follows the Xiangqi reference geometry with 28dp outer padding, a 34dp board/rail gap, a centered aspect-preserving board, and a 300dp information rail at 94% content height. Menu rails use 320dp width at 88% content height.
 - `600dp–1023dp`: two columns then one; the import action becomes a compact icon-plus-label button only when its label still fits.
 - `< 600dp` or portrait: library uses one column; game info rail drops below the board as three equal semantic regions, with the exit button on a separate row.
 - Never scale text by viewport width. Use the type roles above and allow wrapping where needed.

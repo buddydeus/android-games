@@ -147,8 +147,8 @@ The board is the primary unframed work surface; a single full-height score-sheet
 ### Responsive rules
 
 - Target landscape tablets from 800 x 600 dp upward.
-- At widths >= 700 dp, board and rail stay side by side; the board is a stable square and never stretches.
-- The rail is 288-320 dp wide and uses full height rather than a floating card.
+- At available widths >= 900 dp, board and rail stay side by side; the board is a stable square and never stretches.
+- Match the Xiangqi reference geometry: 28 dp outer padding, 34 dp board/rail gap, 300 dp game rail at 94% content height, and 320 dp menu rail at 88% content height.
 - At compact or portrait sizes, board appears first and the rail becomes a full-width band below it.
 - Board squares remain equal and provide the full square as the touch target.
 - Text must wrap before reducing below the specified minimum sizes.

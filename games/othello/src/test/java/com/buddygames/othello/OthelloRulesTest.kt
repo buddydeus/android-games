@@ -10,9 +10,9 @@ import org.junit.Test
 class OthelloRulesTest {
     @Test
     fun gameVersionAndMainMenuLabelStayAligned() {
-        assertEquals(5, OthelloPlugin.manifest.versionCode)
-        assertEquals("0.0.5", OthelloPlugin.manifest.versionName)
-        assertEquals("版本 0.0.5", othelloVersionLabel(OthelloPlugin.manifest.versionName))
+        assertEquals(6, OthelloPlugin.manifest.versionCode)
+        assertEquals("0.0.6", OthelloPlugin.manifest.versionName)
+        assertEquals("版本 0.0.6", othelloVersionLabel(OthelloPlugin.manifest.versionName))
     }
 
     @Test
@@ -122,6 +122,17 @@ class OthelloRulesTest {
         assertEquals(288f, othelloBoardSide(240f, 500f), 0.001f)
         assertEquals(560f, othelloBoardSide(720f, 560f), 0.001f)
         assertEquals(672f, othelloBoardSide(900f, 800f), 0.001f)
+    }
+
+    @Test
+    fun boardAndRailGeometryMatchesTheXiangqiReferenceLayout() {
+        assertEquals(28f, OTHELLO_LAYOUT_PADDING_DP, 0f)
+        assertEquals(34f, OTHELLO_LAYOUT_GAP_DP, 0f)
+        assertEquals(320f, OTHELLO_MENU_RAIL_WIDTH_DP, 0f)
+        assertEquals(0.88f, OTHELLO_MENU_RAIL_HEIGHT_FRACTION, 0f)
+        assertEquals(300f, OTHELLO_GAME_RAIL_WIDTH_DP, 0f)
+        assertEquals(0.94f, OTHELLO_GAME_RAIL_HEIGHT_FRACTION, 0f)
+        assertEquals(900f, OTHELLO_WIDE_LAYOUT_MIN_WIDTH_DP, 0f)
     }
 
     @Test
