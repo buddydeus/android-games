@@ -13,8 +13,8 @@ class JunqiPluginTest {
 
         assertEquals("junqi", manifest.gameId)
         assertEquals("军棋", manifest.displayName)
-        assertEquals(11, manifest.versionCode)
-        assertEquals("0.0.11", manifest.versionName)
+        assertEquals(12, manifest.versionCode)
+        assertEquals("0.0.12", manifest.versionName)
         assertEquals("com.buddygames.junqi.JunqiPlugin", manifest.entryClass)
         assertEquals(1, manifest.minShellApi)
         assertEquals("landscape", manifest.orientation)
@@ -25,7 +25,7 @@ class JunqiPluginTest {
     fun menuUsesSharedLabelsAndManifestVersion() {
         assertEquals("军棋", JunqiUiText.TITLE)
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), JunqiUiText.MENU_LABELS)
-        assertEquals("版本 0.0.11", JunqiUiText.versionLabel)
+        assertEquals("版本 0.0.12", JunqiUiText.versionLabel)
         assertEquals("版本 7.8.9", JunqiUiText.versionLabel("7.8.9"))
         assertEquals("橙方", JunqiUiText.sideLabel(JunqiSide.RED))
         assertEquals("绿方", JunqiUiText.sideLabel(JunqiSide.BLUE))
@@ -126,9 +126,13 @@ class JunqiPluginTest {
 
     @Test
     fun battleAndTerminalLabelsStayGenericAndUndoFollowsWinnerRule() {
-        val battleLabels = JunqiBattleOutcome.entries.map(JunqiUiText::battleOutcomeLabel)
+        val battleLabels = listOf(
+            JunqiUiText.battleWinnerLabel(JunqiSide.RED),
+            JunqiUiText.battleWinnerLabel(JunqiSide.BLUE),
+            JunqiUiText.battleWinnerLabel(null),
+        )
 
-        assertEquals(listOf("进攻方胜", "防守方胜", "同归于尽"), battleLabels)
+        assertEquals(listOf("橙方胜", "绿方胜", "同归于尽"), battleLabels)
         JunqiPieceType.entries.forEach { type ->
             assertTrue(battleLabels.none { label -> label.contains(junqiPieceLabel(type)) })
         }

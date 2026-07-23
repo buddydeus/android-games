@@ -111,7 +111,7 @@ class JunqiSessionTest {
     }
 
     @Test
-    fun twoPlayerBattleMovesDirectlyToHandoffThenShowsGenericResultToNextPlayer() {
+    fun twoPlayerBattleShowsWinnerColorAndOnlyTheNextPlayersOwnPiece() {
         val session = JunqiSession.started(
             mode = JunqiMode.TWO_PLAYERS,
             state = battleState(),
@@ -122,7 +122,10 @@ class JunqiSessionTest {
         assertOpaqueHandoff(handoff, JunqiSide.BLUE)
         val playing = session.acceptHandoff()
         assertEquals(JunqiPhase.PLAYING, playing.phase)
-        assertEquals(JunqiBattleOutcome.ATTACKER_WINS, playing.battleOutcome)
+        assertEquals(
+            JunqiBattleSummary(winnerSide = JunqiSide.RED, ownPieceLabel = "工兵"),
+            playing.battleSummary,
+        )
         val observation = requireNotNull(playing.observation)
         assertEquals(JunqiSide.BLUE, observation.viewer)
         assertEquals(JunqiMove(at(3, 0), at(3, 1)), playing.lastMove)
@@ -133,7 +136,7 @@ class JunqiSessionTest {
                 field.type == JunqiPieceType::class.java || field.type == JunqiState::class.java
             },
         )
-        assertBattleProjectionHasNoHiddenValues(playing.battleOutcome)
+        assertBattleProjectionHasNoHiddenValues(playing.battleSummary)
     }
 
     @Test
@@ -148,7 +151,7 @@ class JunqiSessionTest {
     }
 
     @Test
-    fun singlePlayerBattleImmediatelyGeneratesOnlyTheRobotPublicRequest() {
+    fun singlePlayerBattleWinShowsWinnerColorAndThePlayersOwnPiece() {
         val session = JunqiSession.started(
             mode = JunqiMode.SINGLE_PLAYER,
             playerSide = JunqiSide.RED,
@@ -159,7 +162,10 @@ class JunqiSessionTest {
         val request = requireNotNull(session.robotRequest)
 
         assertEquals(JunqiPhase.PLAYING, playing.phase)
-        assertEquals(JunqiBattleOutcome.ATTACKER_WINS, playing.battleOutcome)
+        assertEquals(
+            JunqiBattleSummary(winnerSide = JunqiSide.RED, ownPieceLabel = "司令"),
+            playing.battleSummary,
+        )
         assertEquals(JunqiSide.BLUE, playing.currentSide)
         assertEquals(JunqiSide.RED, playing.observation?.viewer)
         assertEquals(JunqiSide.BLUE, request.observation.viewer)
@@ -168,6 +174,29 @@ class JunqiSessionTest {
         assertTrue(request.knowledge.activePieceIds.contains("red-commander"))
         assertFalse(JunqiPieceType.FLAG in request.knowledge.candidatesFor("red-commander"))
         assertFalse(JunqiPieceType.MINE in request.knowledge.candidatesFor("red-commander"))
+    }
+
+    @Test
+    fun singlePlayerBattleLossStillShowsThePlayersOwnPiece() {
+        val session = JunqiSession.started(
+            mode = JunqiMode.SINGLE_PLAYER,
+            playerSide = JunqiSide.RED,
+            state = stateOf(
+                piece("red-engineer", JunqiSide.RED, JunqiPieceType.ENGINEER, 3, 0),
+                piece("red-flag", JunqiSide.RED, JunqiPieceType.FLAG, 11, 1),
+                piece("blue-commander", JunqiSide.BLUE, JunqiPieceType.COMMANDER, 3, 1),
+                piece("blue-spare", JunqiSide.BLUE, JunqiPieceType.ENGINEER, 8, 1),
+                piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
+            ),
+        )
+
+        val playing = session.play(JunqiMove(at(3, 0), at(3, 1)))
+
+        assertEquals(
+            JunqiBattleSummary(winnerSide = JunqiSide.BLUE, ownPieceLabel = "工兵"),
+            playing.battleSummary,
+        )
+        assertBattleProjectionHasNoHiddenValues(playing.battleSummary)
     }
 
     @Test
@@ -397,7 +426,7 @@ class JunqiSessionTest {
         assertEquals(side, state.currentSide)
         assertNull(state.observation)
         assertTrue(state.deployment.isEmpty())
-        assertNull(state.battleOutcome)
+        assertNull(state.battleSummary)
         assertNull(state.lastMove)
     }
 
