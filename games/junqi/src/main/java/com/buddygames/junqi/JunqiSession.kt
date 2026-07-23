@@ -43,6 +43,7 @@ data class JunqiRobotRequest(
 
 data class JunqiBattleSummary(
     val winnerSide: JunqiSide?,
+    val winnerRoleLabel: String?,
     val ownPieceLabel: String,
 )
 
@@ -56,6 +57,8 @@ data class JunqiSessionState(
     val selectedDeploymentPiece: JunqiPosition?,
     val observation: JunqiObservation?,
     val battleSummary: JunqiBattleSummary?,
+    val ownTurnBattleSummary: JunqiBattleSummary?,
+    val opponentTurnBattleSummary: JunqiBattleSummary?,
     val result: JunqiResult?,
     val score: JunqiScore,
     val lastMove: JunqiMove?,
@@ -64,7 +67,9 @@ data class JunqiSessionState(
 )
 
 private data class JunqiBattleRecord(
+    val attackerSide: JunqiSide,
     val winnerSide: JunqiSide?,
+    val winnerRoleLabel: String?,
     val ownPieceLabels: Map<JunqiSide, String>,
 )
 
@@ -74,6 +79,7 @@ private data class JunqiSessionSnapshot(
     val score: JunqiScore,
     val lastMove: JunqiMove?,
     val lastBattleRecord: JunqiBattleRecord?,
+    val battleRecordsByAttacker: Map<JunqiSide, JunqiBattleRecord>,
 )
 
 class JunqiSession private constructor(
@@ -95,6 +101,7 @@ class JunqiSession private constructor(
     private var history = mutableListOf<JunqiSessionSnapshot>()
     private var lastMove: JunqiMove? = null
     private var lastBattleRecord: JunqiBattleRecord? = null
+    private var battleRecordsByAttacker = emptyMap<JunqiSide, JunqiBattleRecord>()
     private var generation = 0L
     private var roundIndex = 0L
     private var deploymentRandomizationIndex = 0L
@@ -229,6 +236,7 @@ class JunqiSession private constructor(
         score = snapshot.score
         lastMove = snapshot.lastMove
         lastBattleRecord = snapshot.lastBattleRecord
+        battleRecordsByAttacker = snapshot.battleRecordsByAttacker
         surfaceSide = snapshot.game.currentSide
         phase = if (mode == JunqiMode.SINGLE_PLAYER) JunqiPhase.PLAYING else JunqiPhase.HANDOFF
         return refresh()
@@ -253,6 +261,7 @@ class JunqiSession private constructor(
         history.clear()
         lastMove = null
         lastBattleRecord = null
+        battleRecordsByAttacker = emptyMap()
         selectedDeploymentPiece = null
         surfaceSide = playerSide
         deployments = linkedMapOf(playerSide to JunqiDeployment.default(playerSide))
@@ -270,6 +279,7 @@ class JunqiSession private constructor(
         history.clear()
         lastMove = null
         lastBattleRecord = null
+        battleRecordsByAttacker = emptyMap()
     }
 
     private fun settleMove(movingSide: JunqiSide): JunqiSessionState {
@@ -298,18 +308,28 @@ class JunqiSession private constructor(
         game = after
         lastMove = move
         lastBattleRecord = defender?.let {
-            val winnerSide = when (requireNotNull(after.lastBattleOutcome)) {
+            val outcome = requireNotNull(after.lastBattleOutcome)
+            val winnerSide = when (outcome) {
                 JunqiBattleOutcome.ATTACKER_WINS -> attacker.side
                 JunqiBattleOutcome.DEFENDER_WINS -> defender.side
                 JunqiBattleOutcome.BOTH_REMOVED -> null
             }
             JunqiBattleRecord(
+                attackerSide = attacker.side,
                 winnerSide = winnerSide,
+                winnerRoleLabel = when (outcome) {
+                    JunqiBattleOutcome.ATTACKER_WINS -> "进攻"
+                    JunqiBattleOutcome.DEFENDER_WINS -> "防守"
+                    JunqiBattleOutcome.BOTH_REMOVED -> null
+                },
                 ownPieceLabels = mapOf(
                     attacker.side to junqiPieceLabel(attacker.type),
                     defender.side to junqiPieceLabel(defender.type),
                 ),
             )
+        }
+        lastBattleRecord?.let { battle ->
+            battleRecordsByAttacker = battleRecordsByAttacker + (battle.attackerSide to battle)
         }
     }
 
@@ -382,6 +402,7 @@ class JunqiSession private constructor(
         score = score,
         lastMove = lastMove,
         lastBattleRecord = lastBattleRecord,
+        battleRecordsByAttacker = battleRecordsByAttacker,
     )
 
     private fun currentDeployment(): List<JunqiPiece> =
@@ -399,13 +420,15 @@ class JunqiSession private constructor(
         } else {
             emptyList()
         }
-        val battleSummary = observation?.viewer?.let { viewer ->
-            lastBattleRecord?.let { battle ->
-                JunqiBattleSummary(
-                    winnerSide = battle.winnerSide,
-                    ownPieceLabel = battle.ownPieceLabels.getValue(viewer),
-                )
-            }
+        val viewer = observation?.viewer
+        val battleSummary = viewer?.takeIf { mode == JunqiMode.TWO_PLAYERS }?.let {
+            lastBattleRecord?.toSummary(it)
+        }
+        val ownTurnBattleSummary = viewer?.takeIf { mode == JunqiMode.SINGLE_PLAYER }?.let {
+            battleRecordsByAttacker[playerSide]?.toSummary(it)
+        }
+        val opponentTurnBattleSummary = viewer?.takeIf { mode == JunqiMode.SINGLE_PLAYER }?.let {
+            battleRecordsByAttacker[other(playerSide)]?.toSummary(it)
         }
         return JunqiSessionState(
             phase = phase,
@@ -417,6 +440,8 @@ class JunqiSession private constructor(
             selectedDeploymentPiece = selectedDeploymentPiece,
             observation = observation,
             battleSummary = battleSummary,
+            ownTurnBattleSummary = ownTurnBattleSummary,
+            opponentTurnBattleSummary = opponentTurnBattleSummary,
             result = currentGame?.result,
             score = score,
             lastMove = lastMove.takeIf {
@@ -432,6 +457,13 @@ class JunqiSession private constructor(
         val viewer = if (mode == JunqiMode.SINGLE_PLAYER) playerSide else surfaceSide
         return JunqiObservation.from(current, viewer)
     }
+
+    private fun JunqiBattleRecord.toSummary(viewer: JunqiSide): JunqiBattleSummary =
+        JunqiBattleSummary(
+            winnerSide = winnerSide,
+            winnerRoleLabel = winnerRoleLabel,
+            ownPieceLabel = ownPieceLabels.getValue(viewer),
+        )
 
     private fun refresh(): JunqiSessionState {
         state = publish()

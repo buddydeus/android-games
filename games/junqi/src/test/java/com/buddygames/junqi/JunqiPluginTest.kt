@@ -13,8 +13,8 @@ class JunqiPluginTest {
 
         assertEquals("junqi", manifest.gameId)
         assertEquals("军棋", manifest.displayName)
-        assertEquals(12, manifest.versionCode)
-        assertEquals("0.0.12", manifest.versionName)
+        assertEquals(13, manifest.versionCode)
+        assertEquals("0.0.13", manifest.versionName)
         assertEquals("com.buddygames.junqi.JunqiPlugin", manifest.entryClass)
         assertEquals(1, manifest.minShellApi)
         assertEquals("landscape", manifest.orientation)
@@ -25,10 +25,30 @@ class JunqiPluginTest {
     fun menuUsesSharedLabelsAndManifestVersion() {
         assertEquals("军棋", JunqiUiText.TITLE)
         assertEquals(listOf("单人模式", "双人对战", "退出游戏"), JunqiUiText.MENU_LABELS)
-        assertEquals("版本 0.0.12", JunqiUiText.versionLabel)
+        assertEquals("版本 0.0.13", JunqiUiText.versionLabel)
         assertEquals("版本 7.8.9", JunqiUiText.versionLabel("7.8.9"))
         assertEquals("橙方", JunqiUiText.sideLabel(JunqiSide.RED))
         assertEquals("绿方", JunqiUiText.sideLabel(JunqiSide.BLUE))
+        assertEquals(
+            "橙方胜 - 防守",
+            JunqiUiText.battleWinnerLabel(
+                JunqiBattleSummary(
+                    winnerSide = JunqiSide.RED,
+                    winnerRoleLabel = "防守",
+                    ownPieceLabel = "工兵",
+                ),
+            ),
+        )
+        assertEquals(
+            "同归于尽",
+            JunqiUiText.battleWinnerLabel(
+                JunqiBattleSummary(
+                    winnerSide = null,
+                    winnerRoleLabel = null,
+                    ownPieceLabel = "炸弹",
+                ),
+            ),
+        )
     }
 
     @Test
@@ -125,14 +145,20 @@ class JunqiPluginTest {
     }
 
     @Test
-    fun battleAndTerminalLabelsStayGenericAndUndoFollowsWinnerRule() {
+    fun battleAndTerminalLabelsStayObserverSafeAndUndoFollowsWinnerRule() {
         val battleLabels = listOf(
-            JunqiUiText.battleWinnerLabel(JunqiSide.RED),
-            JunqiUiText.battleWinnerLabel(JunqiSide.BLUE),
-            JunqiUiText.battleWinnerLabel(null),
+            JunqiUiText.battleWinnerLabel(
+                JunqiBattleSummary(JunqiSide.RED, "进攻", "工兵"),
+            ),
+            JunqiUiText.battleWinnerLabel(
+                JunqiBattleSummary(JunqiSide.BLUE, "防守", "工兵"),
+            ),
+            JunqiUiText.battleWinnerLabel(
+                JunqiBattleSummary(null, null, "炸弹"),
+            ),
         )
 
-        assertEquals(listOf("橙方胜", "绿方胜", "同归于尽"), battleLabels)
+        assertEquals(listOf("橙方胜 - 进攻", "绿方胜 - 防守", "同归于尽"), battleLabels)
         JunqiPieceType.entries.forEach { type ->
             assertTrue(battleLabels.none { label -> label.contains(junqiPieceLabel(type)) })
         }

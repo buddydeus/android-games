@@ -52,8 +52,10 @@ internal object JunqiUiText {
 
     fun sideLabel(side: JunqiSide): String = if (side == JunqiSide.RED) "橙方" else "绿方"
 
-    fun battleWinnerLabel(winnerSide: JunqiSide?): String =
-        winnerSide?.let { "${sideLabel(it)}胜" } ?: "同归于尽"
+    fun battleWinnerLabel(summary: JunqiBattleSummary): String =
+        summary.winnerSide?.let { winner ->
+            "${sideLabel(winner)}胜 - ${requireNotNull(summary.winnerRoleLabel)}"
+        } ?: "同归于尽"
 
     fun resultLabel(result: JunqiResult, mode: JunqiMode, playerSide: JunqiSide): String = when {
         result == JunqiResult.DRAW -> "和棋"
@@ -537,39 +539,47 @@ private fun JunqiStatusBlock(state: JunqiSessionState, robotThinking: Boolean) {
                 fontSize = 14.sp,
             )
         }
-        val battleSummary = state.battleSummary
-        if (battleSummary != null) {
-            Spacer(Modifier.height(8.dp))
-            Text("碰子判定", color = JunqiMutedInk, fontSize = 13.sp)
-            Spacer(Modifier.height(5.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (battleSummary.winnerSide == null) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        JunqiFactionSwatch(JunqiSide.RED)
-                        JunqiFactionSwatch(JunqiSide.BLUE)
-                    }
-                } else {
-                    JunqiFactionSwatch(battleSummary.winnerSide)
-                }
-                Text(
-                    text = JunqiUiText.battleWinnerLabel(battleSummary.winnerSide),
-                    color = battleSummary.winnerSide?.let(::junqiFactionColor) ?: JunqiInk,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Black,
-                )
-            }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "我方棋子：${battleSummary.ownPieceLabel}",
-                color = JunqiInk,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
+        if (state.mode == JunqiMode.SINGLE_PLAYER) {
+            JunqiBattleSummaryBlock("上回合我方碰子结果", state.ownTurnBattleSummary)
+            JunqiBattleSummaryBlock("上回合对方碰子结果", state.opponentTurnBattleSummary)
+        } else {
+            JunqiBattleSummaryBlock("碰子判定", state.battleSummary)
         }
     }
+}
+
+@Composable
+private fun JunqiBattleSummaryBlock(title: String, summary: JunqiBattleSummary?) {
+    if (summary == null) return
+    Spacer(Modifier.height(8.dp))
+    Text(title, color = JunqiMutedInk, fontSize = 13.sp)
+    Spacer(Modifier.height(3.dp))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        if (summary.winnerSide == null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                JunqiFactionSwatch(JunqiSide.RED)
+                JunqiFactionSwatch(JunqiSide.BLUE)
+            }
+        } else {
+            JunqiFactionSwatch(summary.winnerSide)
+        }
+        Text(
+            text = JunqiUiText.battleWinnerLabel(summary),
+            color = summary.winnerSide?.let(::junqiFactionColor) ?: JunqiInk,
+            fontSize = 19.sp,
+            fontWeight = FontWeight.Black,
+        )
+    }
+    Spacer(Modifier.height(2.dp))
+    Text(
+        text = "我方棋子：${summary.ownPieceLabel}",
+        color = JunqiInk,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+    )
 }
 
 @Composable

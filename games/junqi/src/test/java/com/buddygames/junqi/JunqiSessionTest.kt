@@ -123,9 +123,15 @@ class JunqiSessionTest {
         val playing = session.acceptHandoff()
         assertEquals(JunqiPhase.PLAYING, playing.phase)
         assertEquals(
-            JunqiBattleSummary(winnerSide = JunqiSide.RED, ownPieceLabel = "工兵"),
+            JunqiBattleSummary(
+                winnerSide = JunqiSide.RED,
+                winnerRoleLabel = "进攻",
+                ownPieceLabel = "工兵",
+            ),
             playing.battleSummary,
         )
+        assertNull(playing.ownTurnBattleSummary)
+        assertNull(playing.opponentTurnBattleSummary)
         val observation = requireNotNull(playing.observation)
         assertEquals(JunqiSide.BLUE, observation.viewer)
         assertEquals(JunqiMove(at(3, 0), at(3, 1)), playing.lastMove)
@@ -163,9 +169,15 @@ class JunqiSessionTest {
 
         assertEquals(JunqiPhase.PLAYING, playing.phase)
         assertEquals(
-            JunqiBattleSummary(winnerSide = JunqiSide.RED, ownPieceLabel = "司令"),
-            playing.battleSummary,
+            JunqiBattleSummary(
+                winnerSide = JunqiSide.RED,
+                winnerRoleLabel = "进攻",
+                ownPieceLabel = "司令",
+            ),
+            playing.ownTurnBattleSummary,
         )
+        assertNull(playing.opponentTurnBattleSummary)
+        assertNull(playing.battleSummary)
         assertEquals(JunqiSide.BLUE, playing.currentSide)
         assertEquals(JunqiSide.RED, playing.observation?.viewer)
         assertEquals(JunqiSide.BLUE, request.observation.viewer)
@@ -193,10 +205,53 @@ class JunqiSessionTest {
         val playing = session.play(JunqiMove(at(3, 0), at(3, 1)))
 
         assertEquals(
-            JunqiBattleSummary(winnerSide = JunqiSide.BLUE, ownPieceLabel = "工兵"),
-            playing.battleSummary,
+            JunqiBattleSummary(
+                winnerSide = JunqiSide.BLUE,
+                winnerRoleLabel = "防守",
+                ownPieceLabel = "工兵",
+            ),
+            playing.ownTurnBattleSummary,
         )
-        assertBattleProjectionHasNoHiddenValues(playing.battleSummary)
+        assertBattleProjectionHasNoHiddenValues(playing.ownTurnBattleSummary)
+    }
+
+    @Test
+    fun singlePlayerRetainsTheLatestPlayerAndRobotBattleResults() {
+        val session = JunqiSession.started(
+            mode = JunqiMode.SINGLE_PLAYER,
+            playerSide = JunqiSide.RED,
+            state = stateOf(
+                piece("red-regiment", JunqiSide.RED, JunqiPieceType.REGIMENT, 3, 0),
+                piece("red-flag", JunqiSide.RED, JunqiPieceType.FLAG, 11, 1),
+                piece("blue-engineer", JunqiSide.BLUE, JunqiPieceType.ENGINEER, 3, 1),
+                piece("blue-commander", JunqiSide.BLUE, JunqiPieceType.COMMANDER, 3, 2),
+                piece("blue-flag", JunqiSide.BLUE, JunqiPieceType.FLAG, 0, 1),
+            ),
+        )
+
+        val afterPlayer = session.play(JunqiMove(at(3, 0), at(3, 1)))
+        val request = requireNotNull(session.robotRequest)
+        val afterRobot = session.applyRobotMove(request, JunqiMove(at(3, 2), at(3, 1)))
+
+        assertEquals(
+            JunqiBattleSummary(
+                winnerSide = JunqiSide.RED,
+                winnerRoleLabel = "进攻",
+                ownPieceLabel = "团长",
+            ),
+            afterPlayer.ownTurnBattleSummary,
+        )
+        assertEquals(afterPlayer.ownTurnBattleSummary, afterRobot.ownTurnBattleSummary)
+        assertEquals(
+            JunqiBattleSummary(
+                winnerSide = JunqiSide.BLUE,
+                winnerRoleLabel = "进攻",
+                ownPieceLabel = "团长",
+            ),
+            afterRobot.opponentTurnBattleSummary,
+        )
+        assertBattleProjectionHasNoHiddenValues(afterRobot.ownTurnBattleSummary)
+        assertBattleProjectionHasNoHiddenValues(afterRobot.opponentTurnBattleSummary)
     }
 
     @Test
@@ -427,6 +482,8 @@ class JunqiSessionTest {
         assertNull(state.observation)
         assertTrue(state.deployment.isEmpty())
         assertNull(state.battleSummary)
+        assertNull(state.ownTurnBattleSummary)
+        assertNull(state.opponentTurnBattleSummary)
         assertNull(state.lastMove)
     }
 
