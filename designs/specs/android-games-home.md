@@ -1,7 +1,7 @@
 # Design Brief — Android Games 轻质感主界面
 
 **Slug:** `android-games-home`
-**User brief (verbatim summary):** “增加一点质感”，同时延续简单主界面、等尺寸游戏按钮、仅使用游戏特征 Logo 的要求。
+**User brief (verbatim summary):** “增加一点质感”，同时延续简单主界面、等尺寸游戏按钮、仅使用游戏特征 Logo 的要求；游戏选择区采用 4 列网格，尾行不足 4 个时不居中。
 **Stack:** Kotlin、Jetpack Compose、Material 3（Android Pad，离线）
 **Iteration:** 2026-07-16T00:00:00+08:00
 
@@ -136,6 +136,10 @@ LANDSCAPE TABLET · 16:10
 | │  displayName │ │  displayName │ │  displayName │ │  displayName │         |
 | ╰──────────────╯ ╰──────────────╯ ╰──────────────╯ ╰──────────────╯         |
 |    equal square     equal square     equal square     equal square            |
+| ╭──────────────╮                                                             |
+| │  (包 Logo)   │       incomplete row starts at column one                    |
+| │  displayName │                                                             |
+| ╰──────────────╯                                                             |
 +------------------------------------------------------------------------------+
 
 PORTRAIT / COMPACT
@@ -159,8 +163,9 @@ PORTRAIT / COMPACT
 
 ### Size and responsive rules
 
-- `>= 1108dp` 横屏：每行最多四个按钮，均为 `240dp × 240dp`，间距 `28dp`。
-- `600–1107dp` 横屏：每行最多四个按钮，等分可用宽度，统一高宽比 1:1，最大 240dp。
+- `>= 1108dp` 横屏：固定四列，按钮均为 `240dp × 240dp`，间距 `28dp`。
+- `600–1107dp` 横屏：固定四列，按钮等分可用宽度，统一高宽比 1:1，最大 240dp。
+- 横屏尾行不足四个按钮时，按钮从第一列开始占位，剩余列保持为空，不得将尾行按钮居中。
 - `< 600dp` 或竖屏：按钮均为全宽 `112dp` 高；Logo 槽统一为 64dp。
 - 不允许某个按钮单独加深阴影、改变底色、抬高位置或放大 Logo。
 - 圆角统一 20dp；按钮间距不少于 16dp。
@@ -185,8 +190,8 @@ PORTRAIT / COMPACT
 
 | Preview | Spec doc | Description |
 | --- | --- | --- |
-| `designs/previews/android-games-home-desktop.png` | `designs/images/android-games-home-desktop.md` | 原三游戏横屏质感参考；当前实现扩展为四个同规格方形按钮。 |
-| `designs/previews/android-games-home-mobile.png` | `designs/images/android-games-home-mobile.md` | 原三游戏竖屏质感参考；当前实现扩展为四个同规格横向按钮。 |
+| `designs/previews/android-games-home-desktop.png` | `designs/images/android-games-home-desktop.md` | 原三游戏横屏质感参考；当前实现为固定四列、尾行从第一列开始的同规格方形按钮。 |
+| `designs/previews/android-games-home-mobile.png` | `designs/images/android-games-home-mobile.md` | 原三游戏竖屏质感参考；当前紧凑实现为单列同规格横向按钮。 |
 
 ## Implementation notes（Step 4 handoff）
 

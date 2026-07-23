@@ -28,6 +28,16 @@ internal fun rankGamePackages(
 
 internal fun gameCenterVersionLabel(versionName: String): String = "版本 $versionName"
 
+internal fun homeGameGridRows(
+    packages: List<GamePackage>,
+    columns: Int
+): List<List<GamePackage?>> {
+    require(columns > 0)
+    return packages.chunked(columns).map { row ->
+        row.map<GamePackage, GamePackage?> { it } + List(columns - row.size) { null }
+    }
+}
+
 internal fun homeGameLayout(widthDp: Float, heightDp: Float): HomeGameLayout {
     if (widthDp < 600 || heightDp > widthDp) {
         return HomeGameLayout(

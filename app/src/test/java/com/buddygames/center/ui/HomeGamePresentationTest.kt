@@ -9,7 +9,7 @@ import java.io.File
 class HomeGamePresentationTest {
     @Test
     fun gameCenterVersionUsesReadableHomeLabel() {
-        assertEquals("版本 0.0.3", gameCenterVersionLabel("0.0.3"))
+        assertEquals("版本 0.0.4", gameCenterVersionLabel("0.0.4"))
     }
 
     @Test
@@ -136,6 +136,27 @@ class HomeGamePresentationTest {
         assertEquals(32, atWideBreakpoint.horizontalPaddingDp)
         assertEquals(28, atWideBreakpoint.gapDp)
         assertEquals(112, atWideBreakpoint.logoSizeDp)
+    }
+
+    @Test
+    fun squareGridKeepsAnIncompleteFinalRowInTheLeadingColumns() {
+        val games = (1..5).map { index -> gamePackage("game-$index", "Game $index") }
+
+        val rows = homeGameGridRows(games, columns = 4)
+
+        assertEquals(2, rows.size)
+        assertEquals(listOf("game-1", "game-2", "game-3", "game-4"), rows[0].map { it?.manifest?.gameId })
+        assertEquals(listOf("game-5", null, null, null), rows[1].map { it?.manifest?.gameId })
+    }
+
+    @Test
+    fun squareGridDoesNotAddEmptySlotsToCompleteRows() {
+        val games = (1..8).map { index -> gamePackage("game-$index", "Game $index") }
+
+        val rows = homeGameGridRows(games, columns = 4)
+
+        assertEquals(2, rows.size)
+        assertEquals(0, rows.flatten().count { it == null })
     }
 
     private fun gamePackage(gameId: String, displayName: String): GamePackage {

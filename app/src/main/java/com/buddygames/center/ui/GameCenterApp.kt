@@ -333,7 +333,7 @@ private fun SquareGameButtons(
 ) {
     val buttonSize = requireNotNull(layout.buttonSizeDp).dp
     Column(verticalArrangement = Arrangement.spacedBy(layout.gapDp.dp)) {
-        packages.chunked(layout.maxColumns).forEach { rowPackages ->
+        homeGameGridRows(packages, layout.maxColumns).forEach { rowPackages ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(
@@ -342,13 +342,17 @@ private fun SquareGameButtons(
                 )
             ) {
                 rowPackages.forEach { gamePackage ->
-                    GameSelectionButton(
-                        gamePackage = gamePackage,
-                        logoSizeDp = layout.logoSizeDp,
-                        horizontalContent = false,
-                        modifier = Modifier.size(buttonSize),
-                        onClick = { onOpen(gamePackage) }
-                    )
+                    if (gamePackage == null) {
+                        Spacer(Modifier.size(buttonSize))
+                    } else {
+                        GameSelectionButton(
+                            gamePackage = gamePackage,
+                            logoSizeDp = layout.logoSizeDp,
+                            horizontalContent = false,
+                            modifier = Modifier.size(buttonSize),
+                            onClick = { onOpen(gamePackage) }
+                        )
+                    }
                 }
             }
         }

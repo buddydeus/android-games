@@ -15,10 +15,11 @@ The approved implementation baseline for the two-player hidden-information Junqi
 Current game behavior:
 
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
-- The game-center shell currently uses `versionCode = 3` and `versionName = 0.0.3`; the home top bar displays `BuildConfig.VERSION_NAME`.
+- The game-center shell currently uses `versionCode = 4` and `versionName = 0.0.4`; the home top bar displays `BuildConfig.VERSION_NAME`.
 - Home game names and logos come only from each installed package's `displayName` and `icon` manifest fields. The shell supports bounded package-local PNG, WebP, JPEG, and compact text icon files and must not branch on known game IDs for presentation.
 - All five built-in packages provide a `1024 x 1024` circular-safe PNG at `assets/icon.png`; Gomoku, Othello, Xiangqi, and International Chess follow `designs/specs/android-game-package-logos.md`, while Junqi follows `docs/superpowers/specs/2026-07-21-junqi-game-design.md`. Package verification requires that entry.
 - The home game order is the descending persisted count of successful plugin loads. Equal counts use package display name and then game ID for deterministic, package-agnostic ordering.
+- The landscape home game selector uses a fixed four-column grid. Incomplete final rows occupy the leading columns and retain empty trailing slots instead of centering their buttons; compact and portrait layouts remain a single column.
 - All game menus use `单人模式`, `双人对战`, and `退出游戏`.
 - Every game owns an independent version starting at `0.0.1`, and its main menu displays `GameManifest.versionName`.
 - All games own their rules, robot, UI, score state, and restart flow inside their game module.
@@ -42,7 +43,7 @@ Current game behavior:
 Current design direction:
 
 - `designs/specs/junqi-ui.md` is the approved and implemented Junqi visual SSOT. It uses `designs/references/junqi-classic-board-reference.jpg` for the traditional low-saturation straw-gold board form: labeled rectangular stations, oval camps, red headquarters, dark/ivory sleeper railways, three separate center bridges, solid green/orange square military pieces, maximized white Black-weight rank text, and a flat modern order-ledger rail. Preserve all existing rules, privacy projections, exact 12x5 graph, Xiangqi-reference outer geometry, package ownership, fallback behavior, and shared last-move marker.
-- `designs/specs/android-games-home.md` defines the light mineral-grey, matte-porcelain home screen with equal-size package-driven game buttons and no game-specific shell styling; its wide style starts only when four 240dp buttons fit without a breakpoint shrink.
+- `designs/specs/android-games-home.md` defines the light mineral-grey, matte-porcelain home screen with equal-size package-driven game buttons and no game-specific shell styling; landscape layouts use four stable columns with leading-aligned incomplete rows, and the wide style starts only when four 240dp buttons fit without a breakpoint shrink.
 - `designs/specs/android-game-package-logos.md` defines the four package-owned circular PNG logos and their shared cool-porcelain medallion style.
 - `designs/specs/android-games-family-versus-logo.md` records the approved game-center brand Logo: two face-to-face players around a shared game table. Root `logo.svg` and all launcher resources must preserve the user-selected 1254×1254 artwork without cropping or reinterpretation.
 - The approved app-icon artwork is a 1254×1254 source embedded byte-for-byte in root `logo.svg`; `AppIconResourcesTest` guards its SHA-256 plus legacy/adaptive launcher resource wiring.
