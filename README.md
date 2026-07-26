@@ -27,6 +27,7 @@
 | `games/xiangqi/` | 象棋规则、机器人、界面和包资源 |
 | `games/chess/` | 国际象棋规则、1–10 级搜索 AI、界面和包资源 |
 | `games/junqi/` | 军棋规则、隐藏信息公平 AI、界面和包资源 |
+| `games/doushouqi/` | 正在实现的斗兽棋独立包；标准规则、1–10 级 AI、界面和包资源 |
 | `scripts/` | 本地调试启动脚本 |
 | `docs/` | 架构设计、实施计划和游戏包开发说明 |
 
@@ -191,6 +192,7 @@ $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
 ./gradlew :games:xiangqi:testDebugUnitTest
 ./gradlew :games:chess:testDebugUnitTest
 ./gradlew :games:junqi:testDebugUnitTest
+./gradlew :games:doushouqi:testDebugUnitTest
 ```
 
 修改单个游戏时，应先运行对应模块测试，再运行 `npm run verify` 完成集成验证。
