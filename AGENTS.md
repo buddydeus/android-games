@@ -83,6 +83,7 @@ Run from repository root:
 - `./gradlew :games:gomoku:testDebugUnitTest` — single game rules tests (swap module name as needed)
 - `./gradlew :games:chess:testDebugUnitTest` — International Chess rules, session, and AI tests
 - `./gradlew :games:junqi:testDebugUnitTest` — Junqi rules, hidden-information AI, session, UI, assets, and manifest-contract tests
+- `./gradlew :games:doushouqi:testDebugUnitTest` — Dou Shou Qi manifest, rules, AI, session, UI, and assets tests
 - `./gradlew :games:xiangqi:testDebugUnitTest --tests com.buddygames.xiangqi.XiangqiAiCalibrationTest -PxiangqiCalibration=true -PxiangqiCalibrationPair=1` — opt-in long Xiangqi color-swapped calibration for levels 1 vs 2; use pair values 1-9
 
 `pnpm run <script>` works the same; lockfile has no runtime deps.
@@ -98,6 +99,7 @@ Run from repository root:
 | `games/xiangqi/` | Xiangqi plugin module + package layout + game README |
 | `games/chess/` | International Chess plugin module + package layout + game README |
 | `games/junqi/` | Fifth built-in Junqi package: deterministic deployment, immutable rules, hidden-information observations, knowledge, fair offline AI, and package-owned UI/assets |
+| `games/doushouqi/` | In-progress independent Dou Shou Qi package: standard 7x9 rules, deterministic 1-10 AI, session, and package-owned UI/assets |
 | `build.gradle.kts` | Registers `package*Game` zip tasks (jar → d8 → plugin.apk → zip) |
 | `scripts/connect-android-device.sh` | Lists USB ADB transports and verifies one exact device serial |
 | `scripts/test-connect-android-device.sh` | Fake-ADB regression tests for host-side device connection states |
