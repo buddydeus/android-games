@@ -36,6 +36,19 @@ class DoushouqiSessionTest {
     }
 
     @Test
+    fun twoPlayerRestartAlwaysReturnsToGreenFirst() {
+        val session = DoushouqiSession(
+            DoushouqiMode.TWO_PLAYERS,
+            winningState(DoushouqiSide.PINE_GREEN),
+        )
+        session.play(move(pos(1, 3), pos(0, 3)))
+
+        val restarted = session.restart()
+        assertEquals(DoushouqiSide.PINE_GREEN, restarted.position.sideToMove)
+        assertEquals(DoushouqiSide.PINE_GREEN, restarted.playerSide)
+    }
+
+    @Test
     fun restartSwapsAfterPlayerWinAndRobotOpensWithoutUndoHistory() {
         val session = DoushouqiSession(
             DoushouqiMode.SINGLE_PLAYER,
