@@ -14,6 +14,8 @@ The approved implementation baseline for the two-player hidden-information Junqi
 
 The approved design for the next independent Dou Shou Qi package is `docs/superpowers/specs/2026-07-26-doushouqi-game-design.md`. Until its implementation lands, keep documentation explicit that it is approved but not yet one of the five built-in packages. Its implementation must preserve the standard 7x9 terrain, complete animal/rank/river/jump/trap/den rules, deterministic score-driven 1-10 offline search, Xiangqi-family session behavior, package-only ownership, and `designs/specs/doushouqi-ui.md` visual SSOT.
 
+The in-progress Dou Shou Qi module already owns its immutable 7x9 initial board, orthogonal movement, Rat-only river access, Rat-blocked Lion/Tiger jumps, rank captures, Rat/Elephant exception, terrain-bound Rat captures, and trap weakening. Keep these rules and their board/movement/capture tests together in `games/doushouqi/`.
+
 Current game behavior:
 
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
@@ -188,6 +190,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [games/othello/README.md](games/othello/README.md) | Othello rules, robot priority, pass flow, assets, and commands |
 | [games/xiangqi/README.md](games/xiangqi/README.md) | Xiangqi rules, ten-level AI, ceramic assets, calibration, and commands |
 | [games/chess/README.md](games/chess/README.md) | International Chess rules, ten-level AI, draw handling, textures, and commands |
+| [games/doushouqi/README.md](games/doushouqi/README.md) | In-progress Dou Shou Qi rules, AI, session, UI, assets, and commands |
 | [docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md) | Product scope, architecture, non-goals |
 | [docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md](docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md) | MVP task breakdown and file map |
 | [docs/superpowers/plans/2026-07-18-xiangqi-intelligence-gradient.md](docs/superpowers/plans/2026-07-18-xiangqi-intelligence-gradient.md) | TDD implementation steps for the Xiangqi ten-level search engine and score-driven single-player flow |
