@@ -123,7 +123,11 @@ class DoushouqiSession internal constructor(
     }
 
     fun restart(): DoushouqiSessionState {
-        playerSide = nextPlayerSide(playerSide, position.result)
+        playerSide = if (mode == DoushouqiMode.TWO_PLAYERS) {
+            DoushouqiSide.PINE_GREEN
+        } else {
+            nextPlayerSide(playerSide, position.result)
+        }
         position = DoushouqiState.initial()
         history = emptyList()
         generation++
