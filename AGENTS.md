@@ -198,6 +198,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [docs/superpowers/specs/2026-07-18-international-chess-game-design.md](docs/superpowers/specs/2026-07-18-international-chess-game-design.md) | International Chess rules, session behavior, UI, packaging, and offline 1-10 AI |
 | [docs/superpowers/specs/2026-07-21-junqi-game-design.md](docs/superpowers/specs/2026-07-21-junqi-game-design.md) | Approved two-player hidden-information Junqi rules, AI boundary, UI, packaging, and tests |
 | [docs/superpowers/specs/2026-07-26-doushouqi-game-design.md](docs/superpowers/specs/2026-07-26-doushouqi-game-design.md) | Approved Dou Shou Qi rules, session behavior, 1-10 offline AI, UI, packaging, and tests |
+| [docs/superpowers/plans/2026-07-26-doushouqi-game.md](docs/superpowers/plans/2026-07-26-doushouqi-game.md) | TDD implementation steps for Dou Shou Qi rules, search, session, UI, assets, and package integration |
 | [docs/superpowers/specs/2026-07-21-usb-adb-connect-script-design.md](docs/superpowers/specs/2026-07-21-usb-adb-connect-script-design.md) | USB ADB device listing and exact-serial connection command contract |
 | [docs/superpowers/plans/2026-07-21-usb-adb-connect-script.md](docs/superpowers/plans/2026-07-21-usb-adb-connect-script.md) | TDD implementation steps for USB ADB device listing and exact-serial verification |
 | [docs/agents/game-plugins.md](docs/agents/game-plugins.md) | GamePlugin contract, zip layout, adding a game |
