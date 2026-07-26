@@ -46,4 +46,20 @@ class DoushouqiSearchEngineTest {
 
         assertEquals(first, second)
     }
+
+    @Test
+    fun cancelledSearchReturnsLegalFallbackWithoutExpanding() {
+        val state = DoushouqiState.initial()
+        val result = DoushouqiSearchEngine.search(
+            state = state,
+            level = DoushouqiAiLevel.forLevel(10),
+            nanoTime = { 0L },
+            shouldStop = { true },
+        )
+
+        requireNotNull(result)
+        assertTrue(result.move in DoushouqiRules.legalMoves(state))
+        assertEquals(0, result.completedDepth)
+        assertEquals(0, result.nodes)
+    }
 }

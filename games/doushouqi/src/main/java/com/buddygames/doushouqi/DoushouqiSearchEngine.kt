@@ -7,10 +7,12 @@ object DoushouqiSearchEngine {
         state: DoushouqiState,
         level: DoushouqiAiLevel,
         nanoTime: () -> Long = System::nanoTime,
+        shouldStop: () -> Boolean = { false },
     ): DoushouqiSearchResult? {
-        val legalMoves = DoushouqiRules.legalMoves(state)
+        val position = DoushouqiSearchPosition(state)
+        val legalMoves = position.legalMoves()
         if (legalMoves.isEmpty()) return null
-        val fallback = orderedMoves(state, legalMoves).first()
+        val fallback = orderMoves(position, legalMoves, null, null, null).first()
         val start = nanoTime()
         val budgetNanos = level.timeBudgetMillis * 1_000_000L
         val deadline = if (Long.MAX_VALUE - start < budgetNanos) {
@@ -23,15 +25,17 @@ object DoushouqiSearchEngine {
             level = level,
             deadline = deadline,
             nanoTime = nanoTime,
+            shouldStop = shouldStop,
         )
         var completedDepth = 0
         var completedScores: List<ScoredMove> = emptyList()
         var timedOut = false
         for (depth in 1..level.maxDepth) {
             try {
-                val scores = context.searchRoot(state, depth)
+                val scores = context.searchRoot(position, depth)
                 completedScores = scores
                 completedDepth = depth
+                context.principalVariation[0] = scores.firstOrNull()?.move
             } catch (stopped: SearchStopped) {
                 timedOut = stopped.timedOut
                 break
@@ -55,44 +59,60 @@ object DoushouqiSearchEngine {
         val level: DoushouqiAiLevel,
         val deadline: Long,
         val nanoTime: () -> Long,
+        val shouldStop: () -> Boolean,
     ) {
         var nodes: Int = 0
             private set
+        val principalVariation = arrayOfNulls<DoushouqiMove>(MAX_PLY)
+        private val killerMoves = arrayOfNulls<DoushouqiMove>(MAX_PLY)
+        private val history = IntArray(
+            DoushouqiState.SQUARES * DoushouqiState.SQUARES,
+        )
         private val transpositions = LinkedHashMap<Long, TranspositionEntry>()
 
         fun searchRoot(
-            state: DoushouqiState,
+            position: DoushouqiSearchPosition,
             depth: Int,
         ): List<ScoredMove> {
             val scores = mutableListOf<ScoredMove>()
             var alpha = -INFINITY
-            val ordered = orderedMoves(state, DoushouqiRules.legalMoves(state))
+            val ordered = orderMoves(
+                position,
+                position.legalMoves(),
+                principalVariation[0],
+                killerMoves[0],
+                history,
+            )
             ordered.forEach { move ->
                 checkBudget()
-                val child = requireNotNull(DoushouqiRules.apply(state, move))
-                val score = minimax(
-                    state = child,
-                    depth = depth - 1,
-                    alphaStart = alpha,
-                    betaStart = INFINITY,
-                    ply = 1,
-                    extensionRemaining = level.tacticalExtension,
+                val orderScore = moveOrderScore(
+                    position,
+                    move,
+                    principalVariation[0],
+                    killerMoves[0],
+                    history,
                 )
-                scores += ScoredMove(move, score, moveOrderScore(state, move))
+                val undo = position.make(move)
+                val score = try {
+                    minimax(
+                        position = position,
+                        depth = depth - 1,
+                        alphaStart = alpha,
+                        betaStart = INFINITY,
+                        ply = 1,
+                        extensionRemaining = level.tacticalExtension,
+                    )
+                } finally {
+                    position.unmake(move, undo)
+                }
+                scores += ScoredMove(move, score, orderScore)
                 if (score > alpha) alpha = score
             }
-            return scores.sortedWith(
-                compareByDescending<ScoredMove> { it.score }
-                    .thenByDescending { it.orderScore }
-                    .thenBy { it.move.from.row }
-                    .thenBy { it.move.from.column }
-                    .thenBy { it.move.to.row }
-                    .thenBy { it.move.to.column },
-            )
+            return scores.sortedWith(SCORED_MOVE_COMPARATOR)
         }
 
         private fun minimax(
-            state: DoushouqiState,
+            position: DoushouqiSearchPosition,
             depth: Int,
             alphaStart: Int,
             betaStart: Int,
@@ -101,38 +121,48 @@ object DoushouqiSearchEngine {
         ): Int {
             checkBudget()
             nodes++
-            terminalScore(state, rootSide, ply)?.let { return it }
+            terminalScore(position.result, rootSide, ply)?.let { return it }
+            val allMoves = position.legalMoves()
             val tacticalMoves = if (depth <= 0 && extensionRemaining > 0) {
-                orderedMoves(state, DoushouqiRules.legalMoves(state))
-                    .filter { isTactical(state, it) }
+                allMoves.filter { isTactical(position, it) }
             } else {
                 emptyList()
             }
-            if (depth <= 0 && tacticalMoves.isEmpty()) return evaluate(state, rootSide)
+            if (depth <= 0 && tacticalMoves.isEmpty()) return evaluate(position, rootSide)
             val effectiveDepth = if (depth > 0) depth else 1
             val nextExtension = if (depth > 0) extensionRemaining else extensionRemaining - 1
-            val key = transpositionKey(state, effectiveDepth, nextExtension)
-            transpositions[key]?.takeIf { it.depth >= effectiveDepth }?.let { return it.score }
-            val moves = if (tacticalMoves.isEmpty()) {
-                orderedMoves(state, DoushouqiRules.legalMoves(state))
-            } else {
-                tacticalMoves
+            val key = transpositionKey(position, nextExtension)
+            transpositions[key]?.takeIf { it.depth >= effectiveDepth }?.let {
+                return it.score
             }
-            if (moves.isEmpty()) return evaluate(state, rootSide)
-            val maximizing = state.sideToMove == rootSide
+            val moves = if (tacticalMoves.isEmpty()) allMoves else tacticalMoves
+            if (moves.isEmpty()) return evaluate(position, rootSide)
+            val maximizing = position.sideToMove == rootSide
             var alpha = alphaStart
             var beta = betaStart
             var best = if (maximizing) -INFINITY else INFINITY
-            for (move in moves) {
-                val child = requireNotNull(DoushouqiRules.apply(state, move))
-                val score = minimax(
-                    state = child,
-                    depth = effectiveDepth - 1,
-                    alphaStart = alpha,
-                    betaStart = beta,
-                    ply = ply + 1,
-                    extensionRemaining = nextExtension,
-                )
+            var cutoff = false
+            val ordered = orderMoves(
+                position,
+                moves,
+                principalVariation.getOrNull(ply),
+                killerMoves.getOrNull(ply),
+                history,
+            )
+            for (move in ordered) {
+                val undo = position.make(move)
+                val score = try {
+                    minimax(
+                        position = position,
+                        depth = effectiveDepth - 1,
+                        alphaStart = alpha,
+                        betaStart = beta,
+                        ply = ply + 1,
+                        extensionRemaining = nextExtension,
+                    )
+                } finally {
+                    position.unmake(move, undo)
+                }
                 if (maximizing) {
                     if (score > best) best = score
                     if (best > alpha) alpha = best
@@ -140,58 +170,75 @@ object DoushouqiSearchEngine {
                     if (score < best) best = score
                     if (best < beta) beta = best
                 }
-                if (alpha >= beta) break
+                if (alpha >= beta) {
+                    cutoff = true
+                    if (ply < killerMoves.size && position.pieceAt(move.to) == null) {
+                        killerMoves[ply] = move
+                        val index = move.from.index * DoushouqiState.SQUARES + move.to.index
+                        history[index] = (history[index] + effectiveDepth * effectiveDepth)
+                            .coerceAtMost(HISTORY_MAX)
+                    }
+                    break
+                }
             }
-            if (transpositions.size >= TRANSPOSITION_CAPACITY) {
-                val first = transpositions.entries.firstOrNull()?.key
-                if (first != null) transpositions.remove(first)
-            }
-            transpositions[key] = TranspositionEntry(effectiveDepth, best)
+            if (!cutoff) storeTransposition(key, effectiveDepth, best)
             return best
         }
 
+        private fun storeTransposition(key: Long, depth: Int, score: Int) {
+            if (transpositions.size >= TRANSPOSITION_CAPACITY) {
+                transpositions.entries.firstOrNull()?.key?.let(transpositions::remove)
+            }
+            transpositions[key] = TranspositionEntry(depth, score)
+        }
+
         private fun checkBudget() {
+            if (shouldStop()) throw SearchStopped(timedOut = false)
             if (nodes >= level.nodeBudget) throw SearchStopped(timedOut = false)
             if (nanoTime() >= deadline) throw SearchStopped(timedOut = true)
         }
     }
 
-    private fun orderedMoves(
-        state: DoushouqiState,
+    private fun orderMoves(
+        position: DoushouqiSearchPosition,
         moves: List<DoushouqiMove>,
+        principalVariation: DoushouqiMove?,
+        killer: DoushouqiMove?,
+        history: IntArray?,
     ): List<DoushouqiMove> = moves.sortedWith(
-        compareByDescending<DoushouqiMove> { moveOrderScore(state, it) }
-            .thenBy { it.from.row }
-            .thenBy { it.from.column }
-            .thenBy { it.to.row }
-            .thenBy { it.to.column },
+        compareByDescending<DoushouqiMove> {
+            moveOrderScore(position, it, principalVariation, killer, history)
+        }.then(MOVE_COMPARATOR),
     )
 
     private fun moveOrderScore(
-        state: DoushouqiState,
+        position: DoushouqiSearchPosition,
         move: DoushouqiMove,
+        principalVariation: DoushouqiMove?,
+        killer: DoushouqiMove?,
+        history: IntArray?,
     ): Int {
-        val moving = requireNotNull(state.pieceAt(move.from))
-        val captured = state.pieceAt(move.to)
-        val applied = requireNotNull(DoushouqiRules.apply(state, move))
-        val result = applied.result
-        if (result is DoushouqiResult.Win && result.winner == moving.side) return MATE_SCORE
-        var score = captured?.let { pieceValue(it.animal) * 1_000 } ?: 0
-        if (captured?.animal == DoushouqiAnimal.ELEPHANT &&
+        val moving = requireNotNull(position.pieceAt(move.from))
+        val captured = position.pieceAt(move.to)
+        var score = when (move) {
+            principalVariation -> 800_000
+            killer -> 60_000
+            else -> 0
+        }
+        if (denOwner(move.to) == moving.side.other()) return MATE_SCORE
+        score += captured?.let { pieceValue(it.animal) * 1_000 } ?: 0
+        if (
+            captured?.animal == DoushouqiAnimal.ELEPHANT &&
             moving.animal == DoushouqiAnimal.RAT
         ) {
             score += 100_000
         }
-        val enemyDen = if (moving.side == DoushouqiSide.PINE_GREEN) {
-            DoushouqiPosition(0, 3)
-        } else {
-            DoushouqiPosition(8, 3)
-        }
-        score += (
-            manhattan(move.from, enemyDen) -
-                manhattan(move.to, enemyDen)
-            ) * 100
+        val enemyDen = enemyDen(moving.side)
+        score += (manhattan(move.from, enemyDen) - manhattan(move.to, enemyDen)) * 100
         if (trapOwner(move.to) == moving.side) score += 15_000
+        history?.let {
+            score += it[move.from.index * DoushouqiState.SQUARES + move.to.index]
+        }
         return score
     }
 
@@ -218,42 +265,59 @@ object DoushouqiSearchEngine {
     }
 
     private fun evaluate(
-        state: DoushouqiState,
+        position: DoushouqiSearchPosition,
         rootSide: DoushouqiSide,
     ): Int {
         var score = 0
-        state.pieces().forEach { (position, piece) ->
-            val sign = if (piece.side == rootSide) 1 else -1
-            val enemyDen = if (piece.side == DoushouqiSide.PINE_GREEN) {
-                DoushouqiPosition(0, 3)
-            } else {
-                DoushouqiPosition(8, 3)
+        repeat(DoushouqiState.SQUARES) { index ->
+            val side = position.pieceSideAt(index) ?: return@repeat
+            val animal = requireNotNull(position.pieceAnimalAt(index))
+            val boardPosition = DoushouqiPosition(
+                index / DoushouqiState.COLUMNS,
+                index % DoushouqiState.COLUMNS,
+            )
+            val sign = if (side == rootSide) 1 else -1
+            var value = pieceValue(animal)
+            value += (12 - manhattan(boardPosition, enemyDen(side))) * 12
+            if (animal == DoushouqiAnimal.RAT) {
+                if (terrainAt(boardPosition) == DoushouqiTerrain.RIVER) value += 45
+                if (adjacentEnemyElephant(position, boardPosition, side)) value += 80
             }
-            var value = pieceValue(piece.animal)
-            value += (12 - manhattan(position, enemyDen)) * 12
             if (
-                piece.animal == DoushouqiAnimal.RAT &&
-                terrainAt(position) == DoushouqiTerrain.RIVER
+                animal in setOf(DoushouqiAnimal.LION, DoushouqiAnimal.TIGER) &&
+                hasOpenJump(position, boardPosition)
             ) {
-                value += 45
+                value += 35
             }
-            if (trapOwner(position) == piece.side.other()) value -= 120
+            if (trapOwner(boardPosition) == side.other()) value -= 120
+            if (manhattan(boardPosition, enemyDen(side)) == 1) value += 180
             score += sign * value
         }
-        val rootMobility = DoushouqiRules.legalMoves(
-            state.copyWith(sideToMove = rootSide, result = null),
-        ).size
-        val opponentMobility = DoushouqiRules.legalMoves(
-            state.copyWith(sideToMove = rootSide.other(), result = null),
-        ).size
+        val rootMobility = position.legalMoves(rootSide).size
+        val opponentMobility = position.legalMoves(rootSide.other()).size
         return score + (rootMobility - opponentMobility) * 4
     }
 
+    private fun adjacentEnemyElephant(
+        position: DoushouqiSearchPosition,
+        from: DoushouqiPosition,
+        side: DoushouqiSide,
+    ): Boolean = neighbors(from).any {
+        position.pieceAt(it) == DoushouqiPiece(side.other(), DoushouqiAnimal.ELEPHANT)
+    }
+
+    private fun hasOpenJump(
+        position: DoushouqiSearchPosition,
+        from: DoushouqiPosition,
+    ): Boolean = position.legalMoves(position.pieceAt(from)?.side ?: return false).any {
+        it.from == from && manhattan(it.from, it.to) > 1
+    }
+
     private fun terminalScore(
-        state: DoushouqiState,
+        result: DoushouqiResult?,
         rootSide: DoushouqiSide,
         ply: Int,
-    ): Int? = when (val result = state.result) {
+    ): Int? = when (result) {
         is DoushouqiResult.Win ->
             if (result.winner == rootSide) MATE_SCORE - ply else -MATE_SCORE + ply
         is DoushouqiResult.Draw -> 0
@@ -261,30 +325,24 @@ object DoushouqiSearchEngine {
     }
 
     private fun isTactical(
-        state: DoushouqiState,
+        position: DoushouqiSearchPosition,
         move: DoushouqiMove,
     ): Boolean {
-        if (state.pieceAt(move.to) != null) return true
-        val moving = requireNotNull(state.pieceAt(move.from))
-        val enemyDen = if (moving.side == DoushouqiSide.PINE_GREEN) {
-            DoushouqiPosition(0, 3)
-        } else {
-            DoushouqiPosition(8, 3)
-        }
-        return move.to == enemyDen || manhattan(move.to, enemyDen) == 1
+        if (position.pieceAt(move.to) != null) return true
+        val moving = requireNotNull(position.pieceAt(move.from))
+        val den = enemyDen(moving.side)
+        return move.to == den || manhattan(move.to, den) == 1
     }
 
     private fun transpositionKey(
-        state: DoushouqiState,
-        depth: Int,
+        position: DoushouqiSearchPosition,
         extension: Int,
-    ): Long {
-        var hash = state.positionKey xor (state.quietHalfMoves.toLong() shl 48)
-        state.repetitionCounts.entries.sortedBy { it.key }.forEach { (key, count) ->
-            hash = stableMix(hash xor key xor count.toLong())
-        }
-        return stableMix(hash xor (depth.toLong() shl 8) xor extension.toLong())
-    }
+    ): Long = stableMix(
+        position.zobristKey xor
+            (position.quietHalfMoves.toLong() shl 48) xor
+            position.repetitionContextHash() xor
+            extension.toLong(),
+    )
 
     private fun stableMix(value: Long): Long {
         var mixed = value
@@ -304,6 +362,30 @@ object DoushouqiSearchEngine {
         DoushouqiAnimal.RAT -> 220
     }
 
+    private fun enemyDen(side: DoushouqiSide): DoushouqiPosition =
+        if (side == DoushouqiSide.PINE_GREEN) {
+            DoushouqiPosition(0, 3)
+        } else {
+            DoushouqiPosition(8, 3)
+        }
+
+    private fun neighbors(position: DoushouqiPosition): List<DoushouqiPosition> =
+        listOfNotNull(
+            positionOrNull(position.row - 1, position.column),
+            positionOrNull(position.row, position.column - 1),
+            positionOrNull(position.row, position.column + 1),
+            positionOrNull(position.row + 1, position.column),
+        )
+
+    private fun positionOrNull(row: Int, column: Int): DoushouqiPosition? =
+        if (row in 0 until DoushouqiState.ROWS &&
+            column in 0 until DoushouqiState.COLUMNS
+        ) {
+            DoushouqiPosition(row, column)
+        } else {
+            null
+        }
+
     private fun manhattan(
         first: DoushouqiPosition,
         second: DoushouqiPosition,
@@ -322,8 +404,24 @@ object DoushouqiSearchEngine {
 
     private class SearchStopped(val timedOut: Boolean) : RuntimeException()
 
+    private val MOVE_COMPARATOR = compareBy<DoushouqiMove>(
+        { it.from.row },
+        { it.from.column },
+        { it.to.row },
+        { it.to.column },
+    )
+    private val SCORED_MOVE_COMPARATOR =
+        compareByDescending<ScoredMove> { it.score }
+            .thenByDescending { it.orderScore }
+            .then(MOVE_COMPARATOR.compareByMove())
+
+    private fun Comparator<DoushouqiMove>.compareByMove(): Comparator<ScoredMove> =
+        Comparator { first, second -> compare(first.move, second.move) }
+
     private const val MATE_SCORE = 1_000_000
     private const val INFINITY = 2_000_000
     private const val DECISIVE_MARGIN = 5_000
     private const val TRANSPOSITION_CAPACITY = 32_768
+    private const val HISTORY_MAX = 50_000
+    private const val MAX_PLY = 64
 }

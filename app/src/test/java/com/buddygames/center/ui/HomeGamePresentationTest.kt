@@ -9,7 +9,7 @@ import java.io.File
 class HomeGamePresentationTest {
     @Test
     fun gameCenterVersionUsesReadableHomeLabel() {
-        assertEquals("版本 0.0.4", gameCenterVersionLabel("0.0.4"))
+        assertEquals("版本 0.0.5", gameCenterVersionLabel("0.0.5"))
     }
 
     @Test

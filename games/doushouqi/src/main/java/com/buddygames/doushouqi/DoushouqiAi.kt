@@ -42,11 +42,12 @@ object DoushouqiAi {
         state: DoushouqiState,
         level: DoushouqiAiLevel,
         nanoTime: () -> Long = System::nanoTime,
+        shouldStop: () -> Boolean = { false },
     ): DoushouqiMove? {
         val legalMoves = DoushouqiRules.legalMoves(state)
         if (legalMoves.isEmpty()) return null
         immediateWinningMove(state, legalMoves)?.let { return it }
-        return DoushouqiSearchEngine.search(state, level, nanoTime)?.move
+        return DoushouqiSearchEngine.search(state, level, nanoTime, shouldStop)?.move
     }
 
     internal fun immediateWinningMove(

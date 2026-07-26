@@ -18,6 +18,7 @@ import com.buddygames.api.GameMode
 import com.buddygames.api.GamePlugin
 import java.util.concurrent.Executors
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 class DoushouqiPlugin : GamePlugin {
@@ -74,7 +75,11 @@ class DoushouqiPlugin : GamePlugin {
         LaunchedEffect(request?.generation, request?.sourcePositionKey) {
             if (request == null) return@LaunchedEffect
             val move = withContext(dispatcher) {
-                DoushouqiAi.chooseMove(request.state, request.level)
+                DoushouqiAi.chooseMove(
+                    request.state,
+                    request.level,
+                    shouldStop = { !isActive },
+                )
             } ?: return@LaunchedEffect
             projection = session.applyRobotMove(request, move)
             selected = null
