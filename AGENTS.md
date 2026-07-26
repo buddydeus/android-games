@@ -12,6 +12,8 @@ The approved International Chess design is `docs/superpowers/specs/2026-07-18-in
 
 The approved implementation baseline for the two-player hidden-information Junqi package is `docs/superpowers/specs/2026-07-21-junqi-game-design.md`. Keep its 12x5 graph, deployment constraints, observer-limited information model, no-cheating AI boundary, pass-and-play privacy flow, and package-only ownership intact.
 
+The approved design for the next independent Dou Shou Qi package is `docs/superpowers/specs/2026-07-26-doushouqi-game-design.md`. Until its implementation lands, keep documentation explicit that it is approved but not yet one of the five built-in packages. Its implementation must preserve the standard 7x9 terrain, complete animal/rank/river/jump/trap/den rules, deterministic score-driven 1-10 offline search, Xiangqi-family session behavior, package-only ownership, and `designs/specs/doushouqi-ui.md` visual SSOT.
+
 Current game behavior:
 
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
@@ -48,6 +50,7 @@ Current design direction:
 - `designs/specs/android-games-family-versus-logo.md` records the approved game-center brand Logo: two face-to-face players around a shared game table. Root `logo.svg` and all launcher resources must preserve the user-selected 1254×1254 artwork without cropping or reinterpretation.
 - The approved app-icon artwork is a 1254×1254 source embedded byte-for-byte in root `logo.svg`; `AppIconResourcesTest` guards its SHA-256 plus legacy/adaptive launcher resource wiring.
 - `designs/specs/xiangqi-ui.md` defines the approved and implemented bright porcelain-and-celadon Xiangqi interface, complete-board PNG geometry, and 14-piece transparent PNG family.
+- `designs/specs/doushouqi-ui.md` defines the approved Dou Shou Qi double-river territory-board direction, Pine Green/Vermilion animal tiles, flat score-ledger rail, preview index, and accessibility guardrails. It is design-approved and not yet implemented.
 
 ## Environment
 
@@ -194,6 +197,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [docs/superpowers/specs/2026-07-18-xiangqi-ai-search-calibration-design.md](docs/superpowers/specs/2026-07-18-xiangqi-ai-search-calibration-design.md) | Xiangqi search-position optimization, effective-depth observability, and statistical level-calibration gates |
 | [docs/superpowers/specs/2026-07-18-international-chess-game-design.md](docs/superpowers/specs/2026-07-18-international-chess-game-design.md) | International Chess rules, session behavior, UI, packaging, and offline 1-10 AI |
 | [docs/superpowers/specs/2026-07-21-junqi-game-design.md](docs/superpowers/specs/2026-07-21-junqi-game-design.md) | Approved two-player hidden-information Junqi rules, AI boundary, UI, packaging, and tests |
+| [docs/superpowers/specs/2026-07-26-doushouqi-game-design.md](docs/superpowers/specs/2026-07-26-doushouqi-game-design.md) | Approved Dou Shou Qi rules, session behavior, 1-10 offline AI, UI, packaging, and tests |
 | [docs/superpowers/specs/2026-07-21-usb-adb-connect-script-design.md](docs/superpowers/specs/2026-07-21-usb-adb-connect-script-design.md) | USB ADB device listing and exact-serial connection command contract |
 | [docs/superpowers/plans/2026-07-21-usb-adb-connect-script.md](docs/superpowers/plans/2026-07-21-usb-adb-connect-script.md) | TDD implementation steps for USB ADB device listing and exact-serial verification |
 | [docs/agents/game-plugins.md](docs/agents/game-plugins.md) | GamePlugin contract, zip layout, adding a game |
@@ -201,6 +205,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [designs/specs/android-games-family-versus-logo.md](designs/specs/android-games-family-versus-logo.md) | Approved family-versus Logo and launcher-icon SSOT |
 | [designs/specs/xiangqi-ui.md](designs/specs/xiangqi-ui.md) | Approved bright, simple Chinese Xiangqi UI and board/piece texture SSOT |
 | [designs/specs/junqi-ui.md](designs/specs/junqi-ui.md) | Approved and implemented traditional railway Junqi UI SSOT and preview index |
+| [designs/specs/doushouqi-ui.md](designs/specs/doushouqi-ui.md) | Approved Dou Shou Qi double-river UI SSOT and preview index |
 
 ## Done checklist
 
