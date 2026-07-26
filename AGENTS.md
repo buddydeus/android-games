@@ -14,7 +14,7 @@ The approved implementation baseline for the two-player hidden-information Junqi
 
 The approved design for the next independent Dou Shou Qi package is `docs/superpowers/specs/2026-07-26-doushouqi-game-design.md`. Until its implementation lands, keep documentation explicit that it is approved but not yet one of the five built-in packages. Its implementation must preserve the standard 7x9 terrain, complete animal/rank/river/jump/trap/den rules, deterministic score-driven 1-10 offline search, Xiangqi-family session behavior, package-only ownership, and `designs/specs/doushouqi-ui.md` visual SSOT.
 
-The in-progress Dou Shou Qi module already owns its immutable 7x9 initial board, orthogonal movement, Rat-only river access, Rat-blocked Lion/Tiger jumps, rank captures, Rat/Elephant exception, terrain-bound Rat captures, and trap weakening. Keep these rules and their board/movement/capture tests together in `games/doushouqi/`.
+The in-progress Dou Shou Qi module already owns its immutable 7x9 initial board, orthogonal movement, Rat-only river access, Rat-blocked Lion/Tiger jumps, rank captures, Rat/Elephant exception, terrain-bound Rat captures, trap weakening, immutable move application, and the exact den/final-capture/no-move/repetition/100-quiet terminal precedence. Keep these rules and their board/movement/capture/state/terminal tests together in `games/doushouqi/`.
 
 Current game behavior:
 
