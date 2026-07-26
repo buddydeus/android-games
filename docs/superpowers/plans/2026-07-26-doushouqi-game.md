@@ -65,7 +65,7 @@
 - Produces: `DOUSHOUQI_VERSION_CODE: Int`, `DOUSHOUQI_VERSION_NAME: String`, and `DoushouqiManifest.gameManifest: GameManifest`.
 - Consumes later: `DoushouqiPlugin.manifest` delegates to `DoushouqiManifest.gameManifest`.
 
-- [ ] **Step 1: Create the module directory/build file and include it**
+- [x] **Step 1: Create the module directory/build file and include it**
 
 Use the same dependency set as `games/chess/build.gradle.kts`:
 
@@ -94,7 +94,7 @@ dependencies {
 
 Append `include(":games:doushouqi")` to `settings.gradle.kts`.
 
-- [ ] **Step 2: Write the failing manifest test**
+- [x] **Step 2: Write the failing manifest test**
 
 ```kotlin
 class DoushouqiManifestTest {
@@ -126,7 +126,7 @@ class DoushouqiManifestTest {
 
 Copy `StrictJsonParser.kt` mechanically from the Junqi test utility with only its package changed.
 
-- [ ] **Step 3: Run RED**
+- [x] **Step 3: Run RED**
 
 Run:
 
@@ -136,7 +136,7 @@ Run:
 
 Expected: compilation failure because `DoushouqiManifest` does not exist.
 
-- [ ] **Step 4: Implement the manifest constants and JSON**
+- [x] **Step 4: Implement the manifest constants and JSON**
 
 ```kotlin
 internal const val DOUSHOUQI_VERSION_CODE = 1
@@ -158,11 +158,11 @@ internal object DoushouqiManifest {
 
 `manifest.json` contains the same schema, identity, versions, entry class, shell API, landscape orientation, and icon path.
 
-- [ ] **Step 5: Run GREEN and sync docs**
+- [x] **Step 5: Run GREEN and sync docs**
 
 Run the same targeted test and expect both tests to pass. Add the planned `games/doushouqi/` module and targeted test command to root `README.md`/`AGENTS.md`, explicitly marking implementation in progress until Task 7.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```text
 feat: scaffold Doushouqi package
@@ -232,7 +232,7 @@ internal fun legal(state: DoushouqiState) = DoushouqiRules.legalMoves(state)
 
 - Consumes later: search, session, and UI use only these public model/rules interfaces.
 
-- [ ] **Step 1: Write board/initial-position tests**
+- [x] **Step 1: Write board/initial-position tests**
 
 ```kotlin
 @Test
@@ -259,11 +259,11 @@ fun exposedCollectionsCannotMutateState() {
 }
 ```
 
-- [ ] **Step 2: Run board RED**
+- [x] **Step 2: Run board RED**
 
 Run `DoushouqiBoardTest`; expect missing model symbols.
 
-- [ ] **Step 3: Implement coordinates, terrain, pieces, and immutable state**
+- [x] **Step 3: Implement coordinates, terrain, pieces, and immutable state**
 
 Use fixed `ROWS = 9`, `COLUMNS = 7`, row-major `index = row * COLUMNS + column`, defensive `List.toList()` and `Map.toMap()`, exact initial positions from the spec, and:
 
@@ -277,11 +277,11 @@ internal fun terrainAt(position: DoushouqiPosition): DoushouqiTerrain = when {
 }
 ```
 
-- [ ] **Step 4: Run board GREEN**
+- [x] **Step 4: Run board GREEN**
 
 Run `DoushouqiBoardTest`; expect all initial board and immutability assertions to pass.
 
-- [ ] **Step 5: Write movement RED tests**
+- [x] **Step 5: Write movement RED tests**
 
 Cover one-square orthogonal moves, diagonal rejection, own-den rejection, Rat river entry/exit, non-Rat water rejection, Lion/Tiger horizontal and vertical jumps, and either side's Rat blocking any crossed river square:
 
@@ -302,11 +302,11 @@ fun ratBlocksLionJumpRegardlessOfSide() {
 }
 ```
 
-- [ ] **Step 6: Run movement RED, implement move generation, then run GREEN**
+- [x] **Step 6: Run movement RED, implement move generation, then run GREEN**
 
 Generate deterministic row-major legal moves. For Lion/Tiger, scan only when the adjacent square is river, reject any Rat in the traversed span, and land on the first non-river square.
 
-- [ ] **Step 7: Write capture RED tests**
+- [x] **Step 7: Write capture RED tests**
 
 Cover equal/lower rank, stronger defender rejection, Rat captures Elephant on land, Elephant never captures Rat, Rat-versus-Rat only when both share land/water terrain, no cross-boundary capture, jump capture, enemy trapped defender rank zero, and trapped attacker restoring rank when leaving.
 
@@ -334,7 +334,7 @@ fun landRatCapturesElephantButElephantCannotCaptureRat() {
 }
 ```
 
-- [ ] **Step 8: Run capture RED, implement capture predicate, then run GREEN**
+- [x] **Step 8: Run capture RED, implement capture predicate, then run GREEN**
 
 Keep capture policy in one function:
 
@@ -349,11 +349,11 @@ internal fun canCapture(
 
 Reject same-side destinations before this predicate.
 
-- [ ] **Step 9: Run the module suite and sync docs**
+- [x] **Step 9: Run the module suite and sync docs**
 
 Run `./gradlew :games:doushouqi:testDebugUnitTest`; document the exact standard movement/capture rules in all three README/agent files.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```text
 feat: implement Doushouqi movement rules
@@ -396,15 +396,15 @@ sealed interface DoushouqiResult {
 }
 ```
 
-- [ ] **Step 1: Write move-application RED tests**
+- [x] **Step 1: Write move-application RED tests**
 
 Assert illegal application returns `null`, source state stays unchanged, legal application moves/captures exactly once, side switches, last move updates, quiet count increments/resets, and the resulting position count increments.
 
-- [ ] **Step 2: Run RED and implement base successor construction**
+- [x] **Step 2: Run RED and implement base successor construction**
 
 `DoushouqiRules.apply` first resolves against current `legalMoves`; `applyUnchecked` copies the board, moves the piece, toggles side, updates quiet count and repetition map, then adjudicates.
 
-- [ ] **Step 3: Write terminal-precedence RED tests**
+- [x] **Step 3: Write terminal-precedence RED tests**
 
 Use compact custom positions to prove:
 
@@ -418,7 +418,7 @@ Use compact custom positions to prove:
 
 Also assert draw result reasons and winning sides exactly.
 
-- [ ] **Step 4: Run RED and implement adjudication in exact order**
+- [x] **Step 4: Run RED and implement adjudication in exact order**
 
 Use:
 
@@ -433,11 +433,11 @@ private fun adjudicate(after: BaseSuccessor): DoushouqiResult? {
 }
 ```
 
-- [ ] **Step 5: Verify state/result integrity**
+- [x] **Step 5: Verify state/result integrity**
 
 Run `DoushouqiStateTest`, `DoushouqiTerminalTest`, then the full module suite. Confirm `git diff --check`.
 
-- [ ] **Step 6: Sync docs and commit**
+- [x] **Step 6: Sync docs and commit**
 
 ```text
 feat: adjudicate Doushouqi games
@@ -489,39 +489,39 @@ object DoushouqiAi {
 }
 ```
 
-- [ ] **Step 1: Write exact level-table RED test**
+- [x] **Step 1: Write exact level-table RED test**
 
 Assert the ten rows from the design spec exactly, plus monotonic depth/nodes/time/extensions and weakening disabled for `6..10`.
 
-- [ ] **Step 2: Run RED and implement immutable level configuration**
+- [x] **Step 2: Run RED and implement immutable level configuration**
 
 Store the ten entries in one private list; `forLevel` requires `1..10` and returns the exact entry.
 
-- [ ] **Step 3: Write legal fallback/determinism RED tests**
+- [x] **Step 3: Write legal fallback/determinism RED tests**
 
 Assert every nonterminal state with legal moves returns one of them even when the injected clock is already expired, and repeated calls with identical state/level return the same move.
 
-- [ ] **Step 4: Implement deterministic fallback and evaluation**
+- [x] **Step 4: Implement deterministic fallback and evaluation**
 
 Sort moves by immediate result, capture value, den-distance improvement, trap control, and row-major coordinates. Evaluation uses material, den routes, mobility, trap/den defense, river Rats, and open Lion/Tiger lanes. No random source is permitted.
 
-- [ ] **Step 5: Write tactical search RED tests**
+- [x] **Step 5: Write tactical search RED tests**
 
 Create exact positions for immediate den win, forced den defense, final capture, Rat taking Elephant, blocked Lion jump, poisoned capture, and choosing repetition draw over forced loss.
 
-- [ ] **Step 6: Implement iterative deepening search**
+- [x] **Step 6: Implement iterative deepening search**
 
 `DoushouqiSearchEngine` owns primitive arrays for board, side, quiet count, and repetition deltas; make/unmake restores every field. Use Negamax, alpha-beta, bounded transposition entries, PV/capture/killer/history ordering, terminal mate distance, and tactical extension only for capture/den threat/defense nodes.
 
-- [ ] **Step 7: Enforce budgets and weakening**
+- [x] **Step 7: Enforce budgets and weakening**
 
 Check node/deadline before expansion. Preserve the last fully completed iteration. For levels `1..5`, select deterministically within the configured root pool using a stable mix of `positionKey`, level, and completed depth; levels `6..10` select the best score.
 
-- [ ] **Step 8: Run targeted and full tests**
+- [x] **Step 8: Run targeted and full tests**
 
 Run both AI test classes, then `./gradlew :games:doushouqi:testDebugUnitTest`. Record observed completed-depth assertions only for deterministic tactical fixtures; do not claim statistical calibration.
 
-- [ ] **Step 9: Sync docs and commit**
+- [x] **Step 9: Sync docs and commit**
 
 ```text
 feat: add Doushouqi search engine
@@ -569,31 +569,31 @@ class DoushouqiSession(mode: DoushouqiMode)
 
 Methods: `play(move)`, `applyRobotMove(request, move)`, `undo()`, `restart()`, and `invalidate()`, each returning current `DoushouqiSessionState`.
 
-- [ ] **Step 1: Write score/side-policy RED tests**
+- [x] **Step 1: Write score/side-policy RED tests**
 
 Assert player-versus-robot identities across colors, Green/Vermilion two-player score, intelligence `player + 1` capped at 10, win swaps player side, loss restores Pine Green, and both draw reasons preserve side/score/level.
 
-- [ ] **Step 2: Run RED and implement score/round policy**
+- [x] **Step 2: Run RED and implement score/round policy**
 
 Keep result-to-score mapping centralized and compare `Win.winner` with `playerSide`.
 
-- [ ] **Step 3: Write undo/restart RED tests**
+- [x] **Step 3: Write undo/restart RED tests**
 
 Assert single-player history snapshot is immediately before the human move and robot response, two-player history is one move, initial robot opening is not undoable, and undo restores state/repetition/quiet/result/score/last move.
 
-- [ ] **Step 4: Implement session transitions**
+- [x] **Step 4: Implement session transitions**
 
 Session alone mutates its private current snapshot; callers receive immutable projections. Restart increments generation, clears history, applies next-side policy, and emits a robot request when the player is Vermilion.
 
-- [ ] **Step 5: Write generation RED tests**
+- [x] **Step 5: Write generation RED tests**
 
 Assert an old request is rejected after a human move, undo, restart, another robot application, and `invalidate()`. Assert request and current source keys must both match.
 
-- [ ] **Step 6: Implement generation-bound robot application**
+- [x] **Step 6: Implement generation-bound robot application**
 
 `applyRobotMove` returns unchanged state for a stale request or illegal robot move; a valid move applies exactly once and increments generation.
 
-- [ ] **Step 7: Write view/tap RED tests**
+- [x] **Step 7: Write view/tap RED tests**
 
 ```kotlin
 @Test fun vermilionHumanUsesRotatedCoordinatesInBothDirections()
@@ -611,7 +611,7 @@ fun modelPosition(displayRow: Int, displayColumn: Int, rotated: Boolean) =
     else DoushouqiPosition(displayRow, displayColumn)
 ```
 
-- [ ] **Step 8: Run session/full tests, sync docs, and commit**
+- [x] **Step 8: Run session/full tests, sync docs, and commit**
 
 ```text
 feat: add Doushouqi sessions
@@ -640,23 +640,23 @@ feat: add Doushouqi sessions
 - Produces `DoushouqiPlugin : GamePlugin`, `DoushouqiMenu`, `DoushouqiGameLayout`, `DoushouqiBoard`, semantic token constants, and package asset.
 - Consumes session state and the existing `GameContext` without changing `game-api`.
 
-- [ ] **Step 1: Write visual-token and mapping RED tests**
+- [x] **Step 1: Write visual-token and mapping RED tests**
 
 Assert exact SSOT colors, family layout constants (`28`, `34`, `300`, `0.94`, `320`, `0.88`, breakpoint `900`), piece scale `0.78`, and shared marker constants `0.92`, `0.04`, `0.18`, `0xB84FCBFF`, `0x70115C93`.
 
-- [ ] **Step 2: Run RED and implement `DoushouqiVisuals.kt`**
+- [x] **Step 2: Run RED and implement `DoushouqiVisuals.kt`**
 
 Use semantic names only; Compose components read these constants rather than scattering raw colors.
 
-- [ ] **Step 3: Write plugin/menu contract RED tests**
+- [x] **Step 3: Write plugin/menu contract RED tests**
 
 Assert `DoushouqiPlugin.manifest == DoushouqiManifest.gameManifest`, version label `版本 0.0.1`, and exact menu labels.
 
-- [ ] **Step 4: Implement menu and plugin skeleton**
+- [x] **Step 4: Implement menu and plugin skeleton**
 
 `MainScreen` loads `assets/icon.png` with a null-safe fallback, then renders empty board + rail. `GameScreen` creates one session and one single-thread daemon executor named `doushouqi-ai`; `DisposableEffect` closes dispatcher/executor.
 
-- [ ] **Step 5: Implement the board and rail from the visual SSOT**
+- [x] **Step 5: Implement the board and rail from the visual SSOT**
 
 Board requirements:
 
@@ -674,7 +674,7 @@ Rail requirements:
 - `悔棋`, `重新开始`, `返回菜单` visibility follows session helpers;
 - every control is at least `48dp`, with `8dp` gaps and visible press/disabled feedback.
 
-- [ ] **Step 6: Write the icon RED test**
+- [x] **Step 6: Write the icon RED test**
 
 ```kotlin
 @Test
@@ -726,19 +726,19 @@ private fun subjectCoverage(image: BufferedImage): Float {
 }
 ```
 
-- [ ] **Step 7: Run icon RED, generate the icon, and rerun GREEN**
+- [x] **Step 7: Run icon RED, generate the icon, and rerun GREEN**
 
 Generate one production icon derived from the SSOT: circular porcelain/territory medallion, opposing Pine Green and Vermilion animal silhouettes separated by a mineral-blue river, no text, no watermark. Save only the accepted 1024×1024 PNG to the package path and visually inspect it.
 
-- [ ] **Step 8: Run plugin/visual/assets and full module tests**
+- [x] **Step 8: Run plugin/visual/assets and full module tests**
 
 Run the three targeted classes and the full module suite. Compile errors in Compose count as RED and are fixed without weakening tests.
 
-- [ ] **Step 9: Perform the designer delivery pass**
+- [x] **Step 9: Perform the designer delivery pass**
 
 Check contrast, touch sizes, narrow layout, semantics, reduced motion, and remove one nonfunctional decoration. Update `designs/specs/doushouqi-ui.md`, paired prompt docs, `README.md`, and `AGENTS.md` only if implementation changes the approved detail.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```text
 feat: build Doushouqi interface
@@ -764,7 +764,7 @@ feat: build Doushouqi interface
 - Produces `packageDoushouqiGame`, `build:game:doushouqi`, `doushouqi.zip`, and `assets/builtin-games/doushouqi.zip`.
 - Preserves manifest-driven shell discovery and `CURRENT_SHELL_API = 1`.
 
-- [ ] **Step 1: Write/extend packaging RED checks**
+- [x] **Step 1: Write/extend packaging RED checks**
 
 Before root integration, run:
 
@@ -774,7 +774,7 @@ Before root integration, run:
 
 Expected: failure because the root task is not registered.
 
-- [ ] **Step 2: Register the root package and verification entry**
+- [x] **Step 2: Register the root package and verification entry**
 
 Add:
 
@@ -788,11 +788,11 @@ Change the package verification list to:
 listOf("gomoku", "othello", "xiangqi", "chess", "junqi", "doushouqi")
 ```
 
-- [ ] **Step 3: Add the shell built-in dependency and version**
+- [x] **Step 3: Add the shell built-in dependency and version**
 
 In `app/build.gradle.kts`, add `packageDoushouqiGame` to `copyBuiltinGamePackages`, set `versionCode = 5`, and set `versionName = "0.0.5"`. Do not add a game-ID branch to shell Kotlin code.
 
-- [ ] **Step 4: Add npm scripts**
+- [x] **Step 4: Add npm scripts**
 
 Append `&& npm run build:game:doushouqi` to `build:game` and add:
 
@@ -800,11 +800,11 @@ Append `&& npm run build:game:doushouqi` to `build:game` and add:
 "build:game:doushouqi": "./gradlew packageDoushouqiGame"
 ```
 
-- [ ] **Step 5: Run package GREEN**
+- [x] **Step 5: Run package GREEN**
 
 Run `./gradlew packageDoushouqiGame`. Inspect `build/game-packages/doushouqi.zip` and require exactly the needed top-level manifest/plugin plus `assets/icon.png`.
 
-- [ ] **Step 6: Finish documentation**
+- [x] **Step 6: Finish documentation**
 
 `games/doushouqi/README.md` documents:
 
@@ -818,7 +818,7 @@ Run `./gradlew packageDoushouqiGame`. Inspect `build/game-packages/doushouqi.zip
 
 Update root `README.md` and `AGENTS.md` from five to six built-ins, list the new module/version/scripts, add Doushouqi behavior and boundaries, and remove all “approved but not implemented” wording.
 
-- [ ] **Step 7: Run targeted verification**
+- [x] **Step 7: Run targeted verification**
 
 ```bash
 ./gradlew :games:doushouqi:testDebugUnitTest
@@ -827,7 +827,7 @@ Update root `README.md` and `AGENTS.md` from five to six built-ins, list the new
 
 Both commands must exit zero with no failed tests.
 
-- [ ] **Step 8: Run full completion gate**
+- [x] **Step 8: Run full completion gate**
 
 ```bash
 npm run verify
@@ -835,7 +835,7 @@ npm run verify
 
 Require exit zero for all tests, six package validations, and debug APK inclusion.
 
-- [ ] **Step 9: Inspect final state**
+- [x] **Step 9: Inspect final state**
 
 Run:
 
@@ -847,7 +847,7 @@ git diff --stat
 
 Re-read the formal spec and map every requirement to code or a passing test. Do not claim emulator acceptance unless `npm start` is also run.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```text
 feat: integrate Doushouqi game package

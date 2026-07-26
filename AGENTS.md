@@ -4,7 +4,7 @@ For humans: start with [README.md](README.md), then use the README inside each `
 
 ## Project
 
-Offline Android Pad game center (Kotlin + Jetpack Compose). The `app` module is a stable loading shell; each game ships as a zip package with dex plugin code loaded via `DexClassLoader`. Built-in games: Gomoku, Othello, Xiangqi, International Chess, and Junqi.
+Offline Android Pad game center (Kotlin + Jetpack Compose). The `app` module is a stable loading shell; each game ships as a zip package with dex plugin code loaded via `DexClassLoader`. Built-in games: Gomoku, Othello, Xiangqi, International Chess, Junqi, and Dou Shou Qi.
 
 Gradle multi-module layout: `app` (shell), `game-api` (shell↔game contract), `games/*` (per-game modules + package assets).
 
@@ -12,11 +12,11 @@ The approved International Chess design is `docs/superpowers/specs/2026-07-18-in
 
 The approved implementation baseline for the two-player hidden-information Junqi package is `docs/superpowers/specs/2026-07-21-junqi-game-design.md`. Keep its 12x5 graph, deployment constraints, observer-limited information model, no-cheating AI boundary, pass-and-play privacy flow, and package-only ownership intact.
 
-The approved design for the next independent Dou Shou Qi package is `docs/superpowers/specs/2026-07-26-doushouqi-game-design.md`. Its game module implementation is complete but remains pending root built-in packaging; until Task 7 lands, keep documentation explicit that it is not yet one of the five verified built-in packages. Preserve the standard 7x9 terrain, complete animal/rank/river/jump/trap/den rules, deterministic score-driven 1-10 offline search, Xiangqi-family session behavior, package-only ownership, and `designs/specs/doushouqi-ui.md` visual SSOT.
+The approved and implemented Dou Shou Qi package design is `docs/superpowers/specs/2026-07-26-doushouqi-game-design.md`. Preserve the standard 7x9 terrain, complete animal/rank/river/jump/trap/den rules, deterministic score-driven 1-10 offline search, Xiangqi-family session behavior, package-only ownership, and `designs/specs/doushouqi-ui.md` visual SSOT.
 
-The in-progress Dou Shou Qi module already owns its immutable 7x9 initial board, orthogonal movement, Rat-only river access, Rat-blocked Lion/Tiger jumps, rank captures, Rat/Elephant exception, terrain-bound Rat captures, trap weakening, immutable move application, and the exact den/final-capture/no-move/repetition/100-quiet terminal precedence. Keep these rules and their board/movement/capture/state/terminal tests together in `games/doushouqi/`.
+The Dou Shou Qi module owns its immutable 7x9 initial board, orthogonal movement, Rat-only river access, Rat-blocked Lion/Tiger jumps, rank captures, Rat/Elephant exception, terrain-bound Rat captures, trap weakening, immutable move application, and the exact den/final-capture/no-move/repetition/100-quiet terminal precedence. Keep these rules and their board/movement/capture/state/terminal tests together in `games/doushouqi/`.
 
-Dou Shou Qi's in-progress score-driven AI owns an exact centralized 1-10 depth/node/deadline ladder, deterministic legal timeout fallback, immediate-win selection, bounded tactical extension, bounded transposition storage, and deterministic weakening only at levels 1-5. Keep repetition counts and the quiet half-move counter mixed into transposition keys, and preserve deterministic tactical coverage for den entry, final capture, Rat-versus-Elephant, and immediate den-threat defense.
+Dou Shou Qi's score-driven AI owns an exact centralized 1-10 depth/node/deadline ladder, deterministic legal timeout/cancellation fallback, primitive array-backed make/unmake search transitions, incremental Zobrist placement keys, principal-variation/killer/history ordering, bounded tactical extension, bounded transposition storage, and deterministic weakening only at levels 1-5. Keep cancellation checks before node expansion, repetition counts and the quiet half-move counter mixed into transposition keys, keep primitive/public move generation equivalent across continuations, and preserve deterministic tactical coverage for den entry, final capture, Rat-versus-Elephant, and immediate den-threat defense.
 
 Dou Shou Qi's session keeps single-player score by player/robot identity across side swaps and two-player score by Pine Green/Vermilion. Player wins swap side next round, player losses restore Pine Green, draws preserve side and score, paired single-player undo snapshots precede the human move, and an automatic robot opening is not undoable. Keep robot requests generation- and source-position-bound, rotate both coordinate directions only for a Vermilion single-player human, and regenerate tap candidates from the current position.
 
@@ -25,15 +25,15 @@ Dou Shou Qi's package-owned Compose UI renders the 7x9 terrain and pieces semant
 Current game behavior:
 
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
-- The game-center shell currently uses `versionCode = 4` and `versionName = 0.0.4`; the home top bar displays `BuildConfig.VERSION_NAME`.
+- The game-center shell currently uses `versionCode = 5` and `versionName = 0.0.5`; the home top bar displays `BuildConfig.VERSION_NAME`.
 - Home game names and logos come only from each installed package's `displayName` and `icon` manifest fields. The shell supports bounded package-local PNG, WebP, JPEG, and compact text icon files and must not branch on known game IDs for presentation.
-- All five built-in packages provide a `1024 x 1024` circular-safe PNG at `assets/icon.png`; Gomoku, Othello, Xiangqi, and International Chess follow `designs/specs/android-game-package-logos.md`, while Junqi follows `docs/superpowers/specs/2026-07-21-junqi-game-design.md`. Package verification requires that entry.
+- All six built-in packages provide a `1024 x 1024` circular-safe PNG at `assets/icon.png`; Gomoku, Othello, Xiangqi, and International Chess follow `designs/specs/android-game-package-logos.md`, Junqi follows `docs/superpowers/specs/2026-07-21-junqi-game-design.md`, and Dou Shou Qi follows `designs/specs/doushouqi-ui.md`. Package verification requires that entry.
 - The home game order is the descending persisted count of successful plugin loads. Equal counts use package display name and then game ID for deterministic, package-agnostic ordering.
 - The landscape home game selector uses a fixed four-column grid. Incomplete final rows occupy the leading columns and retain empty trailing slots instead of centering their buttons; compact and portrait layouts remain a single column.
 - All game menus use `单人模式`, `双人对战`, and `退出游戏`.
 - Every game owns an independent version starting at `0.0.1`, and its main menu displays `GameManifest.versionName`.
 - All games own their rules, robot, UI, score state, and restart flow inside their game module.
-- All five games use Xiangqi's wide landscape geometry as the layout reference: 28dp outer padding, 34dp board/rail gap, a 300dp game rail at 94% content height, and a 320dp menu rail at 88% content height. The board stays centered in the remaining pane and preserves each game's native aspect ratio; below 900dp available width, the rail becomes a full-width band below the board. Game-specific board rendering and controls remain package-owned.
+- All six games use Xiangqi's wide landscape geometry as the layout reference: 28dp outer padding, 34dp board/rail gap, a 300dp game rail at 94% content height, and a 320dp menu rail at 88% content height. The board stays centered in the remaining pane and preserves each game's native aspect ratio; below 900dp available width, the rail becomes a full-width band below the board. Game-specific board rendering and controls remain package-owned.
 - All game boards mark the latest placed or moved-to cell with the same enlarged, translucent bright-blue four-corner highlight. It stays inside one cell, leaves a visible gap around the piece, and keeps the center clear. In single-player mode the robot response replaces the player's marker; a second-player round marks the robot opening. Undo restores the previous marker, while a fresh first-player round has none.
 - All game side rails expose `悔棋` while no winner exists, and hide it after either side wins; an Othello draw keeps the undo action. Single-player undo restores the snapshot before the player's last move and the following robot response; two-player undo restores one move. Undo also restores score and winner state, while restart clears the history.
 - In single-player mode, a player win swaps sides for the next round, a player loss restores the player to the first-moving side, and the robot opens immediately when the player becomes second. A draw changes neither score, current player side, nor score-derived intelligence level; two-player restart behavior stays fixed-first.
@@ -48,7 +48,7 @@ Current game behavior:
 - Mix the full International Chess repetition-count context into transposition-table keys; repetition scores are path-dependent.
 - Keep International Chess piece textures inside the game package at `games/chess/package/assets/pieces/`; the shell must not own, name, or render them.
 - Keep International Chess perft fixtures aligned with the published Position 2, Position 3, and Position 5 FEN strings and pair level-budget assertions with deterministic tactical depth checks.
-- Human-facing documentation must list all five built-in packages and keep the independent shell/game versions aligned with their Gradle and manifest sources.
+- Human-facing documentation must list all six built-in packages and keep the independent shell/game versions aligned with their Gradle and manifest sources.
 
 Current design direction:
 
@@ -58,7 +58,7 @@ Current design direction:
 - `designs/specs/android-games-family-versus-logo.md` records the approved game-center brand Logo: two face-to-face players around a shared game table. Root `logo.svg` and all launcher resources must preserve the user-selected 1254×1254 artwork without cropping or reinterpretation.
 - The approved app-icon artwork is a 1254×1254 source embedded byte-for-byte in root `logo.svg`; `AppIconResourcesTest` guards its SHA-256 plus legacy/adaptive launcher resource wiring.
 - `designs/specs/xiangqi-ui.md` defines the approved and implemented bright porcelain-and-celadon Xiangqi interface, complete-board PNG geometry, and 14-piece transparent PNG family.
-- `designs/specs/doushouqi-ui.md` defines the approved Dou Shou Qi double-river territory-board direction, Pine Green/Vermilion animal tiles, flat score-ledger rail, preview index, and accessibility guardrails. It is design-approved and not yet implemented.
+- `designs/specs/doushouqi-ui.md` defines the approved and implemented Dou Shou Qi double-river territory-board direction, Pine Green/Vermilion animal tiles, flat score-ledger rail, preview index, and accessibility guardrails.
 
 ## Environment
 
@@ -73,15 +73,16 @@ Current design direction:
 Run from repository root:
 
 - `npm run test` — all unit tests (`./gradlew test`)
-- `npm run verify` — full MVP gate: tests + five validated game packages + debug APK asset validation
+- `npm run verify` — full MVP gate: tests + six validated game packages + debug APK asset validation
 - `npm run build` — build debug APK and all game package zips
 - `npm run build:apk` — `./gradlew :app:assembleDebug` (also copies built-in game zips into assets)
-- `npm run build:game` — build all five game package zips
+- `npm run build:game` — build all six game package zips
 - `npm run build:game:gomoku` — `./gradlew packageGomokuGame`
 - `npm run build:game:othello` — `./gradlew packageOthelloGame`
 - `npm run build:game:xiangqi` — `./gradlew packageXiangqiGame`
 - `npm run build:game:chess` — `./gradlew packageChessGame`
 - `npm run build:game:junqi` — `./gradlew packageJunqiGame`
+- `npm run build:game:doushouqi` — `./gradlew packageDoushouqiGame`
 - `pnpm connect list` — list every USB-connected ADB device and its current state
 - `pnpm connect <serial-id>` — select and verify one USB-connected device by exact ADB serial
 - `bash scripts/test-connect-android-device.sh` — run deterministic host-side connect tests with a fake ADB executable
@@ -106,8 +107,8 @@ Run from repository root:
 | `games/othello/` | Othello plugin module + package layout + game README |
 | `games/xiangqi/` | Xiangqi plugin module + package layout + game README |
 | `games/chess/` | International Chess plugin module + package layout + game README |
-| `games/junqi/` | Fifth built-in Junqi package: deterministic deployment, immutable rules, hidden-information observations, knowledge, fair offline AI, and package-owned UI/assets |
-| `games/doushouqi/` | In-progress independent Dou Shou Qi package: standard 7x9 rules, deterministic 1-10 AI, session, and package-owned UI/assets |
+| `games/junqi/` | Built-in Junqi package: deterministic deployment, immutable rules, hidden-information observations, knowledge, fair offline AI, and package-owned UI/assets |
+| `games/doushouqi/` | Sixth built-in Dou Shou Qi package: standard 7x9 rules, deterministic 1-10 AI, session, and package-owned UI/assets |
 | `build.gradle.kts` | Registers `package*Game` zip tasks (jar → d8 → plugin.apk → zip) |
 | `scripts/connect-android-device.sh` | Lists USB ADB transports and verifies one exact device serial |
 | `scripts/test-connect-android-device.sh` | Fake-ADB regression tests for host-side device connection states |
@@ -144,7 +145,7 @@ Run from repository root:
 - Keep single-player side-selection and opening-turn rules in each game's session model; restart behavior changes must cover player win, player loss, and robot opening as second-player tests.
 - Record undo snapshots immediately before legal player actions, include score and terminal state in each snapshot, and keep the initial robot opening outside undo history.
 - Keep the last-move marker in each game's session and undo snapshot. Othello marks only the newly placed disc, Xiangqi marks the destination coordinate after perspective mapping, and robot moves replace the preceding player marker.
-- Keep last-move marker geometry and color constants aligned across all five game packages; marker scale must remain below one cell so adjacent pieces are unaffected.
+- Keep last-move marker geometry and color constants aligned across all six game packages; marker scale must remain below one cell so adjacent pieces are unaffected.
 - Keep undo-button visibility separate from undo availability: hide it only when a winner exists, and keep Othello draws undoable.
 - Keep `game-api` backward-compatible or update every `games/*` plugin in the same change.
 - Keep home presentation package-agnostic: read names and icons from the manifest and rank by successful-launch count without adding game ID branches.
@@ -227,4 +228,4 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 - [ ] If `app/` changed, the game-center `versionCode` and `versionName` were incremented together
 - [ ] Each touched game has matching, incremented versions in plugin code and `package/manifest.json`
 - [ ] Each touched game's README still matches its implementation, manifest, assets, and commands
-- [ ] If `game-api` changed, all five games still build and load
+- [ ] If `game-api` changed, all six games still build and load

@@ -52,6 +52,7 @@ registerGamePackageTask("packageOthelloGame", "othello")
 registerGamePackageTask("packageXiangqiGame", "xiangqi")
 registerGamePackageTask("packageChessGame", "chess")
 registerGamePackageTask("packageJunqiGame", "junqi")
+registerGamePackageTask("packageDoushouqiGame", "doushouqi")
 
 tasks.register("verifyGamePackages") {
     group = "verification"
@@ -59,7 +60,14 @@ tasks.register("verifyGamePackages") {
     dependsOn(":app:assembleDebug")
 
     doLast {
-        val gameIds = listOf("gomoku", "othello", "xiangqi", "chess", "junqi")
+        val gameIds = listOf(
+            "gomoku",
+            "othello",
+            "xiangqi",
+            "chess",
+            "junqi",
+            "doushouqi",
+        )
         val requiredPackageEntries = setOf("manifest.json", "plugin.apk", "assets/icon.png")
 
         gameIds.forEach { gameId ->

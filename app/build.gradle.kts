@@ -13,8 +13,8 @@ android {
         applicationId = "com.buddygames.center"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.0.4"
+        versionCode = 5
+        versionName = "0.0.5"
     }
 
     buildFeatures {
@@ -42,7 +42,8 @@ val copyBuiltinGamePackages = tasks.register<Copy>("copyBuiltinGamePackages") {
         rootProject.tasks.named("packageOthelloGame"),
         rootProject.tasks.named("packageXiangqiGame"),
         rootProject.tasks.named("packageChessGame"),
-        rootProject.tasks.named("packageJunqiGame")
+        rootProject.tasks.named("packageJunqiGame"),
+        rootProject.tasks.named("packageDoushouqiGame")
     )
     from(rootProject.layout.buildDirectory.dir("game-packages")) {
         include("*.zip")
