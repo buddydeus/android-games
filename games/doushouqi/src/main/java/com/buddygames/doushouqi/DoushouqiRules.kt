@@ -1,6 +1,40 @@
 package com.buddygames.doushouqi
 
 object DoushouqiRules {
+    fun apply(
+        state: DoushouqiState,
+        move: DoushouqiMove,
+    ): DoushouqiState? {
+        if (state.result != null || move !in legalMoves(state)) return null
+        val board = state.boardSnapshot().toMutableList()
+        val moving = requireNotNull(board[move.from.index])
+        val captured = board[move.to.index]
+        board[move.from.index] = null
+        board[move.to.index] = moving
+        val nextSide = state.sideToMove.other()
+        val quietHalfMoves = if (captured == null) state.quietHalfMoves + 1 else 0
+        val withoutUpdatedCount = state.copyWith(
+            board = board,
+            sideToMove = nextSide,
+            quietHalfMoves = quietHalfMoves,
+            repetitionCounts = state.repetitionCounts,
+            lastMove = move,
+            result = null,
+        )
+        val repetitions = state.repetitionCounts.toMutableMap().also { counts ->
+            counts[withoutUpdatedCount.positionKey] =
+                counts.getOrDefault(withoutUpdatedCount.positionKey, 0) + 1
+        }
+        val successor = withoutUpdatedCount.copyWith(repetitionCounts = repetitions)
+        val result = adjudicate(
+            successor = successor,
+            mover = moving.side,
+            captured = captured,
+            enteredEnemyDen = denOwner(move.to) == moving.side.other(),
+        )
+        return successor.copyWith(result = result)
+    }
+
     fun legalMoves(state: DoushouqiState): List<DoushouqiMove> {
         if (state.result != null) return emptyList()
         val moves = mutableListOf<DoushouqiMove>()
@@ -21,6 +55,33 @@ object DoushouqiRules {
                 { it.to.column },
             ),
         )
+    }
+
+    private fun adjudicate(
+        successor: DoushouqiState,
+        mover: DoushouqiSide,
+        captured: DoushouqiPiece?,
+        enteredEnemyDen: Boolean,
+    ): DoushouqiResult? {
+        if (enteredEnemyDen) {
+            return DoushouqiResult.Win(mover, DoushouqiWinReason.DEN)
+        }
+        if (
+            captured != null &&
+            successor.pieces().none { (_, piece) -> piece.side == mover.other() }
+        ) {
+            return DoushouqiResult.Win(mover, DoushouqiWinReason.FINAL_CAPTURE)
+        }
+        if (legalMoves(successor).isEmpty()) {
+            return DoushouqiResult.Win(mover, DoushouqiWinReason.NO_LEGAL_MOVE)
+        }
+        if (successor.repetitionCounts.getOrDefault(successor.positionKey, 0) >= 3) {
+            return DoushouqiResult.Draw(DoushouqiDrawReason.REPETITION)
+        }
+        if (successor.quietHalfMoves >= 100) {
+            return DoushouqiResult.Draw(DoushouqiDrawReason.QUIET_100)
+        }
+        return null
     }
 
     private fun candidateMove(
