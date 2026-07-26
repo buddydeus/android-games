@@ -16,6 +16,8 @@ The approved design for the next independent Dou Shou Qi package is `docs/superp
 
 The in-progress Dou Shou Qi module already owns its immutable 7x9 initial board, orthogonal movement, Rat-only river access, Rat-blocked Lion/Tiger jumps, rank captures, Rat/Elephant exception, terrain-bound Rat captures, trap weakening, immutable move application, and the exact den/final-capture/no-move/repetition/100-quiet terminal precedence. Keep these rules and their board/movement/capture/state/terminal tests together in `games/doushouqi/`.
 
+Dou Shou Qi's in-progress score-driven AI owns an exact centralized 1-10 depth/node/deadline ladder, deterministic legal timeout fallback, immediate-win selection, bounded tactical extension, bounded transposition storage, and deterministic weakening only at levels 1-5. Keep repetition counts and the quiet half-move counter mixed into transposition keys, and preserve deterministic tactical coverage for den entry, final capture, Rat-versus-Elephant, and immediate den-threat defense.
+
 Current game behavior:
 
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
