@@ -18,6 +18,8 @@ The in-progress Dou Shou Qi module already owns its immutable 7x9 initial board,
 
 Dou Shou Qi's in-progress score-driven AI owns an exact centralized 1-10 depth/node/deadline ladder, deterministic legal timeout fallback, immediate-win selection, bounded tactical extension, bounded transposition storage, and deterministic weakening only at levels 1-5. Keep repetition counts and the quiet half-move counter mixed into transposition keys, and preserve deterministic tactical coverage for den entry, final capture, Rat-versus-Elephant, and immediate den-threat defense.
 
+Dou Shou Qi's session keeps single-player score by player/robot identity across side swaps and two-player score by Pine Green/Vermilion. Player wins swap side next round, player losses restore Pine Green, draws preserve side and score, paired single-player undo snapshots precede the human move, and an automatic robot opening is not undoable. Keep robot requests generation- and source-position-bound, rotate both coordinate directions only for a Vermilion single-player human, and regenerate tap candidates from the current position.
+
 Current game behavior:
 
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
