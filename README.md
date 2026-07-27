@@ -208,6 +208,7 @@ $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
 - [斗兽棋棋盘参考图](designs/references/doushouqi-board-reference.png)
 - [斗兽棋参考图还原运行验收](docs/superpowers/reports/2026-07-27-doushouqi-reference-runtime-acceptance.md)
 - [斗兽棋陷阱纹章实施计划](docs/superpowers/plans/2026-07-27-doushouqi-trap-emblem.md)
+- [斗兽棋 Logo 与侧栏设计](docs/superpowers/specs/2026-07-27-doushouqi-logo-sidebar-design.md)
 - [斗兽棋模块说明](games/doushouqi/README.md)
 - [五子棋模块说明](games/gomoku/README.md)
 - [黑白棋模块说明](games/othello/README.md)

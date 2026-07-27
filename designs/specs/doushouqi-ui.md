@@ -3,7 +3,7 @@
 **Slug:** `doushouqi-ui`
 **User brief (verbatim summary):** “根据图片，完整还原实现棋盘和棋子，侧边栏与其他游戏形式保持一致。”
 **Stack:** Android Kotlin + Jetpack Compose，离线动态游戏包，横屏 Android Pad
-**Iteration:** 2026-07-27T12:00:00+08:00 — 陷阱辨识度修订
+**Iteration:** 2026-07-27T18:30:00+08:00 — Logo 与家族侧栏修订
 **Status:** 本文件是斗兽棋参考图还原的视觉 SSOT；`designs/references/doushouqi-board-reference.png` 是用户批准的像素级方向，预览、Compose 实现与包内资源必须遵循本文件。
 
 ## Base System
@@ -38,6 +38,8 @@
 7. **Detemplating changes** - 从首版纯 Compose 平涂升级为包内棋具纹理，棋盘约为 `1:1` 而不是严格按 `7:9` 单元格正方形展开；侧栏不复制参考图的专属排版。
 8. **Rejected defaults** - 拒绝奶油色加陶土红生活方式模板、近黑加荧光单色、报纸栏目、通用深色电竞 HUD、森林照片和玻璃卡片。
 9. **Trap legibility revision** - 用户指出参考图的交叉线含义不明确。六个陷阱统一改为“八角捕兽网纹章”：双层八角绳框、八条向心网线、四个向内倒钩、中央锁结与浅赭印底。拒绝继续使用单纯 `X`、通用警告三角或额外的 `陷阱`/`阱` 文字。
+10. **Package Logo revision** - 用户明确选定松绿 `象` 棋与朱砂 `鼠` 棋隔 S 形蓝釉河对峙的冷瓷圆章，并要求仅去除外部白色背景。正式 Logo 保留原始构图、字形、材质和光照，使用透明 RGBA 外底。
+11. **Rail-family revision** - 菜单侧栏统一为 Logo、标题、版本和三项操作；对局侧栏统一为比分、分隔线、回合/结果、分隔线和操作区。斗兽棋只通过松绿与朱砂语义色表达阵营，不使用专属侧栏结构。
 
 ## Final Tokens
 
@@ -81,9 +83,9 @@
 
 ```text
 ┌──────────────────────────────┬──────────────────┐
-│  den · traps                 │   circular logo  │
+│  den · traps                 │  象鼠双棋圆章    │
 │      blue river canyon       │      斗兽棋      │
-│  empty 7×9 territory board   │   版本 0.0.3     │
+│  empty 7×9 territory board   │   版本 0.0.4     │
 │      blue river canyon       │──────────────────│
 │  traps · den                 │   [单人模式]     │
 │                              │   [双人对战]     │
@@ -94,23 +96,26 @@
 - 宽布局沿用象棋家族几何：外边距 28dp、棋盘与右栏间距 34dp；菜单右栏固定 320dp 宽并占内容高度 88%。
 - 空棋盘使用接近参考图的 `1:1` 外框比例并居中；内部仍是精确 7 列 × 9 行规则网格，单元格允许横向略宽。
 - 每个陷阱纹章以单格短边为基准：外八角直径约 68%，内八角约 56%，八条网线汇聚到约 7% 的中央锁结；上下左右四条网线带短小向内倒钩。纹章与网格线保持至少 12% 短边间距。
-- 三个菜单按钮高 64dp，圆角 8dp；单人模式使用松绿实心，双人模式使用浅面描边，退出游戏使用朱砂文字描边。
+- 三个菜单按钮高 54dp，圆角 7-8dp，垂直间距 10dp；单人模式使用松绿实心，双人模式使用浅面描边，退出游戏使用朱砂文字描边。
+- 正式菜单 Logo 使用透明外底，不渲染额外白色方形底；圆章显示尺寸 112dp。
 
 ### Game screen
 
 ```text
 ┌──────────────────────────────┬──────────────────┐
-│  green den + traps           │ 玩家       智能 │
+│  green den + traps           │ 玩家 : 智能      │
 │  green animals               │   0   :   0      │
+│      blue river canyon       │ 智能等级 1       │
 │      blue river canyon       │──────────────────│
-│      blue river canyon       │ 松绿方回合       │
-│  red animals                 │ 玩家执松绿 · 等级1│
-│  red traps + den             │                  │
+│  red animals                 │ 当前回合：松绿方 │
+│  red traps + den             │ 玩家执松绿       │
+│                              │──────────────────│
 │                              │ [悔棋] [返回菜单]│
 └──────────────────────────────┴──────────────────┘
 ```
 
 - 对局右栏固定 300dp 宽并占内容高度 94%；棋盘完整显示 7×9 格，不滚动、不裁切。
+- 对局右栏使用 `Arrangement.SpaceBetween`，由比分、回合/结果和操作三个语义区构成，区间使用两条水平分隔线；尺寸、内边距、表面边框和按钮高度与象棋、国际象棋家族一致。
 - 棋子透明纹理画布占单格短边约 86%，其中方形棋子本体约占 76%；圆角、金色内边、高光和下投影与参考图一致。
 - 空陷阱必须在整板缩略视图中与普通竹木格明显区分；棋子进入陷阱后允许覆盖中心网结，但外围浅赭印底和八角绳框仍应从棋子四周露出。
 - 选中棋子显示同阵营浅色内框；普通合法落点显示墨绿圆点；可吃目标显示象牙色断环。
@@ -139,6 +144,7 @@
 | --- | --- | --- |
 | `designs/previews/doushouqi-ui-menu-tablet.png` | `designs/images/doushouqi-ui-menu-tablet.md` | Android Pad 横屏菜单，空领地棋盘、双河峡谷、Logo、标题、版本与三项菜单 |
 | `designs/previews/doushouqi-ui-game-tablet.png` | `designs/images/doushouqi-ui-game-tablet.md` | 用户批准参考图：近方形竹木棋盘、双河、浮雕兽棋和目标侧栏层级 |
+| `designs/previews/android-game-logo-doushouqi.png` | `designs/images/android-game-logo-doushouqi.md` | 用户选定的透明象鼠双棋冷瓷圆章 |
 
 ## Implementation Notes
 
