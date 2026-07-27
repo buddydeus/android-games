@@ -58,7 +58,7 @@ Current design direction:
 - `designs/specs/android-games-family-versus-logo.md` records the approved game-center brand Logo: two face-to-face players around a shared game table. Root `logo.svg` and all launcher resources must preserve the user-selected 1254×1254 artwork without cropping or reinterpretation.
 - The approved app-icon artwork is a 1254×1254 source embedded byte-for-byte in root `logo.svg`; `AppIconResourcesTest` guards its SHA-256 plus legacy/adaptive launcher resource wiring.
 - `designs/specs/xiangqi-ui.md` defines the approved and implemented bright porcelain-and-celadon Xiangqi interface, complete-board PNG geometry, and 14-piece transparent PNG family.
-- `designs/specs/doushouqi-ui.md` defines the approved Dou Shou Qi reference-restoration direction. `designs/references/doushouqi-board-reference.png` is the user-approved visual source: near-square bamboo board, deep-blue rivers, crossed traps, embossed Pine Green/Vermilion square animal pieces, and brush-style cream glyphs. Preserve the shared family rail rather than copying the reference-specific sidebar.
+- `designs/specs/doushouqi-ui.md` defines the approved Dou Shou Qi reference-restoration direction. `designs/references/doushouqi-board-reference.png` remains the source for the near-square bamboo board, deep-blue rivers, embossed Pine Green/Vermilion square animal pieces, and brush-style cream glyphs. The user-approved trap revision replaces ambiguous crosses with six identical double-line octagonal hunting-net emblems containing eight radial strands, four inward hooks, a center knot, and a subtle ochre wash. Preserve the shared family rail rather than copying the reference-specific sidebar.
 
 ## Environment
 
