@@ -6,13 +6,13 @@ import org.junit.Test
 
 class DoushouqiManifestTest {
     @Test
-    fun packageIdentityStartsAtIndependentVersionOne() {
+    fun packageIdentityMatchesReferenceArtworkRelease() {
         val manifest = DoushouqiManifest.gameManifest
 
         assertEquals("doushouqi", manifest.gameId)
         assertEquals("斗兽棋", manifest.displayName)
-        assertEquals(1, manifest.versionCode)
-        assertEquals("0.0.1", manifest.versionName)
+        assertEquals(2, manifest.versionCode)
+        assertEquals("0.0.2", manifest.versionName)
         assertEquals("com.buddygames.doushouqi.DoushouqiPlugin", manifest.entryClass)
         assertEquals("assets/icon.png", manifest.icon)
     }

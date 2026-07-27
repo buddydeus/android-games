@@ -20,7 +20,7 @@ Dou Shou Qi's score-driven AI owns an exact centralized 1-10 depth/node/deadline
 
 Dou Shou Qi's session keeps single-player score by player/robot identity across side swaps and two-player score by Pine Green/Vermilion. Player wins swap side next round, player losses restore Pine Green, draws preserve side and score, paired single-player undo snapshots precede the human move, and an automatic robot opening is not undoable. Keep robot requests generation- and source-position-bound, rotate both coordinate directions only for a Vermilion single-player human, and regenerate tap candidates from the current position.
 
-Dou Shou Qi's package-owned Compose UI renders the 7x9 terrain and pieces semantically, uses the approved 28dp/34dp outer geometry and 300dp/320dp rails, switches below 900dp to a board-over-rail layout, and disables board input while its dedicated `doushouqi-ai` executor is thinking. Keep its exact visual/marker constants, 78% tiles, readable terrain labels, selected/legal/capture states, package-version-keyed icon load with fallback, and 1024x1024 circular-safe `assets/icon.png` covered by tests.
+Dou Shou Qi version `0.0.2` owns a 1400x1400 transparent-corner bamboo board at `assets/board/doushouqi-board.png` and sixteen 512x512 transparent embossed animal pieces under `assets/pieces/`, all reproducible through `games/doushouqi/tools/generate_doushouqi_assets.py`. Its package-owned Compose UI keeps the 7x9 semantic interaction layer over the near-square texture, uses 86% short-cell piece canvases, the approved 28dp/34dp outer geometry and 300dp/320dp family rails, switches below 900dp to a board-over-rail layout, and disables board input while its dedicated `doushouqi-ai` executor is thinking. Keep exact PNG bounds/type checks before full decode, per-texture Compose fallbacks, selected/legal/capture states, package-version-keyed loading, shared marker constants, and the 1024x1024 circular-safe `assets/icon.png` covered by tests.
 
 Current game behavior:
 
@@ -197,7 +197,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [games/othello/README.md](games/othello/README.md) | Othello rules, robot priority, pass flow, assets, and commands |
 | [games/xiangqi/README.md](games/xiangqi/README.md) | Xiangqi rules, ten-level AI, ceramic assets, calibration, and commands |
 | [games/chess/README.md](games/chess/README.md) | International Chess rules, ten-level AI, draw handling, textures, and commands |
-| [games/doushouqi/README.md](games/doushouqi/README.md) | In-progress Dou Shou Qi rules, AI, session, UI, assets, and commands |
+| [games/doushouqi/README.md](games/doushouqi/README.md) | Dou Shou Qi rules, AI, session, reference-restored UI, assets, and commands |
 | [docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md](docs/superpowers/specs/2026-07-07-android-pad-game-center-design.md) | Product scope, architecture, non-goals |
 | [docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md](docs/superpowers/plans/2026-07-08-android-pad-game-center-mvp.md) | MVP task breakdown and file map |
 | [docs/superpowers/plans/2026-07-18-xiangqi-intelligence-gradient.md](docs/superpowers/plans/2026-07-18-xiangqi-intelligence-gradient.md) | TDD implementation steps for the Xiangqi ten-level search engine and score-driven single-player flow |
@@ -211,6 +211,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [docs/superpowers/specs/2026-07-21-junqi-game-design.md](docs/superpowers/specs/2026-07-21-junqi-game-design.md) | Approved two-player hidden-information Junqi rules, AI boundary, UI, packaging, and tests |
 | [docs/superpowers/specs/2026-07-26-doushouqi-game-design.md](docs/superpowers/specs/2026-07-26-doushouqi-game-design.md) | Approved Dou Shou Qi rules, session behavior, 1-10 offline AI, UI, packaging, and tests |
 | [docs/superpowers/plans/2026-07-26-doushouqi-game.md](docs/superpowers/plans/2026-07-26-doushouqi-game.md) | TDD implementation steps for Dou Shou Qi rules, search, session, UI, assets, and package integration |
+| [docs/superpowers/reports/2026-07-27-doushouqi-reference-runtime-acceptance.md](docs/superpowers/reports/2026-07-27-doushouqi-reference-runtime-acceptance.md) | Emulator evidence for the reference-restored Dou Shou Qi menu, board, pieces, family rail, AI round, and latest-move marker |
 | [docs/superpowers/specs/2026-07-21-usb-adb-connect-script-design.md](docs/superpowers/specs/2026-07-21-usb-adb-connect-script-design.md) | USB ADB device listing and exact-serial connection command contract |
 | [docs/superpowers/plans/2026-07-21-usb-adb-connect-script.md](docs/superpowers/plans/2026-07-21-usb-adb-connect-script.md) | TDD implementation steps for USB ADB device listing and exact-serial verification |
 | [docs/agents/game-plugins.md](docs/agents/game-plugins.md) | GamePlugin contract, zip layout, adding a game |
