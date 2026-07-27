@@ -220,6 +220,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [designs/specs/android-games-family-versus-logo.md](designs/specs/android-games-family-versus-logo.md) | Approved family-versus Logo and launcher-icon SSOT |
 | [designs/specs/xiangqi-ui.md](designs/specs/xiangqi-ui.md) | Approved bright, simple Chinese Xiangqi UI and board/piece texture SSOT |
 | [designs/specs/junqi-ui.md](designs/specs/junqi-ui.md) | Approved and implemented traditional railway Junqi UI SSOT and preview index |
+| [docs/superpowers/specs/2026-07-27-doushouqi-logo-sidebar-design.md](docs/superpowers/specs/2026-07-27-doushouqi-logo-sidebar-design.md) | Approved transparent Doushouqi Logo and Xiangqi-family menu/game rail design |
 | [designs/specs/doushouqi-ui.md](designs/specs/doushouqi-ui.md) | Approved Dou Shou Qi double-river UI SSOT and preview index |
 
 ## Done checklist
