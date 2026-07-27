@@ -83,7 +83,7 @@
 ┌──────────────────────────────┬──────────────────┐
 │  den · traps                 │   circular logo  │
 │      blue river canyon       │      斗兽棋      │
-│  empty 7×9 territory board   │   版本 0.0.2     │
+│  empty 7×9 territory board   │   版本 0.0.3     │
 │      blue river canyon       │──────────────────│
 │  traps · den                 │   [单人模式]     │
 │                              │   [双人对战]     │

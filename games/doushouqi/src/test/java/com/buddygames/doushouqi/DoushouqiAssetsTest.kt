@@ -7,6 +7,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 class DoushouqiAssetsTest {
     @Test
@@ -29,6 +33,58 @@ class DoushouqiAssetsTest {
         assertEquals(1400, board.height)
         assertTrue(cornersAreTransparentOrCanvasSafe(board))
         assertTrue("board should visibly cover its transparent canvas", alphaCoverage(board) > 0.88f)
+    }
+
+    @Test
+    fun packageBoardUsesOctagonalHuntingNetTrapEmblems() {
+        val board = readPackagePng(DoushouqiVisuals.BOARD_TEXTURE)
+        trapCells.forEach { (row, column) ->
+            val centerX = (gridLeft + (column + 0.5f) * gridWidth / 7f).roundToInt()
+            val centerY = (gridTop + (row + 0.5f) * gridHeight / 9f).roundToInt()
+            val shortEdge = gridHeight / 9f
+
+            assertRingHasEightDarkSectors(
+                board = board,
+                centerX = centerX,
+                centerY = centerY,
+                radius = shortEdge * 0.34f,
+                angleOffsetDegrees = 22.5f,
+                label = "trap ($row,$column) outer octagon",
+            )
+            assertRingHasEightDarkSectors(
+                board = board,
+                centerX = centerX,
+                centerY = centerY,
+                radius = shortEdge * 0.28f,
+                angleOffsetDegrees = 22.5f,
+                label = "trap ($row,$column) inner octagon",
+            )
+            assertRingHasEightDarkSectors(
+                board = board,
+                centerX = centerX,
+                centerY = centerY,
+                radius = shortEdge * 0.20f,
+                angleOffsetDegrees = 0f,
+                label = "trap ($row,$column) radial net",
+            )
+            assertTrue(
+                "trap ($row,$column) center knot",
+                hasDarkPixelNear(board, centerX, centerY, radius = 7),
+            )
+
+            val washPixel = board.getRGB(
+                centerX + (shortEdge * 0.25f).roundToInt(),
+                centerY + (shortEdge * 0.11f).roundToInt(),
+            )
+            val landPixel = board.getRGB(
+                (gridLeft + (0.5f) * gridWidth / 7f).roundToInt(),
+                (gridTop + (2.5f) * gridHeight / 9f).roundToInt(),
+            )
+            assertTrue(
+                "trap ($row,$column) needs a visible ochre wash",
+                colorDistance(washPixel, landPixel) >= 18,
+            )
+        }
     }
 
     @Test
@@ -103,10 +159,69 @@ class DoushouqiAssetsTest {
         return opaque.toFloat() / samples
     }
 
+    private fun assertRingHasEightDarkSectors(
+        board: BufferedImage,
+        centerX: Int,
+        centerY: Int,
+        radius: Float,
+        angleOffsetDegrees: Float,
+        label: String,
+    ) {
+        repeat(8) { sector ->
+            val angle = (angleOffsetDegrees + sector * 45f) * PI / 180.0
+            val x = centerX + (cos(angle) * radius).roundToInt()
+            val y = centerY + (sin(angle) * radius).roundToInt()
+            assertTrue(label, hasDarkPixelNear(board, x, y, radius = 4))
+        }
+    }
+
+    private fun hasDarkPixelNear(
+        image: BufferedImage,
+        centerX: Int,
+        centerY: Int,
+        radius: Int,
+    ): Boolean =
+        ((centerY - radius)..(centerY + radius)).any { y ->
+            ((centerX - radius)..(centerX + radius)).any { x ->
+                isDarkWood(image.getRGB(x, y))
+            }
+        }
+
+    private fun isDarkWood(color: Int): Boolean {
+        val alpha = color ushr 24
+        val red = color shr 16 and 0xFF
+        val green = color shr 8 and 0xFF
+        val blue = color and 0xFF
+        return alpha > 200 && red < 145 && green < 110 && blue < 70
+    }
+
+    private fun colorDistance(first: Int, second: Int): Int =
+        listOf(16, 8, 0).sumOf { shift ->
+            kotlin.math.abs(
+                ((first shr shift) and 0xFF) - ((second shr shift) and 0xFF),
+            )
+        }
+
     private tailrec fun repositoryRoot(
         directory: File = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile,
     ): File {
         if (directory.resolve("settings.gradle.kts").isFile) return directory
         return repositoryRoot(requireNotNull(directory.parentFile))
+    }
+
+    private companion object {
+        const val gridLeft = 64
+        const val gridTop = 64
+        const val gridWidth = 1272
+        const val gridHeight = 1272
+
+        val trapCells = listOf(
+            0 to 2,
+            0 to 4,
+            1 to 3,
+            8 to 2,
+            8 to 4,
+            7 to 3,
+        )
     }
 }
