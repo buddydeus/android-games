@@ -25,6 +25,10 @@ internal const val DOUSHOUQI_GAME_RAIL_HEIGHT_FRACTION = 0.94f
 internal const val DOUSHOUQI_MENU_RAIL_WIDTH_DP = 320f
 internal const val DOUSHOUQI_MENU_RAIL_HEIGHT_FRACTION = 0.88f
 internal const val DOUSHOUQI_WIDE_BREAKPOINT_DP = 900f
+internal const val DOUSHOUQI_RAIL_CORNER_DP = 8f
+internal const val DOUSHOUQI_RAIL_HORIZONTAL_PADDING_DP = 24f
+internal const val DOUSHOUQI_RAIL_VERTICAL_PADDING_DP = 26f
+internal const val DOUSHOUQI_ACTION_HEIGHT_DP = 54f
 internal const val DOUSHOUQI_BOARD_ASPECT_RATIO = 1f
 internal const val DOUSHOUQI_PIECE_SCALE = 0.86f
 
