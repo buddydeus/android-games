@@ -1,62 +1,62 @@
 # Design Brief - 斗兽棋界面
 
 **Slug:** `doushouqi-ui`
-**User brief (verbatim summary):** “实现斗兽棋”，并指定通过 `ai-everything:designer` 进行设计。
+**User brief (verbatim summary):** “根据图片，完整还原实现棋盘和棋子，侧边栏与其他游戏形式保持一致。”
 **Stack:** Android Kotlin + Jetpack Compose，离线动态游戏包，横屏 Android Pad
-**Iteration:** 2026-07-26T00:00:00+08:00
-**Status:** 本文件是斗兽棋首版视觉 SSOT；预览、Compose 实现与包内资源必须遵循本文件。
+**Iteration:** 2026-07-27T00:00:00+08:00
+**Status:** 本文件是斗兽棋参考图还原的视觉 SSOT；`designs/references/doushouqi-board-reference.png` 是用户批准的像素级方向，预览、Compose 实现与包内资源必须遵循本文件。
 
 ## Base System
 
-`ui-ux-pro-max` 将产品识别为触屏棋盘娱乐，首先推荐深色毛毡、金色强调和重 3D 拟物。该方向虽然有棋具触感，但性能、文字对比和小尺寸棋格辨识不适合离线 Android Pad，因此只保留其触控、可访问性和即时反馈约束。
+`ui-ux-pro-max` 将产品识别为触屏棋盘娱乐并推荐 3D/拟物游戏风格。用户参考图明确要求竹木棋具、深蓝河面、浮雕方棋子和柔和投影，因此保留克制的实体棋具材质；不采用 WebGL、视差、循环动画或会影响离线性能的动态 3D。
 
 | Dimension | Content |
 | --- | --- |
 | Product / industry | Android Pad 离线斗兽棋；面向家庭、本地双人玩家与棋类爱好者 |
 | Page structure | 左侧固定 7×9 棋盘主舞台，右侧固定状态与操作栏；菜单和对局共享同一横屏空间逻辑 |
-| Color tokens | 原始建议为森林绿 `#15803D`、金棕 `#D97706`、深蓝黑 `#0F172A`、白色文字 |
-| Typography | 原始建议为 Noto Serif TC 标题、Noto Sans TC 正文；实现使用 Android 系统 CJK 衬线/无衬线字体，避免外部字体依赖 |
+| Color tokens | 参考图提取的竹木金、深河蓝、松绿、朱砂、米白字和冷灰背景 |
+| Typography | 棋子使用包内纹理烘焙的楷书/毛笔单字；状态和按钮继续使用 Android 系统 CJK 字体，避免外部运行时依赖 |
 | Interaction | 最小 48dp 触控目标、至少 8dp 间距、100ms 内按压反馈；机器人思考时禁用棋盘；状态不只依赖颜色 |
-| Anti-patterns (avoid) | 不使用复杂 3D、重阴影、全屏暗色毛毡、霓虹森林、动物照片、悬浮卡片堆叠、过小棋格或只靠红绿表达阵营 |
+| Anti-patterns (avoid) | 不使用实时 3D、玻璃拟态、霓虹森林、动物照片、卡片堆叠、过小棋格、将截图整体裁成不可交互棋盘，或只靠红绿表达阵营 |
 
 ## Revised Direction
 
 ### Three approaches considered
 
-1. **野兽领地沙盘，推荐。** 以两条深蓝河道切开竹木色棋盘，兽穴、陷阱与狮虎跃河线路构成清晰地形；朱砂与松绿棋子使用大号拓印式单字兽名，缩小后仍能识别。
-2. **儿童动物绘本。** 用八种动物插画和明亮草地吸引家庭用户，但 16 枚棋子会产生过多小图，降低棋力关系和地形的读取速度，也偏离现有游戏家族。
-3. **暗色丛林竞技场。** 深色叶影、发光河流和金属棋子更戏剧化，但在明亮平板环境中对比不稳定，且与军棋、象棋现有的明亮实体棋具方向不一致。
+1. **完整包内棋具纹理，采用。** 一张无棋子的近方形竹木棋盘 PNG 负责木纹、边框、河水、网格、陷阱和兽穴；松绿/朱砂各八张透明棋子 PNG 负责浮雕、投影和楷书兽字。Compose 只负责规则状态、点击、合法提示与最后一步标记。
+2. **纯 Compose 拟物绘制。** 能保持规则准确和体积较小，但难以稳定还原参考图的细木纹、水纹、棋子倒角与柔和投影。
+3. **直接裁切用户截图。** 像素最接近单一画面，但棋子、选中框和侧栏被烘焙在一起，无法支持真实移动、换边、悔棋和终局状态，因此拒绝。
 
 ### Detemplating answers
 
 1. **Subject grounding** - 具体对象是同一台 Android Pad 上进行的标准 7×9 斗兽棋；受众是需要快速判断兽阶、河道、陷阱和兽穴的玩家；单屏任务是完成一次选择与走棋。
 2. **Hero / opening** - 菜单的主角不是通用 Logo 卡片，而是一张无棋子的斗兽棋领地板；两条河道、六个陷阱和两个兽穴直接说明游戏是什么。
-3. **Typography** - 标题使用克制的系统衬线体，棋子使用极粗无衬线单字。棋子文字像棋具上的拓印，不采用可复用于任意 SaaS 的中性字体层级。
+3. **Typography** - 棋子单字使用接近参考图的楷书/毛笔字形并烘焙进透明纹理；侧栏标题、比分和按钮沿用其他内置游戏的系统字体层级。
 4. **Structure** - 右栏规则线只分隔比分、回合和操作三种真实信息层级；不使用装饰性编号、徽章或胶囊标签。
-5. **Memory point (signature)** - 棋盘中央的“双河峡谷”：深蓝河面带有极简流向短纹，狮虎可跨越的长边以克制的金色跳跃刻线提示。
-6. **Aesthetic risk** - 将河道做成整块高对比深蓝地形，而不是传统浅蓝网格。它占据显著面积，但能让鼠入河、狮虎跃河这套独特规则一眼可见。
-7. **Detemplating changes** - 删除原始深色 3D、金色 CTA 和拟真动物材质，改为明亮竹木领地板、矿物蓝河道、拓印兽名和平整账簿式右栏。
+5. **Memory point (signature)** - 近方形竹木棋盘中的“双河峡谷”，搭配两色方形浮雕兽棋和大号米白楷书兽字。
+6. **Aesthetic risk** - 接受参考图明显的拟物材质与投影，但把它们限制在棋盘和棋子资产中；侧栏保持平整、克制且与游戏家族一致。
+7. **Detemplating changes** - 从首版纯 Compose 平涂升级为包内棋具纹理，棋盘约为 `1:1` 而不是严格按 `7:9` 单元格正方形展开；侧栏不复制参考图的专属排版。
 8. **Rejected defaults** - 拒绝奶油色加陶土红生活方式模板、近黑加荧光单色、报纸栏目、通用深色电竞 HUD、森林照片和玻璃卡片。
 
 ## Final Tokens
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| `canvas` | `#E7ECE8` | 应用背景，冷矿物灰绿 |
-| `surface` | `#F5F6F1` | 右侧状态栏与按钮浅面 |
-| `board` | `#D5B875` | 棋盘主体，低饱和竹木金 |
-| `boardLight` | `#E7D29A` | 普通格与菜单空棋盘亮面 |
-| `grid` | `#594A2F` | 棋盘网格、边线和地形文字 |
-| `river` | `#315F78` | 双河峡谷主色 |
-| `riverLine` | `#8DB4C3` | 河流短纹与跳跃提示的冷色部分 |
-| `jumpLine` | `#D9B85F` | 狮虎跨河长边提示 |
-| `den` | `#8E372E` | 兽穴中心与终局强调 |
-| `trap` | `#B6813F` | 陷阱内框与符号 |
-| `greenPiece` | `#25664E` | 松绿方棋子 |
-| `redPiece` | `#A64332` | 朱砂方棋子 |
-| `pieceText` | `#FFF9E8` | 棋子兽名与阵营辅助符号 |
-| `ink` | `#292C25` | 主文字 |
-| `muted` | `#686D63` | 次级文字和禁用状态 |
+| `canvas` | `#EDF3EF` | 应用背景，参考图的冷白灰绿 |
+| `surface` | `#F7F8F3` | 其他游戏统一侧栏浅面 |
+| `board` | `#E5B85D` | 棋盘主体竹木金 |
+| `boardLight` | `#F0CB7B` | 木纹高光与普通格亮面 |
+| `grid` | `#5A3A12` | 深棕网格、边线和兽穴文字 |
+| `river` | `#075D86` | 深蓝双河 |
+| `riverLine` | `#2A7898` | 细密水纹高光 |
+| `jumpLine` | `#5A3A12` | 陷阱交叉线和中心铆钉 |
+| `den` | `#6A3E12` | 兽穴文字与角标 |
+| `trap` | `#5A3A12` | 陷阱交叉线 |
+| `greenPiece` | `#0E5A3A` | 松绿方浮雕棋子 |
+| `redPiece` | `#C63A20` | 朱砂方浮雕棋子 |
+| `pieceText` | `#FFF3D2` | 米白楷书兽名 |
+| `ink` | `#183D30` | 侧栏主文字 |
+| `muted` | `#6B6D69` | 侧栏次级文字和禁用状态 |
 | `lastMove` | `#4FCBFF` at 72% | 所有游戏共享的最后移动亮蓝四角框 |
 | `legalMove` | `#273E32` | 普通合法落点 |
 | `captureRing` | `#F4EBD4` | 吃子目标的浅色内环 |
@@ -68,8 +68,8 @@
 - Display: Android `FontFamily.Serif`，`斗兽棋` 48sp / 600，短标题 26sp / 600。
 - Body: Android `FontFamily.SansSerif`，18sp / 500；次级信息 14sp / 400。
 - Utility: Android `FontFamily.Monospace`，比分 38sp / 500、等级和版本 13-15sp。
-- Piece label: Android `FontFamily.SansSerif` + `FontWeight.Black`，单字占棋子高度约 58%-64%，字距 0，无描边、无投影。
-- 地形字 `兽穴`、`陷阱` 使用 11-13sp 粗体；即使有棋子覆盖，也通过底色和几何继续区分。
+- Piece label: 资源生成时使用本机可再现的 CJK 楷书字体，单字占棋子本体高度约 62%，米白色，无描边；棋子整体带统一倒角、高光和下投影。
+- 地形字只保留 `兽穴`；陷阱通过参考图中的交叉线和中心圆钉表达，不额外叠加 `陷阱` 文案。
 
 ## Layout Concept
 
@@ -90,7 +90,7 @@
 ```
 
 - 宽布局沿用象棋家族几何：外边距 28dp、棋盘与右栏间距 34dp；菜单右栏固定 320dp 宽并占内容高度 88%。
-- 空棋盘保持 7:9 比例并居中；河道和兽穴足以辨认游戏，不额外放置动物插画。
+- 空棋盘使用接近参考图的 `1:1` 外框比例并居中；内部仍是精确 7 列 × 9 行规则网格，单元格允许横向略宽。
 - 三个菜单按钮高 64dp，圆角 8dp；单人模式使用松绿实心，双人模式使用浅面描边，退出游戏使用朱砂文字描边。
 
 ### Game screen
@@ -108,7 +108,7 @@
 ```
 
 - 对局右栏固定 300dp 宽并占内容高度 94%；棋盘完整显示 7×9 格，不滚动、不裁切。
-- 棋子占单格短边约 78%，使用轻微圆角矩形而非圆片；棋子边缘保留地形可见间隙。
+- 棋子透明纹理画布占单格短边约 86%，其中方形棋子本体约占 76%；圆角、金色内边、高光和下投影与参考图一致。
 - 选中棋子显示同阵营浅色内框；普通合法落点显示墨绿圆点；可吃目标显示象牙色断环。
 - 最近移动目标使用共享亮蓝四角框，位于棋子外侧并保持中心空白。
 - 人类执下方阵营；单人换边时棋盘旋转 180 度映射坐标，但兽名文字保持正向。
@@ -134,13 +134,14 @@
 | Preview | Spec doc | Description |
 | --- | --- | --- |
 | `designs/previews/doushouqi-ui-menu-tablet.png` | `designs/images/doushouqi-ui-menu-tablet.md` | Android Pad 横屏菜单，空领地棋盘、双河峡谷、Logo、标题、版本与三项菜单 |
-| `designs/previews/doushouqi-ui-game-tablet.png` | `designs/images/doushouqi-ui-game-tablet.md` | Android Pad 横屏单人对局，双方拓印兽棋、比分、等级、回合与操作 |
+| `designs/previews/doushouqi-ui-game-tablet.png` | `designs/images/doushouqi-ui-game-tablet.md` | 用户批准参考图：近方形竹木棋盘、双河、浮雕兽棋和目标侧栏层级 |
 
 ## Implementation Notes
 
 - Primary CTA labels: 菜单 `单人模式`；终局 `重新开始`。
 - Components: `DoushouqiBoard`, `DoushouqiPiece`, `DoushouqiStatusRail`, `DoushouqiScoreLine`, `DoushouqiTurnLine`, `DoushouqiActionButton`。
-- Package assets: `1024×1024` circular-safe `assets/icon.png`；棋盘与棋子首版以 Compose 语义绘制，避免 16 张小图造成缩放和包体成本。
+- Package assets: `1024×1024` circular-safe `assets/icon.png`；`1400×1400` 完整透明角棋盘 `assets/board/doushouqi-board.png`；16 张 `512×512` 透明棋子 PNG 位于 `assets/pieces/{green|red}-{animal}.png`。
+- Runtime: 纹理按包根目录和 manifest 版本缓存；先读 bounds 并要求 `image/png` 与精确尺寸，失败时回退到现有 Compose 绘制。
 - Preserve: 标准 7×9 规则坐标、双向点击映射、统一菜单文案、比分/换边/悔棋/重开、共享最近一步标记、象棋家族外层几何、包内独立版本。
 - Non-goals: 在线对战、联网素材、音效、动画河流、皮肤选择、棋谱导入导出、可配置计时。
 
@@ -148,6 +149,6 @@
 
 - 正常文字对比至少 4.5:1，大标题和大号棋子字至少 3:1。
 - 48dp 最小触控区域；相邻按钮至少 8dp；棋格的可点击区域覆盖完整格。
-- 不出现动物照片、表情符号、森林剪影堆叠、玻璃拟态、霓虹描边、悬浮卡片阵列或装饰性编号。
+- 不出现动物照片、表情符号、森林剪影堆叠、玻璃拟态、霓虹描边、悬浮卡片阵列、装饰性编号，或复制参考图中与其他游戏不一致的专属侧栏。
 - 每屏只保留一个视觉主操作；棋盘地形始终比右栏装饰更醒目。
 - 800×600dp 横屏下仍必须读清双方兽名、河道、兽穴、陷阱、比分和当前回合。

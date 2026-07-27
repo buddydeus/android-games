@@ -205,6 +205,7 @@ $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
 - [斗兽棋设计](docs/superpowers/specs/2026-07-26-doushouqi-game-design.md)
 - [斗兽棋实施计划](docs/superpowers/plans/2026-07-26-doushouqi-game.md)
 - [斗兽棋视觉 SSOT](designs/specs/doushouqi-ui.md)
+- [斗兽棋棋盘参考图](designs/references/doushouqi-board-reference.png)
 - [斗兽棋模块说明](games/doushouqi/README.md)
 - [五子棋模块说明](games/gomoku/README.md)
 - [黑白棋模块说明](games/othello/README.md)
