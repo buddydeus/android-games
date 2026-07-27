@@ -1,6 +1,6 @@
 # Doushouqi Logo And Sidebar Design
 
-**Status:** Approved visual direction; implementation follows after written-spec review.
+**Status:** Approved, implemented, and verified on Android 36.
 
 ## Goal
 
@@ -65,7 +65,7 @@ Use the same information hierarchy as Xiangqi and International Chess:
 ### Turn and result block
 
 - Nonterminal state displays `当前回合：` followed by a compact tinted side label.
-- The label contains `松绿方` or `朱砂方`; the border and pale fill supplement the text instead of replacing it.
+- The label contains the simplified round-side copy `绿方` or `红方`; the border and pale fill supplement the text instead of replacing it.
 - Single player displays `玩家执松绿` or `玩家执朱砂` as secondary text.
 - Robot turn displays `智能思考中` below the current-turn line.
 - Terminal state replaces the turn block with `对局结果` plus the existing explicit result reason.

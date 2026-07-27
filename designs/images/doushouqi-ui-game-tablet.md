@@ -12,7 +12,7 @@ Android tablet landscape viewport, approximately 16:10. The user-provided 1568×
 - Active board: near-square bamboo frame and exact standard initial Dou Shou Qi deployment with eight pine-green and eight vermilion pieces labeled `象`, `狮`, `虎`, `豹`, `狼`, `狗`, `猫`, `鼠`.
 - Terrain: two mineral-blue rivers, six octagonal hunting-net traps, two dens, and a clear grid.
 - Move feedback: selected piece inner border, one legal dot, one capture ring, one bright-blue four-corner latest-move marker.
-- Score/status rail: family-standard three-zone rail with exact Chinese labels `玩家 : 智能`, `0 : 0`, `智能等级 1`, `当前回合：松绿方`, `玩家执松绿`; two horizontal dividers separate score, turn and actions.
+- Score/status rail: family-standard three-zone rail with exact Chinese labels `玩家 : 智能`, `0 : 0`, `智能等级 1`, `当前回合：绿方`, `玩家执松绿`; two horizontal dividers separate score, turn and actions.
 - Actions: exact labels `悔棋`, `返回菜单`.
 
 ## Visual details
@@ -25,10 +25,10 @@ Use case: ui-mockup
 Asset type: Android Pad landscape in-game design preview
 Primary request: Reproduce the approved user reference as a polished high-fidelity landscape tablet UI for an active Chinese Dou Shou Qi match.
 Scene/backdrop: full-screen cool mineral gray-green canvas, no device frame.
-Subject: left side shows a complete 7 by 9 Dou Shou Qi board in a plausible standard opening position, with exactly eight pine-green and eight vermilion rounded rectangular animal tiles labeled with large single Chinese characters from "象 狮 虎 豹 狼 狗 猫 鼠"; two deep mineral-blue 2 by 3 rivers, six traps marked by double-line octagonal hunting nets with eight radial strands, four inward hooks and a center knot, and two dens remain readable. Right side is a calm Xiangqi-family score ledger divided into three vertical zones by two horizontal rules: top text "玩家 : 智能", large score "0 : 0", then "智能等级 1"; middle text "当前回合：松绿方" and "玩家执松绿"; bottom buttons "悔棋", "返回菜单".
+Subject: left side shows a complete 7 by 9 Dou Shou Qi board in a plausible standard opening position, with exactly eight pine-green and eight vermilion rounded rectangular animal tiles labeled with large single Chinese characters from "象 狮 虎 豹 狼 狗 猫 鼠"; two deep mineral-blue 2 by 3 rivers, six traps marked by double-line octagonal hunting nets with eight radial strands, four inward hooks and a center knot, and two dens remain readable. Right side is a calm Xiangqi-family score ledger divided into three vertical zones by two horizontal rules: top text "玩家 : 智能", large score "0 : 0", then "智能等级 1"; middle text "当前回合：绿方" and "玩家执松绿"; bottom buttons "悔棋", "返回菜单".
 Style/medium: production-ready Jetpack Compose tablet game UI using package-owned raster board and piece textures, tactile bamboo grain, embossed colored tiles, brush-style animal labels, precise accessible geometry.
 Composition/framing: 16:10 landscape, 28dp outer padding, board centered in left pane, 34dp gap, narrow 300dp right rail, complete board visible.
 Color palette: canvas #EDF3EF, rail #F7F8F3, board #E5B85D, grid #5A3A12, river #075D86, green pieces #0E5A3A, red pieces #C63A20, piece text #FFF3D2, latest move #4FCBFF.
-Text (verbatim): "象", "狮", "虎", "豹", "狼", "狗", "猫", "鼠", "玩家 : 智能", "0 : 0", "智能等级 1", "当前回合：松绿方", "玩家执松绿", "悔棋", "返回菜单".
+Text (verbatim): "象", "狮", "虎", "豹", "狼", "狗", "猫", "鼠", "玩家 : 智能", "0 : 0", "智能等级 1", "当前回合：绿方", "玩家执松绿", "悔棋", "返回菜单".
 Constraints: board exactly 7 columns by 9 rows; both rivers exactly 2 by 3; large readable animal characters; terrain remains visible; show one bright-blue four-corner last-move marker with a clear center; no extra panels.
 Avoid: dark esports HUD, neon, photorealistic animals, cute cartoons, jungle wallpaper, glass cards, clutter, emojis, English text, watermark, device frame, screenshot-cropped static board.

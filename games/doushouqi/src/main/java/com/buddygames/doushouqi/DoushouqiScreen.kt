@@ -2,6 +2,7 @@ package com.buddygames.doushouqi
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,10 +11,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -68,32 +72,43 @@ internal fun DoushouqiMenu(
         },
         rail = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (icon != null) {
-                    Image(
-                        bitmap = icon,
-                        contentDescription = "斗兽棋图标",
-                        modifier = Modifier.size(112.dp),
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (icon != null) {
+                        Image(
+                            bitmap = icon,
+                            contentDescription = "斗兽棋图标",
+                            modifier = Modifier.size(112.dp),
+                        )
+                    }
+                    Text(
+                        "斗兽棋",
+                        color = DoushouqiInk,
+                        fontFamily = FontFamily.Serif,
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        doushouqiVersionLabel(versionName),
+                        color = DoushouqiMuted,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 14.sp,
                     )
                 }
-                Text(
-                    "斗兽棋",
-                    color = DoushouqiInk,
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    doushouqiVersionLabel(versionName),
-                    color = DoushouqiMuted,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 14.sp,
-                )
-                DoushouqiActionButton("单人模式", onSingle, primary = true)
-                DoushouqiActionButton("双人对战", onTwo)
-                DoushouqiActionButton("退出游戏", onExit, danger = true)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    DoushouqiActionButton("单人模式", onSingle, primary = true)
+                    DoushouqiActionButton("双人对战", onTwo)
+                    DoushouqiActionButton("退出游戏", onExit, danger = true)
+                }
             }
         },
     )
@@ -168,9 +183,17 @@ private fun DoushouqiResponsiveLayout(
                             .width(railWidth.dp)
                             .fillMaxHeight(railHeightFraction),
                         color = DoushouqiSurface,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(DOUSHOUQI_RAIL_CORNER_DP.dp),
+                        border = BorderStroke(1.dp, DoushouqiMuted.copy(alpha = 0.28f)),
+                        shadowElevation = 5.dp,
                     ) {
-                        Box(Modifier.padding(24.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier.padding(
+                                horizontal = DOUSHOUQI_RAIL_HORIZONTAL_PADDING_DP.dp,
+                                vertical = DOUSHOUQI_RAIL_VERTICAL_PADDING_DP.dp,
+                            ),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             rail()
                         }
                     }
@@ -187,9 +210,17 @@ private fun DoushouqiResponsiveLayout(
                     Surface(
                         Modifier.fillMaxWidth().heightIn(min = 152.dp),
                         color = DoushouqiSurface,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(DOUSHOUQI_RAIL_CORNER_DP.dp),
+                        border = BorderStroke(1.dp, DoushouqiMuted.copy(alpha = 0.28f)),
+                        shadowElevation = 5.dp,
                     ) {
-                        Box(Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier.padding(
+                                horizontal = DOUSHOUQI_RAIL_HORIZONTAL_PADDING_DP.dp,
+                                vertical = DOUSHOUQI_RAIL_VERTICAL_PADDING_DP.dp,
+                            ),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             rail()
                         }
                     }
@@ -436,52 +467,150 @@ private fun DoushouqiStatusRail(
 ) {
     val result = session.position.result
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            if (mode == DoushouqiMode.SINGLE_PLAYER) "玩家      智能" else "松绿      朱砂",
-            color = DoushouqiMuted,
-            fontSize = 14.sp,
-        )
-        Text(
-            if (mode == DoushouqiMode.SINGLE_PLAYER) {
-                "${session.score.player}  :  ${session.score.robot}"
-            } else {
-                "${session.score.green}  :  ${session.score.vermilion}"
-            },
-            color = DoushouqiInk,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 38.sp,
-        )
-        Text(
-            resultText(result) ?: if (robotThinking) {
-                "智能思考中"
-            } else {
-                "${sideLabel(session.position.sideToMove)}回合"
-            },
-            color = DoushouqiInk,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-        if (mode == DoushouqiMode.SINGLE_PLAYER) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "玩家执${sideLabel(session.playerSide)} · 等级 ${session.intelligenceLevel.level}",
-                color = DoushouqiMuted,
-                fontSize = 14.sp,
+                if (mode == DoushouqiMode.SINGLE_PLAYER) {
+                    "玩家 : 智能"
+                } else {
+                    "松绿方 : 朱砂方"
+                },
+                color = DoushouqiInk,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.SemiBold,
             )
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val firstScore = if (mode == DoushouqiMode.SINGLE_PLAYER) {
+                    session.score.player
+                } else {
+                    session.score.green
+                }
+                val secondScore = if (mode == DoushouqiMode.SINGLE_PLAYER) {
+                    session.score.robot
+                } else {
+                    session.score.vermilion
+                }
+                Text(
+                    firstScore.toString(),
+                    color = DoushouqiGreenPiece,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 44.sp,
+                )
+                Text(
+                    " : ",
+                    color = DoushouqiInk,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 44.sp,
+                )
+                Text(
+                    secondScore.toString(),
+                    color = DoushouqiRedPiece,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 44.sp,
+                )
+            }
+            if (mode == DoushouqiMode.SINGLE_PLAYER) {
+                Spacer(Modifier.height(7.dp))
+                Text(
+                    "智能等级 ${session.intelligenceLevel.level}",
+                    color = DoushouqiGreenPiece,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
-        if (shouldShowDoushouqiUndo(result)) {
-            DoushouqiActionButton(
-                "悔棋",
-                onUndo,
-                enabled = session.historySize > 0 && !robotThinking,
-            )
+
+        HorizontalDivider(color = DoushouqiMuted.copy(alpha = 0.32f))
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (result != null) {
+                Text(
+                    "对局结果",
+                    color = DoushouqiMuted,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    requireNotNull(resultText(result)),
+                    color = DoushouqiRedPiece,
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "当前回合：",
+                        color = DoushouqiInk,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    val side = session.position.sideToMove
+                    val sideColor = if (side == DoushouqiSide.PINE_GREEN) {
+                        DoushouqiGreenPiece
+                    } else {
+                        DoushouqiRedPiece
+                    }
+                    Text(
+                        doushouqiTurnSideLabel(side),
+                        modifier = Modifier
+                            .background(
+                                sideColor.copy(alpha = 0.10f),
+                                RoundedCornerShape(5.dp),
+                            )
+                            .border(
+                                1.dp,
+                                sideColor.copy(alpha = 0.38f),
+                                RoundedCornerShape(5.dp),
+                            )
+                            .padding(horizontal = 9.dp, vertical = 4.dp),
+                        color = sideColor,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                if (mode == DoushouqiMode.SINGLE_PLAYER) {
+                    Text(
+                        doushouqiPlayerSideLine(session.playerSide),
+                        color = DoushouqiMuted,
+                        fontSize = 15.sp,
+                    )
+                }
+                if (robotThinking) {
+                    Text(
+                        "智能思考中",
+                        color = DoushouqiMuted,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
-        if (shouldShowDoushouqiRestart(result)) {
-            DoushouqiActionButton("重新开始", onRestart, primary = true)
+
+        HorizontalDivider(color = DoushouqiMuted.copy(alpha = 0.32f))
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (shouldShowDoushouqiRestart(result)) {
+                DoushouqiActionButton("重新开始", onRestart, primary = true)
+            }
+            if (shouldShowDoushouqiUndo(result)) {
+                DoushouqiActionButton(
+                    "悔棋",
+                    onUndo,
+                    enabled = session.historySize > 0 && !robotThinking,
+                )
+            }
+            DoushouqiActionButton("返回菜单", onReturn, danger = true)
         }
-        DoushouqiActionButton("返回菜单", onReturn)
     }
 }
 
@@ -497,29 +626,51 @@ private fun DoushouqiActionButton(
         Button(
             onClick = onClick,
             enabled = enabled,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            modifier = Modifier.fillMaxWidth().height(DOUSHOUQI_ACTION_HEIGHT_DP.dp),
             colors = ButtonDefaults.buttonColors(containerColor = DoushouqiGreenPiece),
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(DOUSHOUQI_RAIL_CORNER_DP.dp),
         ) {
-            Text(label)
+            Text(label, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     } else {
         OutlinedButton(
             onClick = onClick,
             enabled = enabled,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().height(DOUSHOUQI_ACTION_HEIGHT_DP.dp),
+            shape = RoundedCornerShape(DOUSHOUQI_RAIL_CORNER_DP.dp),
+            border = BorderStroke(
+                1.dp,
+                if (danger) {
+                    DoushouqiRedPiece.copy(alpha = if (enabled) 0.76f else 0.24f)
+                } else {
+                    DoushouqiInk.copy(alpha = if (enabled) 0.42f else 0.16f)
+                },
+            ),
         ) {
-            Text(label, color = if (danger) DoushouqiRedPiece else DoushouqiInk)
+            Text(
+                label,
+                color = if (danger) DoushouqiRedPiece else DoushouqiInk,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+            )
         }
     }
 }
 
-private fun sideLabel(side: DoushouqiSide): String =
+internal fun doushouqiTurnSideLabel(side: DoushouqiSide): String =
+    if (side == DoushouqiSide.PINE_GREEN) "绿方" else "红方"
+
+internal fun doushouqiFullSideLabel(side: DoushouqiSide): String =
     if (side == DoushouqiSide.PINE_GREEN) "松绿方" else "朱砂方"
 
+internal fun doushouqiTurnLine(side: DoushouqiSide): String =
+    "当前回合：${doushouqiTurnSideLabel(side)}"
+
+internal fun doushouqiPlayerSideLine(side: DoushouqiSide): String =
+    "玩家执${if (side == DoushouqiSide.PINE_GREEN) "松绿" else "朱砂"}"
+
 private fun resultText(result: DoushouqiResult?): String? = when (result) {
-    is DoushouqiResult.Win -> "${sideLabel(result.winner)}${
+    is DoushouqiResult.Win -> "${doushouqiFullSideLabel(result.winner)}${
         when (result.reason) {
             DoushouqiWinReason.DEN -> "进入兽穴"
             DoushouqiWinReason.FINAL_CAPTURE -> "吃光对方"

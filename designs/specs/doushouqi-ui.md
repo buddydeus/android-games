@@ -107,7 +107,7 @@
 │  green animals               │   0   :   0      │
 │      blue river canyon       │ 智能等级 1       │
 │      blue river canyon       │──────────────────│
-│  red animals                 │ 当前回合：松绿方 │
+│  red animals                 │ 当前回合：绿方   │
 │  red traps + den             │ 玩家执松绿       │
 │                              │──────────────────│
 │                              │ [悔棋] [返回菜单]│
@@ -135,7 +135,7 @@
 ## Copy Tone
 
 - Register: 简短、明确，像棋盘旁的裁判记录。
-- Vocabulary: 使用 `松绿方回合`、`朱砂方进入兽穴`、`选择棋子`、`悔棋`、`重新开始`。
+- Vocabulary: 回合方使用简化文案 `绿方` / `红方`；终局原因仍可使用完整阵营语义，如 `朱砂方进入兽穴`。其余使用 `选择棋子`、`悔棋`、`重新开始`。
 - Empty/error state: 说明原因和下一步，例如 `当前棋子没有合法走法，请选择另一枚棋子`。
 
 ## Preview Index

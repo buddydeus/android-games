@@ -21,8 +21,23 @@ class DoushouqiAssetsTest {
         assertNotNull(image)
         assertEquals(1024, image.width)
         assertEquals(1024, image.height)
-        assertTrue(cornersAreTransparentOrCanvasSafe(image))
-        assertTrue(subjectCoverage(image) in 0.20f..0.72f)
+        assertEquals(0, image.getRGB(0, 0) ushr 24)
+        assertEquals(0, image.getRGB(1023, 0) ushr 24)
+        assertEquals(0, image.getRGB(0, 1023) ushr 24)
+        assertEquals(0, image.getRGB(1023, 1023) ushr 24)
+        assertTrue("transparent medallion coverage", alphaCoverage(image) in 0.60f..0.82f)
+        assertTrue(
+            "Logo must retain pine green",
+            hasOpaqueColorNear(image, red = 0x0E, green = 0x5A, blue = 0x3A, tolerance = 70),
+        )
+        assertTrue(
+            "Logo must retain cinnabar",
+            hasOpaqueColorNear(image, red = 0xC6, green = 0x3A, blue = 0x20, tolerance = 70),
+        )
+        assertTrue(
+            "Logo must retain blue river",
+            hasOpaqueColorNear(image, red = 0x07, green = 0x5D, blue = 0x86, tolerance = 70),
+        )
     }
 
     @Test
@@ -127,26 +142,6 @@ class DoushouqiAssetsTest {
         }
     }
 
-    private fun subjectCoverage(image: BufferedImage): Float {
-        val background = image.getRGB(0, 0)
-        var subject = 0
-        var samples = 0
-        for (y in 0 until image.height step 8) {
-            for (x in 0 until image.width step 8) {
-                samples++
-                val color = image.getRGB(x, y)
-                val differs = listOf(16, 8, 0).any { shift ->
-                    kotlin.math.abs(
-                        ((background shr shift) and 0xFF) -
-                            ((color shr shift) and 0xFF),
-                    ) > 24
-                }
-                if (differs) subject++
-            }
-        }
-        return subject.toFloat() / samples
-    }
-
     private fun alphaCoverage(image: BufferedImage): Float {
         var opaque = 0
         var samples = 0
@@ -158,6 +153,23 @@ class DoushouqiAssetsTest {
         }
         return opaque.toFloat() / samples
     }
+
+    private fun hasOpaqueColorNear(
+        image: BufferedImage,
+        red: Int,
+        green: Int,
+        blue: Int,
+        tolerance: Int,
+    ): Boolean =
+        (0 until image.height step 4).any { y ->
+            (0 until image.width step 4).any { x ->
+                val color = image.getRGB(x, y)
+                color ushr 24 > 220 &&
+                    kotlin.math.abs((color shr 16 and 0xFF) - red) +
+                    kotlin.math.abs((color shr 8 and 0xFF) - green) +
+                    kotlin.math.abs((color and 0xFF) - blue) <= tolerance
+            }
+        }
 
     private fun assertRingHasEightDarkSectors(
         board: BufferedImage,
