@@ -26,6 +26,7 @@ class DoushouqiPlugin : GamePlugin {
 
     @Composable
     override fun MainScreen(context: GameContext) {
+        val textures = rememberDoushouqiTextures(context)
         val icon = remember(
             context.gamePackage.rootDir,
             context.gamePackage.manifest.versionCode,
@@ -41,6 +42,7 @@ class DoushouqiPlugin : GamePlugin {
         DoushouqiMenu(
             versionName = context.gamePackage.manifest.versionName,
             icon = icon,
+            textures = textures,
             onSingle = { context.startGame(GameMode.SINGLE_PLAYER) },
             onTwo = { context.startGame(GameMode.TWO_PLAYERS) },
             onExit = context::exitGame,
@@ -49,6 +51,7 @@ class DoushouqiPlugin : GamePlugin {
 
     @Composable
     override fun GameScreen(context: GameContext, mode: GameMode) {
+        val textures = rememberDoushouqiTextures(context)
         val sessionMode = if (mode == GameMode.SINGLE_PLAYER) {
             DoushouqiMode.SINGLE_PLAYER
         } else {
@@ -111,6 +114,7 @@ class DoushouqiPlugin : GamePlugin {
                 selected = selected,
                 legalMoves = legalMoves,
                 robotThinking = request != null,
+                textures = textures,
                 onTap = ::tap,
                 onUndo = {
                     projection = session.undo()
@@ -127,4 +131,12 @@ class DoushouqiPlugin : GamePlugin {
             )
         }
     }
+}
+
+@Composable
+private fun rememberDoushouqiTextures(context: GameContext): DoushouqiTextureSet = remember(
+    context.gamePackage.rootDir,
+    context.gamePackage.manifest.versionCode,
+) {
+    loadDoushouqiTextures(context.gamePackage.rootDir)
 }

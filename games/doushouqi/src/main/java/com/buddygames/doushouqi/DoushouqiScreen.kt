@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.sp
 internal fun DoushouqiMenu(
     versionName: String,
     icon: ImageBitmap?,
+    textures: DoushouqiTextureSet,
     onSingle: () -> Unit,
     onTwo: () -> Unit,
     onExit: () -> Unit,
@@ -60,6 +62,7 @@ internal fun DoushouqiMenu(
                 legalMoves = emptyList(),
                 rotated = false,
                 enabled = false,
+                textures = textures,
                 onTap = {},
             )
         },
@@ -103,6 +106,7 @@ internal fun DoushouqiGameLayout(
     selected: DoushouqiPosition?,
     legalMoves: List<DoushouqiMove>,
     robotThinking: Boolean,
+    textures: DoushouqiTextureSet,
     onTap: (DoushouqiPosition) -> Unit,
     onUndo: () -> Unit,
     onRestart: () -> Unit,
@@ -119,6 +123,7 @@ internal fun DoushouqiGameLayout(
                 legalMoves = legalMoves,
                 rotated = rotated,
                 enabled = !robotThinking && session.position.result == null,
+                textures = textures,
                 onTap = onTap,
             )
         },
@@ -201,33 +206,47 @@ internal fun DoushouqiBoard(
     legalMoves: List<DoushouqiMove>,
     rotated: Boolean,
     enabled: Boolean,
+    textures: DoushouqiTextureSet,
     onTap: (DoushouqiPosition) -> Unit,
 ) {
-    Box(
-        Modifier
-            .fillMaxHeight()
-            .aspectRatio(7f / 9f)
-            .background(DoushouqiBoardColor)
-            .border(2.dp, DoushouqiGrid),
-    ) {
-        Column(Modifier.fillMaxSize()) {
-            repeat(DoushouqiState.ROWS) { displayRow ->
-                Row(Modifier.weight(1f)) {
-                    repeat(DoushouqiState.COLUMNS) { displayColumn ->
-                        val model = modelPosition(displayRow, displayColumn, rotated)
-                        val piece = state.pieceAt(model)
-                        val destination = legalMoves.firstOrNull { it.to == model }
-                        DoushouqiCell(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            model = model,
-                            piece = piece,
-                            selected = selected == model,
-                            legal = destination != null,
-                            capture = destination != null && piece != null,
-                            latest = state.lastMove?.to == model,
-                            enabled = enabled,
-                            onTap = { onTap(model) },
-                        )
+    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val boardSize = minOf(maxWidth, maxHeight)
+        Box(
+            Modifier
+                .size(boardSize)
+                .aspectRatio(DOUSHOUQI_BOARD_ASPECT_RATIO)
+                .background(DoushouqiBoardColor),
+        ) {
+            textures.board?.let { board ->
+                Image(
+                    bitmap = board,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.FillBounds,
+                )
+            }
+            val gridInset = boardSize * (64f / DoushouqiVisuals.BOARD_TEXTURE_SIZE)
+            Column(Modifier.fillMaxSize().padding(gridInset)) {
+                repeat(DoushouqiState.ROWS) { displayRow ->
+                    Row(Modifier.weight(1f)) {
+                        repeat(DoushouqiState.COLUMNS) { displayColumn ->
+                            val model = modelPosition(displayRow, displayColumn, rotated)
+                            val piece = state.pieceAt(model)
+                            val destination = legalMoves.firstOrNull { it.to == model }
+                            DoushouqiCell(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                model = model,
+                                piece = piece,
+                                selected = selected == model,
+                                legal = destination != null,
+                                capture = destination != null && piece != null,
+                                latest = state.lastMove?.to == model,
+                                enabled = enabled,
+                                textures = textures,
+                                texturedBoard = textures.board != null,
+                                onTap = { onTap(model) },
+                            )
+                        }
                     }
                 }
             }
@@ -245,6 +264,8 @@ private fun DoushouqiCell(
     capture: Boolean,
     latest: Boolean,
     enabled: Boolean,
+    textures: DoushouqiTextureSet,
+    texturedBoard: Boolean,
     onTap: () -> Unit,
 ) {
     val terrain = terrainAt(model)
@@ -272,13 +293,19 @@ private fun DoushouqiCell(
     }
     Box(
         modifier
-            .background(terrainColor)
-            .border(0.5.dp, DoushouqiGrid.copy(alpha = 0.72f))
+            .background(if (texturedBoard) Color.Transparent else terrainColor)
+            .then(
+                if (texturedBoard) {
+                    Modifier
+                } else {
+                    Modifier.border(0.5.dp, DoushouqiGrid.copy(alpha = 0.72f))
+                },
+            )
             .semantics { contentDescription = description }
             .clickable(enabled = enabled, onClick = onTap),
         contentAlignment = Alignment.Center,
     ) {
-        if (terrain == DoushouqiTerrain.RIVER) {
+        if (!texturedBoard && terrain == DoushouqiTerrain.RIVER) {
             Canvas(Modifier.fillMaxSize()) {
                 repeat(3) { line ->
                     val y = size.height * (0.25f + line * 0.25f)
@@ -292,7 +319,11 @@ private fun DoushouqiCell(
                 }
             }
         }
-        if (piece == null && terrain in setOf(DoushouqiTerrain.DEN, DoushouqiTerrain.TRAP)) {
+        if (
+            !texturedBoard &&
+            piece == null &&
+            terrain in setOf(DoushouqiTerrain.DEN, DoushouqiTerrain.TRAP)
+        ) {
             Text(
                 if (terrain == DoushouqiTerrain.DEN) "兽穴" else "陷阱",
                 color = if (terrain == DoushouqiTerrain.DEN) DoushouqiPieceText else DoushouqiGrid,
@@ -304,16 +335,24 @@ private fun DoushouqiCell(
             Box(Modifier.size(10.dp).background(DoushouqiInk, RoundedCornerShape(50)))
         }
         if (piece != null) {
+            val texture = textures.piece(piece)
             Box(
                 Modifier
-                    .fillMaxSize(DOUSHOUQI_PIECE_SCALE)
-                    .background(
-                        if (piece.side == DoushouqiSide.PINE_GREEN) {
-                            DoushouqiGreenPiece
+                    .fillMaxHeight(DOUSHOUQI_PIECE_SCALE)
+                    .aspectRatio(1f)
+                    .then(
+                        if (texture == null) {
+                            Modifier.background(
+                                if (piece.side == DoushouqiSide.PINE_GREEN) {
+                                    DoushouqiGreenPiece
+                                } else {
+                                    DoushouqiRedPiece
+                                },
+                                RoundedCornerShape(7.dp),
+                            )
                         } else {
-                            DoushouqiRedPiece
+                            Modifier
                         },
-                        RoundedCornerShape(7.dp),
                     )
                     .then(
                         if (selected) Modifier.border(
@@ -324,12 +363,21 @@ private fun DoushouqiCell(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    piece.animal.label,
-                    color = DoushouqiPieceText,
-                    fontSize = 23.sp,
-                    fontWeight = FontWeight.Black,
-                )
+                if (texture != null) {
+                    Image(
+                        bitmap = texture,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                    )
+                } else {
+                    Text(
+                        piece.animal.label,
+                        color = DoushouqiPieceText,
+                        fontSize = 23.sp,
+                        fontWeight = FontWeight.Black,
+                    )
+                }
             }
         }
         if (capture) {

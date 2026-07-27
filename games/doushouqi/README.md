@@ -1,6 +1,6 @@
 # 斗兽棋
 
-`doushouqi` 是游戏中心的第六个内置独立游戏包，版本为 `0.0.1`。规则、AI、会话、Compose 界面和包内资源都归本模块所有。
+`doushouqi` 是游戏中心的第六个内置独立游戏包，版本为 `0.0.2`。规则、AI、会话、Compose 界面和包内资源都归本模块所有。
 
 当前已完成标准 7×9 不可变棋盘与基础合法着法：
 
@@ -22,10 +22,13 @@
 - 单人悔棋回到玩家行动前并一并撤销机器人响应；双人悔棋仅回退一步。终局比分、重复次数、静默步数和最后一步都随快照恢复。
 - 后手玩家的新轮由机器人自动开局，开局不进入悔棋历史；后台结果必须同时匹配 generation 与源局面键才可应用。
 - 单人绛红方视角将 9×7 坐标双向旋转 180 度，双人模式和松绿方视角保持模型方向。
-- Compose 界面实现双河、陷阱、兽穴、棋子兽名、选中框、合法点、吃子断环和共享亮蓝最后一步标记。
+- Compose 界面使用包内 1400×1400 透明角竹木棋盘，以及松绿/朱砂双方共 16 张 512×512 透明浮雕棋子；资源由 `tools/generate_doushouqi_assets.py` 可再现生成。
+- 运行时按包目录与版本缓存纹理，完整解码前先校验 `image/png` 和精确尺寸；任一棋盘或棋子资源缺失、损坏时只回退对应的 Compose 绘制。
+- 透明 7×9 交互层继续负责选中框、合法点、吃子断环、读屏语义和共享亮蓝最后一步标记，因此贴图不改变规则、点击或悔棋行为。
 - 宽屏沿用 28dp 外边距、34dp 间距与 300dp/320dp 侧栏；窄于 900dp 时切换为棋盘在上、操作栏在下。
 - 每格拥有包含阵营、兽名、行列与选择状态的读屏语义；机器人思考时显示 `智能思考中` 并禁用棋盘输入。
 - `package/assets/icon.png` 是包内独立的 1024×1024 圆形安全 PNG，菜单按包版本加载，失败时不影响游戏运行。
+- `package/assets/board/doushouqi-board.png` 与 `package/assets/pieces/` 完整收录进独立游戏 zip；棋盘保持参考图的近方形竹木框、深蓝双河、交叉陷阱和上下兽穴。
 
 坐标按模型上方第 1 行、左侧第 1 列计数。朱砂方初始为：狮 `(1,1)`、虎 `(1,7)`、狗 `(2,2)`、猫 `(2,6)`、鼠 `(3,1)`、豹 `(3,3)`、狼 `(3,5)`、象 `(3,7)`；松绿方初始为：象 `(7,1)`、狼 `(7,3)`、豹 `(7,5)`、鼠 `(7,7)`、猫 `(8,2)`、狗 `(8,6)`、虎 `(9,1)`、狮 `(9,7)`。朱砂兽穴在 `(1,4)`，松绿兽穴在 `(9,4)`；两片河道位于第 4–6 行的第 2–3 列和第 5–6 列。
 
@@ -49,6 +52,7 @@
 ## 命令
 
 ```bash
+python3 games/doushouqi/tools/generate_doushouqi_assets.py
 ./gradlew :games:doushouqi:testDebugUnitTest
 ./gradlew packageDoushouqiGame
 npm run verify
@@ -59,3 +63,4 @@ npm run verify
 - `docs/superpowers/specs/2026-07-26-doushouqi-game-design.md`
 - `designs/specs/doushouqi-ui.md`
 - `docs/superpowers/plans/2026-07-26-doushouqi-game.md`
+- `docs/superpowers/plans/2026-07-27-doushouqi-reference-restoration.md`
