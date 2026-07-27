@@ -11,8 +11,8 @@ class DoushouqiManifestTest {
 
         assertEquals("doushouqi", manifest.gameId)
         assertEquals("斗兽棋", manifest.displayName)
-        assertEquals(2, manifest.versionCode)
-        assertEquals("0.0.2", manifest.versionName)
+        assertEquals(3, manifest.versionCode)
+        assertEquals("0.0.3", manifest.versionName)
         assertEquals("com.buddygames.doushouqi.DoushouqiPlugin", manifest.entryClass)
         assertEquals("assets/icon.png", manifest.icon)
     }

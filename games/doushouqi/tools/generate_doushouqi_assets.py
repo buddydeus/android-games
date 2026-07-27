@@ -74,6 +74,99 @@ def add_bamboo_grain(image: Image.Image, mask: Image.Image) -> None:
     image.alpha_composite(grain)
 
 
+def regular_polygon(
+    center_x: float,
+    center_y: float,
+    radius: float,
+    count: int,
+    angle_offset_degrees: float,
+) -> list[tuple[int, int]]:
+    return [
+        (
+            round(center_x + math.cos(math.radians(angle_offset_degrees + index * 360 / count)) * radius),
+            round(center_y + math.sin(math.radians(angle_offset_degrees + index * 360 / count)) * radius),
+        )
+        for index in range(count)
+    ]
+
+
+def draw_trap_emblem(
+    image: Image.Image,
+    bounds: tuple[int, int, int, int],
+) -> None:
+    x0, y0, x1, y1 = bounds
+    center_x = (x0 + x1) / 2
+    center_y = (y0 + y1) / 2
+    short_edge = min(x1 - x0, y1 - y0)
+    rope_color = (90, 58, 18, 255)
+
+    wash = Image.new("RGBA", image.size)
+    wash_draw = ImageDraw.Draw(wash)
+    wash_draw.polygon(
+        regular_polygon(center_x, center_y, short_edge * 0.38, 8, 22.5),
+        fill=(213, 155, 60, 62),
+    )
+    image.alpha_composite(wash)
+
+    draw = ImageDraw.Draw(image)
+    outer = regular_polygon(center_x, center_y, short_edge * 0.34, 8, 22.5)
+    inner = regular_polygon(center_x, center_y, short_edge * 0.28, 8, 22.5)
+    draw.line((*outer, outer[0]), fill=rope_color, width=4, joint="curve")
+    draw.line((*inner, inner[0]), fill=rope_color, width=3, joint="curve")
+
+    for index in range(8):
+        angle = math.radians(index * 45)
+        start_radius = short_edge * 0.055
+        end_radius = short_edge * 0.265
+        draw.line(
+            (
+                round(center_x + math.cos(angle) * start_radius),
+                round(center_y + math.sin(angle) * start_radius),
+                round(center_x + math.cos(angle) * end_radius),
+                round(center_y + math.sin(angle) * end_radius),
+            ),
+            fill=rope_color,
+            width=3,
+        )
+
+    hook_tip_radius = short_edge * 0.13
+    hook_base_radius = short_edge * 0.20
+    hook_half_width = short_edge * 0.045
+    for index in range(4):
+        angle = math.radians(index * 90)
+        tangent_x = -math.sin(angle)
+        tangent_y = math.cos(angle)
+        tip = (
+            round(center_x + math.cos(angle) * hook_tip_radius),
+            round(center_y + math.sin(angle) * hook_tip_radius),
+        )
+        for direction in (-1, 1):
+            base = (
+                round(
+                    center_x +
+                    math.cos(angle) * hook_base_radius +
+                    tangent_x * hook_half_width * direction
+                ),
+                round(
+                    center_y +
+                    math.sin(angle) * hook_base_radius +
+                    tangent_y * hook_half_width * direction
+                ),
+            )
+            draw.line((*base, *tip), fill=rope_color, width=3)
+
+    knot_radius = round(short_edge * 0.035)
+    draw.ellipse(
+        (
+            round(center_x) - knot_radius,
+            round(center_y) - knot_radius,
+            round(center_x) + knot_radius,
+            round(center_y) + knot_radius,
+        ),
+        fill=rope_color,
+    )
+
+
 def generate_board() -> None:
     canvas = Image.new("RGBA", (BOARD_SIZE, BOARD_SIZE))
     mask = rounded_mask(BOARD_SIZE, 52, 18)
@@ -142,10 +235,7 @@ def generate_board() -> None:
         y0 = round(top + row * cell_h)
         x1 = round(x0 + cell_w)
         y1 = round(y0 + cell_h)
-        draw.line((x0, y0, x1, y1), fill=grid_color, width=3)
-        draw.line((x1, y0, x0, y1), fill=grid_color, width=3)
-        center_x, center_y = round((x0 + x1) / 2), round((y0 + y1) / 2)
-        draw.ellipse((center_x - 9, center_y - 9, center_x + 9, center_y + 9), fill=grid_color)
+        draw_trap_emblem(canvas, (x0, y0, x1, y1))
 
     den_font = ImageFont.truetype(str(FONT), 48, index=0)
     for row in (0, 8):
