@@ -1,6 +1,6 @@
 # 斗兽棋
 
-`doushouqi` 是游戏中心的第六个内置独立游戏包，版本为 `0.0.4`。规则、AI、会话、Compose 界面和包内资源都归本模块所有。
+`doushouqi` 是游戏中心的第六个内置独立游戏包，版本为 `0.0.5`。规则、AI、会话、Compose 界面和包内资源都归本模块所有。
 
 当前已完成标准 7×9 不可变棋盘与基础合法着法：
 
@@ -20,12 +20,13 @@
 - 增量 Zobrist 棋盘键、重复局面上下文和静默步数共同参与有界置换键，避免复用路径相关的错误和棋评分。
 - 单人比分始终按玩家与机器人身份记录；玩家胜局后的下一轮交换执方，玩家负局恢复松绿先手，和棋保持当前执方与比分。
 - 单人悔棋回到玩家行动前并一并撤销机器人响应；双人悔棋仅回退一步。终局比分、重复次数、静默步数和最后一步都随快照恢复。
+- 单人会话记录最近一次合法玩家或机器人走棋直接吃掉的一枚棋子；后续空走会将记录清为 `无`，悔棋恢复快照中的记录，重新开始清空。
 - 后手玩家的新轮由机器人自动开局，开局不进入悔棋历史；后台结果必须同时匹配 generation 与源局面键才可应用。
 - 单人绛红方视角将 9×7 坐标双向旋转 180 度，双人模式和松绿方视角保持模型方向。
 - Compose 界面使用包内 1400×1400 透明角竹木棋盘，以及松绿/朱砂双方共 16 张 512×512 透明浮雕棋子；资源由 `tools/generate_doushouqi_assets.py` 可再现生成。
 - 运行时按包目录与版本缓存纹理，完整解码前先校验 `image/png` 和精确尺寸；任一棋盘或棋子资源缺失、损坏时只回退对应的 Compose 绘制。
 - 透明 7×9 交互层继续负责选中框、合法点、吃子断环、读屏语义和共享亮蓝最后一步标记，因此贴图不改变规则、点击或悔棋行为。
-- 宽屏沿用 28dp 外边距、34dp 间距与 300dp/320dp 侧栏；菜单侧栏将透明 Logo、标题和版本置于上区，三项操作置于下区。对局侧栏按比分、回合/结果、操作分为三段并使用两条分隔线；当前回合简写为 `绿方` / `红方`，玩家执方和终局结果继续使用松绿/朱砂身份。窄于 900dp 时切换为棋盘在上、操作栏在下。
+- 宽屏沿用 28dp 外边距、34dp 间距与 300dp/320dp 侧栏；菜单侧栏将透明 Logo、标题和版本置于上区，三项操作置于下区。对局侧栏按比分、回合/结果、操作分为三段并使用两条分隔线。单人侧栏的当前回合和终局阵营只显示 `绿方` / `红方`，不显示松绿、朱砂或玩家执方；原身份位置改为 `最近一步吃子`，显示 `无` 或一枚如 `红方鼠` 的标签。双人侧栏保持原有阵营文案。窄于 900dp 时切换为棋盘在上、操作栏在下。
 - 每格拥有包含阵营、兽名、行列与选择状态的读屏语义；机器人思考时显示 `智能思考中` 并禁用棋盘输入。
 - `package/assets/icon.png` 是用户选定的象鼠 S 河冷瓷圆章，使用包内独立的 1024×1024 RGBA 透明 PNG；四角 alpha 固定为 0，菜单按包版本加载，失败时不影响游戏运行。
 - `package/assets/board/doushouqi-board.png` 与 `package/assets/pieces/` 完整收录进独立游戏 zip；棋盘保持参考图的近方形竹木框、深蓝双河和上下兽穴，六个陷阱改用双层八角捕兽网纹章，以八条向心网线、四个内倒钩、中央锁结和浅赭印底明确表达特殊地形。
@@ -68,3 +69,6 @@ npm run verify
 - `docs/superpowers/specs/2026-07-27-doushouqi-logo-sidebar-design.md`
 - `docs/superpowers/plans/2026-07-27-doushouqi-logo-sidebar.md`
 - `docs/superpowers/reports/2026-07-27-doushouqi-logo-sidebar-runtime-acceptance.md`
+- `docs/superpowers/specs/2026-07-28-doushouqi-single-player-capture-summary-design.md`
+- `docs/superpowers/plans/2026-07-28-doushouqi-single-player-capture-summary.md`
+- `docs/superpowers/reports/2026-07-28-doushouqi-single-player-capture-summary-runtime-acceptance.md`
