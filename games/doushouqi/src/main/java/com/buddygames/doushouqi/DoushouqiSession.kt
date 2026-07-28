@@ -40,6 +40,20 @@ data class DoushouqiRobotRequest(
     val level: DoushouqiAiLevel,
 )
 
+data class DoushouqiRoundCaptures(
+    val capturedByGreen: DoushouqiPiece? = null,
+    val capturedByRed: DoushouqiPiece? = null,
+) {
+    internal fun recordCapture(
+        attacker: DoushouqiSide,
+        captured: DoushouqiPiece?,
+    ): DoushouqiRoundCaptures = when {
+        captured == null -> this
+        attacker == DoushouqiSide.PINE_GREEN -> copy(capturedByGreen = captured)
+        else -> copy(capturedByRed = captured)
+    }
+}
+
 data class DoushouqiSessionState(
     val position: DoushouqiState,
     val playerSide: DoushouqiSide,
@@ -47,16 +61,22 @@ data class DoushouqiSessionState(
     val historySize: Int,
     val generation: Long,
     val robotRequest: DoushouqiRobotRequest?,
-    val lastCapturedPiece: DoushouqiPiece?,
+    val lastCompletedRoundCaptures: DoushouqiRoundCaptures,
 ) {
     val intelligenceLevel: DoushouqiAiLevel
         get() = score.intelligenceLevel
+
+    internal val lastCapturedPiece: DoushouqiPiece?
+        get() =
+            lastCompletedRoundCaptures.capturedByRed
+                ?: lastCompletedRoundCaptures.capturedByGreen
 }
 
 private data class DoushouqiSnapshot(
     val position: DoushouqiState,
     val score: DoushouqiScore,
-    val lastCapturedPiece: DoushouqiPiece?,
+    val lastCompletedRoundCaptures: DoushouqiRoundCaptures,
+    val pendingRoundCaptures: DoushouqiRoundCaptures?,
 )
 
 class DoushouqiSession internal constructor(
@@ -75,7 +95,8 @@ class DoushouqiSession internal constructor(
     private var score = initialScore
     private var generation = 0L
     private var history = emptyList<DoushouqiSnapshot>()
-    private var lastCapturedPiece: DoushouqiPiece? = null
+    private var lastCompletedRoundCaptures = DoushouqiRoundCaptures()
+    private var pendingRoundCaptures: DoushouqiRoundCaptures? = null
 
     fun state(): DoushouqiSessionState = projection()
 
@@ -87,11 +108,34 @@ class DoushouqiSession internal constructor(
         ) {
             return projection()
         }
+        val attacker = position.sideToMove
         val captured = position.pieceAt(move.to)
         val next = DoushouqiRules.apply(position, move) ?: return projection()
-        history = history + DoushouqiSnapshot(position, score, lastCapturedPiece)
+        history = history + DoushouqiSnapshot(
+            position = position,
+            score = score,
+            lastCompletedRoundCaptures = lastCompletedRoundCaptures,
+            pendingRoundCaptures = pendingRoundCaptures,
+        )
         position = next
-        lastCapturedPiece = captured
+        val nextPending = when {
+            mode == DoushouqiMode.SINGLE_PLAYER ->
+                DoushouqiRoundCaptures().recordCapture(attacker, captured)
+            attacker == DoushouqiSide.PINE_GREEN ->
+                DoushouqiRoundCaptures().recordCapture(attacker, captured)
+            else ->
+                (pendingRoundCaptures ?: DoushouqiRoundCaptures())
+                    .recordCapture(attacker, captured)
+        }
+        pendingRoundCaptures = nextPending
+        val completesRound =
+            next.result != null ||
+                mode == DoushouqiMode.TWO_PLAYERS &&
+                attacker == DoushouqiSide.VERMILION
+        if (completesRound) {
+            lastCompletedRoundCaptures = nextPending
+            pendingRoundCaptures = null
+        }
         score = score.record(next.result, mode, playerSide)
         generation++
         return projection()
@@ -111,10 +155,14 @@ class DoushouqiSession internal constructor(
         ) {
             return projection()
         }
+        val attacker = position.sideToMove
         val captured = position.pieceAt(move.to)
         val next = DoushouqiRules.apply(position, move) ?: return projection()
         position = next
-        lastCapturedPiece = captured
+        pendingRoundCaptures?.let { pending ->
+            lastCompletedRoundCaptures = pending.recordCapture(attacker, captured)
+            pendingRoundCaptures = null
+        }
         score = score.record(next.result, mode, playerSide)
         generation++
         return projection()
@@ -124,7 +172,8 @@ class DoushouqiSession internal constructor(
         val snapshot = history.lastOrNull() ?: return projection()
         position = snapshot.position
         score = snapshot.score
-        lastCapturedPiece = snapshot.lastCapturedPiece
+        lastCompletedRoundCaptures = snapshot.lastCompletedRoundCaptures
+        pendingRoundCaptures = snapshot.pendingRoundCaptures
         history = history.dropLast(1)
         generation++
         return projection()
@@ -138,7 +187,8 @@ class DoushouqiSession internal constructor(
         }
         position = DoushouqiState.initial()
         history = emptyList()
-        lastCapturedPiece = null
+        lastCompletedRoundCaptures = DoushouqiRoundCaptures()
+        pendingRoundCaptures = null
         generation++
         return projection()
     }
@@ -155,7 +205,7 @@ class DoushouqiSession internal constructor(
         historySize = history.size,
         generation = generation,
         robotRequest = robotRequest(),
-        lastCapturedPiece = lastCapturedPiece,
+        lastCompletedRoundCaptures = lastCompletedRoundCaptures,
     )
 
     private fun robotRequest(): DoushouqiRobotRequest? {
