@@ -66,7 +66,12 @@ round contains zero, one, or two pieces in total.
 `DoushouqiSession` owns:
 
 - `lastCompletedRoundCaptures`, exposed through `DoushouqiSessionState`;
-- `pendingRoundCaptures`, kept private until the round completes.
+- nullable `pendingRoundCaptures`, kept private until the round completes.
+
+`pendingRoundCaptures == null` means no player/Green first move is awaiting its
+paired reply. A non-null but empty summary means a legal first move occurred
+without a capture. This distinction lets the session recognize a robot opening
+without inspecting UI state or move history.
 
 When an accepted move captures a piece, the session records it under the
 attacking move's side, not under the captured piece's side. Publishing replaces
@@ -75,7 +80,7 @@ therefore represented by an empty `DoushouqiRoundCaptures`.
 
 ## Lifecycle
 
-- Initial position: completed and pending summaries are empty.
+- Initial position: the completed summary is empty and pending is `null`.
 - Normal first move: update only the pending summary.
 - Normal second move: update pending, publish it as the completed summary, then
   clear pending.
