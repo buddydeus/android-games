@@ -113,23 +113,18 @@ class DoushouqiSession internal constructor(
             pendingRoundCaptures = pendingRoundCaptures,
         )
         position = next
-        val nextPending = when {
-            mode == DoushouqiMode.SINGLE_PLAYER ->
+        if (mode == DoushouqiMode.TWO_PLAYERS) {
+            lastCompletedRoundCaptures =
                 DoushouqiRoundCaptures().recordCapture(attacker, captured)
-            attacker == DoushouqiSide.PINE_GREEN ->
-                DoushouqiRoundCaptures().recordCapture(attacker, captured)
-            else ->
-                (pendingRoundCaptures ?: DoushouqiRoundCaptures())
-                    .recordCapture(attacker, captured)
-        }
-        pendingRoundCaptures = nextPending
-        val completesRound =
-            next.result != null ||
-                mode == DoushouqiMode.TWO_PLAYERS &&
-                attacker == DoushouqiSide.VERMILION
-        if (completesRound) {
-            lastCompletedRoundCaptures = nextPending
             pendingRoundCaptures = null
+        } else {
+            val nextPending =
+                DoushouqiRoundCaptures().recordCapture(attacker, captured)
+            pendingRoundCaptures = nextPending
+            if (next.result != null) {
+                lastCompletedRoundCaptures = nextPending
+                pendingRoundCaptures = null
+            }
         }
         score = score.record(next.result, mode, playerSide)
         generation++

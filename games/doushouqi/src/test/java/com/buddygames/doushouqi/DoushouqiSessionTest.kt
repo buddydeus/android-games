@@ -46,6 +46,10 @@ class DoushouqiSessionTest {
         val restarted = session.restart()
         assertEquals(DoushouqiSide.PINE_GREEN, restarted.position.sideToMove)
         assertEquals(DoushouqiSide.PINE_GREEN, restarted.playerSide)
+        assertEquals(
+            DoushouqiRoundCaptures(),
+            restarted.lastCompletedRoundCaptures,
+        )
     }
 
     @Test
@@ -201,20 +205,50 @@ class DoushouqiSessionTest {
     }
 
     @Test
-    fun twoPlayerPublishesOnlyAfterRedCompletesRound() {
+    fun twoPlayerGreenCapturePublishesImmediately() {
         val session = DoushouqiSession(
             DoushouqiMode.TWO_PLAYERS,
             pairedCaptureState(),
         )
 
         val afterGreen = session.play(move(pos(4, 0), pos(3, 0)))
-        assertEquals(DoushouqiRoundCaptures(), afterGreen.lastCompletedRoundCaptures)
+
+        assertEquals(
+            DoushouqiRoundCaptures(
+                capturedByGreen = red(DoushouqiAnimal.RAT),
+            ),
+            afterGreen.lastCompletedRoundCaptures,
+        )
+    }
+
+    @Test
+    fun twoPlayerQuietMoveImmediatelyClearsPreviousCapture() {
+        val session = DoushouqiSession(
+            DoushouqiMode.TWO_PLAYERS,
+            pairedCaptureState(),
+        )
+        session.play(move(pos(4, 0), pos(3, 0)))
+
+        val afterQuietRed = session.play(move(pos(2, 1), pos(1, 1)))
+
+        assertEquals(
+            DoushouqiRoundCaptures(),
+            afterQuietRed.lastCompletedRoundCaptures,
+        )
+    }
+
+    @Test
+    fun twoPlayerRedCaptureReplacesGreenCaptureWithoutMerging() {
+        val session = DoushouqiSession(
+            DoushouqiMode.TWO_PLAYERS,
+            pairedCaptureState(),
+        )
+        session.play(move(pos(4, 0), pos(3, 0)))
 
         val afterRed = session.play(move(pos(2, 1), pos(2, 2)))
 
         assertEquals(
             DoushouqiRoundCaptures(
-                capturedByGreen = red(DoushouqiAnimal.RAT),
                 capturedByRed = green(DoushouqiAnimal.RAT),
             ),
             afterRed.lastCompletedRoundCaptures,
@@ -320,25 +354,35 @@ class DoushouqiSessionTest {
     }
 
     @Test
-    fun twoPlayerUndoOfRedMoveRestoresPendingGreenHalfRound() {
+    fun twoPlayerUndoRestoresSummaryBeforeLatestMove() {
         val session = DoushouqiSession(
             DoushouqiMode.TWO_PLAYERS,
             pairedCaptureState(),
         )
         session.play(move(pos(4, 0), pos(3, 0)))
-        session.play(move(pos(2, 1), pos(2, 2)))
+        session.play(move(pos(2, 1), pos(1, 1)))
 
         val afterUndo = session.undo()
-        assertEquals(DoushouqiRoundCaptures(), afterUndo.lastCompletedRoundCaptures)
 
-        val replayed = session.play(move(pos(2, 1), pos(2, 2)))
         assertEquals(
             DoushouqiRoundCaptures(
                 capturedByGreen = red(DoushouqiAnimal.RAT),
-                capturedByRed = green(DoushouqiAnimal.RAT),
             ),
-            replayed.lastCompletedRoundCaptures,
+            afterUndo.lastCompletedRoundCaptures,
         )
+    }
+
+    @Test
+    fun illegalTwoPlayerMovePreservesLatestCapture() {
+        val session = DoushouqiSession(
+            DoushouqiMode.TWO_PLAYERS,
+            pairedCaptureState(),
+        )
+        val afterGreen = session.play(move(pos(4, 0), pos(3, 0)))
+
+        val unchanged = session.play(move(pos(3, 0), pos(2, 0)))
+
+        assertEquals(afterGreen, unchanged)
     }
 
     @Test
