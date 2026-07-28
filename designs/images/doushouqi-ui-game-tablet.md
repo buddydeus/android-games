@@ -12,7 +12,7 @@ Android tablet landscape viewport, approximately 16:10. The user-provided 1568×
 - Active board: near-square bamboo frame and exact standard initial Dou Shou Qi deployment with eight pine-green and eight vermilion pieces labeled `象`, `狮`, `虎`, `豹`, `狼`, `狗`, `猫`, `鼠`.
 - Terrain: two mineral-blue rivers, six octagonal hunting-net traps, two dens, and a clear grid.
 - Move feedback: selected piece inner border, one legal dot, one capture ring, one bright-blue four-corner latest-move marker.
-- Score/status rail: family-standard three-zone rail with exact Chinese labels `玩家 : 智能`, `0 : 0`, `智能等级 1`, `当前回合：绿方`, `绿方吃：鼠`, `红方吃：象`; two horizontal dividers separate score, completed-round capture summary and actions. Never show `松绿`, `朱砂`, `玩家执`, or `最近一步吃子`.
+- Score/status rail: family-standard three-zone rail with exact Chinese labels `玩家 : 智能`, `0 : 0`, `智能等级 1`, `当前回合：绿方`, `绿方吃：鼠`, `红方吃：象`; two horizontal dividers separate score, capture summary and actions. The illustrated two-line state is the single-player completed player-plus-robot round. In two-player mode, show only the latest accepted move's one capture (`绿方吃：<兽名>` or `红方吃：<兽名>`), or immediately replace it with `无吃子` after a quiet move; never merge both players. Never show `松绿`, `朱砂`, `玩家执`, or `最近一步吃子`.
 - Actions: exact labels `悔棋`, `返回菜单`.
 
 ## Visual details
