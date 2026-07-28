@@ -116,6 +116,76 @@ class DoushouqiSessionTest {
     }
 
     @Test
+    fun latestAcceptedMoveReplacesCapturedPieceSummary() {
+        val session = DoushouqiSession(
+            DoushouqiMode.SINGLE_PLAYER,
+            stateOf(
+                sideToMove = DoushouqiSide.PINE_GREEN,
+                pos(4, 0) to green(DoushouqiAnimal.CAT),
+                pos(3, 0) to red(DoushouqiAnimal.RAT),
+                pos(1, 5) to red(DoushouqiAnimal.CAT),
+            ),
+        )
+
+        val afterHuman = session.play(move(pos(4, 0), pos(3, 0)))
+        assertEquals(red(DoushouqiAnimal.RAT), afterHuman.lastCapturedPiece)
+
+        val request = requireNotNull(afterHuman.robotRequest)
+        val quietRobotMove = DoushouqiRules.legalMoves(request.state)
+            .first { request.state.pieceAt(it.to) == null }
+        val afterRobot = session.applyRobotMove(request, quietRobotMove)
+
+        assertNull(afterRobot.lastCapturedPiece)
+    }
+
+    @Test
+    fun robotCaptureBecomesLatestCapturedPiece() {
+        val session = DoushouqiSession(
+            DoushouqiMode.SINGLE_PLAYER,
+            stateOf(
+                sideToMove = DoushouqiSide.PINE_GREEN,
+                pos(5, 0) to green(DoushouqiAnimal.CAT),
+                pos(2, 2) to green(DoushouqiAnimal.RAT),
+                pos(2, 1) to red(DoushouqiAnimal.CAT),
+            ),
+        )
+        val afterHuman = session.play(move(pos(5, 0), pos(4, 0)))
+        val request = requireNotNull(afterHuman.robotRequest)
+
+        val afterRobot = session.applyRobotMove(
+            request,
+            move(pos(2, 1), pos(2, 2)),
+        )
+
+        assertEquals(green(DoushouqiAnimal.RAT), afterRobot.lastCapturedPiece)
+    }
+
+    @Test
+    fun undoRestoresLatestCaptureAndRestartClearsIt() {
+        val session = capturingSession()
+        val captured = session.play(move(pos(4, 0), pos(3, 0)))
+        assertNotNull(captured.lastCapturedPiece)
+
+        assertNull(session.undo().lastCapturedPiece)
+        session.play(move(pos(4, 0), pos(3, 0)))
+        assertNull(session.restart().lastCapturedPiece)
+    }
+
+    @Test
+    fun staleRobotRequestDoesNotChangeLatestCapture() {
+        val session = capturingSession()
+        val afterCapture = session.play(move(pos(4, 0), pos(3, 0)))
+        val request = requireNotNull(afterCapture.robotRequest)
+        val robotMove = DoushouqiRules.legalMoves(request.state).first()
+        val stale = request.copy(sourcePositionKey = request.sourcePositionKey + 1)
+
+        val unchanged = session.applyRobotMove(stale, robotMove)
+
+        assertEquals(red(DoushouqiAnimal.RAT), unchanged.lastCapturedPiece)
+        assertEquals(afterCapture.position.positionKey, unchanged.position.positionKey)
+    }
+
+    @Test
     fun twoPlayerUndoRestoresExactlyOneMove() {
         val session = DoushouqiSession(DoushouqiMode.TWO_PLAYERS)
         val initial = session.state()
@@ -223,4 +293,14 @@ class DoushouqiSessionTest {
                 pos(4, 0) to green(DoushouqiAnimal.DOG),
             )
         }
+
+    private fun capturingSession(): DoushouqiSession = DoushouqiSession(
+        DoushouqiMode.SINGLE_PLAYER,
+        stateOf(
+            sideToMove = DoushouqiSide.PINE_GREEN,
+            pos(4, 0) to green(DoushouqiAnimal.CAT),
+            pos(3, 0) to red(DoushouqiAnimal.RAT),
+            pos(1, 5) to red(DoushouqiAnimal.CAT),
+        ),
+    )
 }
