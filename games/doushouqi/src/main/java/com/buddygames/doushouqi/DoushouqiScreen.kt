@@ -584,45 +584,40 @@ private fun DoushouqiStatusRail(
                     )
                 }
             }
-            if (mode == DoushouqiMode.SINGLE_PLAYER) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                val captureLabels =
+                    doushouqiRoundCaptureLabels(session.lastCompletedRoundCaptures)
+                if (captureLabels.isEmpty()) {
                     Text(
-                        "最近一步吃子",
+                        "无吃子",
                         color = DoushouqiMuted,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
                     )
-                    val captured = session.lastCapturedPiece
-                    if (captured == null) {
-                        Text(
-                            "无",
-                            color = DoushouqiMuted,
-                            fontSize = 16.sp,
-                        )
-                    } else {
-                        val capturedColor =
-                            if (captured.side == DoushouqiSide.PINE_GREEN) {
+                } else {
+                    captureLabels.forEach { (side, label) ->
+                        val sideColor =
+                            if (side == DoushouqiSide.PINE_GREEN) {
                                 DoushouqiGreenPiece
                             } else {
                                 DoushouqiRedPiece
                             }
                         Text(
-                            doushouqiCapturedPieceLabel(captured),
+                            label,
                             modifier = Modifier
                                 .background(
-                                    capturedColor.copy(alpha = 0.10f),
+                                    sideColor.copy(alpha = 0.10f),
                                     RoundedCornerShape(5.dp),
                                 )
                                 .border(
                                     1.dp,
-                                    capturedColor.copy(alpha = 0.38f),
+                                    sideColor.copy(alpha = 0.38f),
                                     RoundedCornerShape(5.dp),
                                 )
                                 .padding(horizontal = 9.dp, vertical = 4.dp),
-                            color = capturedColor,
+                            color = sideColor,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                         )
@@ -704,8 +699,16 @@ internal fun doushouqiFullSideLabel(side: DoushouqiSide): String =
 internal fun doushouqiTurnLine(side: DoushouqiSide): String =
     "当前回合：${doushouqiSinglePlayerSideLabel(side)}"
 
-internal fun doushouqiCapturedPieceLabel(piece: DoushouqiPiece): String =
-    "${doushouqiSinglePlayerSideLabel(piece.side)}${piece.animal.label}"
+internal fun doushouqiRoundCaptureLabels(
+    captures: DoushouqiRoundCaptures,
+): List<Pair<DoushouqiSide, String>> = buildList {
+    captures.capturedByGreen?.let {
+        add(DoushouqiSide.PINE_GREEN to "绿方吃：${it.animal.label}")
+    }
+    captures.capturedByRed?.let {
+        add(DoushouqiSide.VERMILION to "红方吃：${it.animal.label}")
+    }
+}
 
 internal fun doushouqiResultText(
     result: DoushouqiResult?,

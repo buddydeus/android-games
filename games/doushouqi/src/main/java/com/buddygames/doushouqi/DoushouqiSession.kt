@@ -65,11 +65,6 @@ data class DoushouqiSessionState(
 ) {
     val intelligenceLevel: DoushouqiAiLevel
         get() = score.intelligenceLevel
-
-    internal val lastCapturedPiece: DoushouqiPiece?
-        get() =
-            lastCompletedRoundCaptures.capturedByRed
-                ?: lastCompletedRoundCaptures.capturedByGreen
 }
 
 private data class DoushouqiSnapshot(
