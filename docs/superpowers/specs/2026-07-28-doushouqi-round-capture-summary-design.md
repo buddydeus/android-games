@@ -1,6 +1,6 @@
 # Doushouqi Round Capture Summary Design
 
-**Status:** Approved for implementation.
+**Status:** Approved and implemented.
 
 ## Goal
 

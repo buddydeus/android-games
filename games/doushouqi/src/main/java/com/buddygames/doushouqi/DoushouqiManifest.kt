@@ -2,8 +2,8 @@ package com.buddygames.doushouqi
 
 import com.buddygames.api.GameManifest
 
-internal const val DOUSHOUQI_VERSION_CODE = 5
-internal const val DOUSHOUQI_VERSION_NAME = "0.0.5"
+internal const val DOUSHOUQI_VERSION_CODE = 6
+internal const val DOUSHOUQI_VERSION_NAME = "0.0.6"
 
 internal object DoushouqiManifest {
     val gameManifest = GameManifest(
