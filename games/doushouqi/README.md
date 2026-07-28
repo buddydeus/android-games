@@ -77,3 +77,4 @@ npm run verify
 - `docs/superpowers/reports/2026-07-28-doushouqi-round-capture-summary-runtime-acceptance.md`
 - `docs/superpowers/specs/2026-07-28-doushouqi-two-player-immediate-capture-summary-design.md`
 - `docs/superpowers/plans/2026-07-28-doushouqi-two-player-immediate-capture-summary.md`
+- `docs/superpowers/reports/2026-07-28-doushouqi-two-player-immediate-capture-summary-runtime-acceptance.md`
