@@ -27,14 +27,28 @@ class DoushouqiPluginTest {
     }
 
     @Test
-    fun capturedPieceCopyUsesOnlyRedAndGreenFactionNames() {
-        assertEquals(
-            "红方鼠",
-            doushouqiCapturedPieceLabel(red(DoushouqiAnimal.RAT)),
+    fun roundCaptureCopyIsOrderedByCapturingSide() {
+        val labels = doushouqiRoundCaptureLabels(
+            DoushouqiRoundCaptures(
+                capturedByGreen = red(DoushouqiAnimal.RAT),
+                capturedByRed = green(DoushouqiAnimal.ELEPHANT),
+            ),
         )
+
         assertEquals(
-            "绿方象",
-            doushouqiCapturedPieceLabel(green(DoushouqiAnimal.ELEPHANT)),
+            listOf(
+                DoushouqiSide.PINE_GREEN to "绿方吃：鼠",
+                DoushouqiSide.VERMILION to "红方吃：象",
+            ),
+            labels,
+        )
+    }
+
+    @Test
+    fun emptyRoundCaptureCopyHasNoFactionLines() {
+        assertEquals(
+            emptyList<Pair<DoushouqiSide, String>>(),
+            doushouqiRoundCaptureLabels(DoushouqiRoundCaptures()),
         )
     }
 
