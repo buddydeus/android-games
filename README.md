@@ -214,6 +214,7 @@ $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
 - [斗兽棋单人最近一步吃子设计](docs/superpowers/specs/2026-07-28-doushouqi-single-player-capture-summary-design.md)
 - [斗兽棋单人最近一步吃子实施计划](docs/superpowers/plans/2026-07-28-doushouqi-single-player-capture-summary.md)
 - [斗兽棋单人最近一步吃子运行验收](docs/superpowers/reports/2026-07-28-doushouqi-single-player-capture-summary-runtime-acceptance.md)
+- [斗兽棋完整回合吃子摘要设计](docs/superpowers/specs/2026-07-28-doushouqi-round-capture-summary-design.md)
 - [斗兽棋模块说明](games/doushouqi/README.md)
 - [五子棋模块说明](games/gomoku/README.md)
 - [黑白棋模块说明](games/othello/README.md)
