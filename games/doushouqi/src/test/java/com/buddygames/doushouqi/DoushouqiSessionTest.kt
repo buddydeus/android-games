@@ -116,85 +116,229 @@ class DoushouqiSessionTest {
     }
 
     @Test
-    fun latestAcceptedMoveReplacesCapturedPieceSummary() {
+    fun singlePlayerPublishesPlayerAndRobotCapturesOnlyAfterRobotReply() {
+        val session = pairedCaptureSession()
+
+        val afterPlayer = session.play(move(pos(4, 0), pos(3, 0)))
+        assertEquals(DoushouqiRoundCaptures(), afterPlayer.lastCompletedRoundCaptures)
+
+        val afterRobot = session.applyRobotMove(
+            requireNotNull(afterPlayer.robotRequest),
+            move(pos(2, 1), pos(2, 2)),
+        )
+
+        assertEquals(
+            DoushouqiRoundCaptures(
+                capturedByGreen = red(DoushouqiAnimal.RAT),
+                capturedByRed = green(DoushouqiAnimal.RAT),
+            ),
+            afterRobot.lastCompletedRoundCaptures,
+        )
+    }
+
+    @Test
+    fun completedQuietSinglePlayerRoundReplacesOlderCaptureSummary() {
+        val session = pairedCaptureSession()
+        completePairedCaptureRound(session)
+        val beforeQuietRound = session.state()
+
+        val playerMove = DoushouqiRules.legalMoves(beforeQuietRound.position)
+            .first { beforeQuietRound.position.pieceAt(it.to) == null }
+        val afterPlayer = session.play(playerMove)
+        assertEquals(
+            beforeQuietRound.lastCompletedRoundCaptures,
+            afterPlayer.lastCompletedRoundCaptures,
+        )
+        val request = requireNotNull(afterPlayer.robotRequest)
+        val robotMove = DoushouqiRules.legalMoves(request.state)
+            .first { request.state.pieceAt(it.to) == null }
+
+        val completed = session.applyRobotMove(request, robotMove)
+
+        assertEquals(DoushouqiRoundCaptures(), completed.lastCompletedRoundCaptures)
+    }
+
+    @Test
+    fun terminalPlayerMovePublishesOneMoveRoundImmediately() {
         val session = DoushouqiSession(
             DoushouqiMode.SINGLE_PLAYER,
             stateOf(
                 sideToMove = DoushouqiSide.PINE_GREEN,
                 pos(4, 0) to green(DoushouqiAnimal.CAT),
                 pos(3, 0) to red(DoushouqiAnimal.RAT),
-                pos(1, 5) to red(DoushouqiAnimal.CAT),
             ),
         )
 
-        val afterHuman = session.play(move(pos(4, 0), pos(3, 0)))
-        assertEquals(red(DoushouqiAnimal.RAT), afterHuman.lastCapturedPiece)
+        val finished = session.play(move(pos(4, 0), pos(3, 0)))
 
-        val request = requireNotNull(afterHuman.robotRequest)
-        val quietRobotMove = DoushouqiRules.legalMoves(request.state)
-            .first { request.state.pieceAt(it.to) == null }
-        val afterRobot = session.applyRobotMove(request, quietRobotMove)
-
-        assertNull(afterRobot.lastCapturedPiece)
+        assertEquals(
+            DoushouqiRoundCaptures(
+                capturedByGreen = red(DoushouqiAnimal.RAT),
+            ),
+            finished.lastCompletedRoundCaptures,
+        )
+        assertNull(finished.robotRequest)
     }
 
     @Test
-    fun robotCaptureBecomesLatestCapturedPiece() {
+    fun robotOpeningDoesNotPublishRoundCaptureSummary() {
         val session = DoushouqiSession(
             DoushouqiMode.SINGLE_PLAYER,
             stateOf(
                 sideToMove = DoushouqiSide.PINE_GREEN,
-                pos(5, 0) to green(DoushouqiAnimal.CAT),
-                pos(2, 2) to green(DoushouqiAnimal.RAT),
-                pos(2, 1) to red(DoushouqiAnimal.CAT),
+                pos(4, 0) to green(DoushouqiAnimal.CAT),
+                pos(3, 0) to red(DoushouqiAnimal.RAT),
+                pos(6, 6) to red(DoushouqiAnimal.CAT),
+            ),
+            playerSide = DoushouqiSide.VERMILION,
+        )
+        val request = requireNotNull(session.state().robotRequest)
+
+        val opened = session.applyRobotMove(request, move(pos(4, 0), pos(3, 0)))
+
+        assertEquals(DoushouqiRoundCaptures(), opened.lastCompletedRoundCaptures)
+        assertEquals(0, opened.historySize)
+    }
+
+    @Test
+    fun twoPlayerPublishesOnlyAfterRedCompletesRound() {
+        val session = DoushouqiSession(
+            DoushouqiMode.TWO_PLAYERS,
+            pairedCaptureState(),
+        )
+
+        val afterGreen = session.play(move(pos(4, 0), pos(3, 0)))
+        assertEquals(DoushouqiRoundCaptures(), afterGreen.lastCompletedRoundCaptures)
+
+        val afterRed = session.play(move(pos(2, 1), pos(2, 2)))
+
+        assertEquals(
+            DoushouqiRoundCaptures(
+                capturedByGreen = red(DoushouqiAnimal.RAT),
+                capturedByRed = green(DoushouqiAnimal.RAT),
+            ),
+            afterRed.lastCompletedRoundCaptures,
+        )
+    }
+
+    @Test
+    fun terminalGreenMovePublishesTwoPlayerRoundImmediately() {
+        val session = DoushouqiSession(
+            DoushouqiMode.TWO_PLAYERS,
+            stateOf(
+                sideToMove = DoushouqiSide.PINE_GREEN,
+                pos(4, 0) to green(DoushouqiAnimal.CAT),
+                pos(3, 0) to red(DoushouqiAnimal.RAT),
             ),
         )
-        val afterHuman = session.play(move(pos(5, 0), pos(4, 0)))
-        val request = requireNotNull(afterHuman.robotRequest)
 
-        val afterRobot = session.applyRobotMove(
-            request,
+        val finished = session.play(move(pos(4, 0), pos(3, 0)))
+
+        assertEquals(
+            DoushouqiRoundCaptures(
+                capturedByGreen = red(DoushouqiAnimal.RAT),
+            ),
+            finished.lastCompletedRoundCaptures,
+        )
+    }
+
+    @Test
+    fun undoRestoresCompletedRoundAndRestartClearsIt() {
+        val session = pairedCaptureSession()
+        completePairedCaptureRound(session)
+        assertEquals(
+            DoushouqiRoundCaptures(
+                capturedByGreen = red(DoushouqiAnimal.RAT),
+                capturedByRed = green(DoushouqiAnimal.RAT),
+            ),
+            session.state().lastCompletedRoundCaptures,
+        )
+
+        assertEquals(
+            DoushouqiRoundCaptures(),
+            session.undo().lastCompletedRoundCaptures,
+        )
+        val afterPlayer = session.play(move(pos(4, 0), pos(3, 0)))
+        session.applyRobotMove(
+            requireNotNull(afterPlayer.robotRequest),
+            move(pos(2, 1), pos(2, 2)),
+        )
+        assertEquals(
+            DoushouqiRoundCaptures(),
+            session.restart().lastCompletedRoundCaptures,
+        )
+    }
+
+    @Test
+    fun staleRobotRequestDoesNotChangeCompletedRoundCaptureSummary() {
+        val session = pairedCaptureSession()
+        val afterPlayer = session.play(move(pos(4, 0), pos(3, 0)))
+        val request = requireNotNull(afterPlayer.robotRequest)
+        val stale = request.copy(sourcePositionKey = request.sourcePositionKey + 1)
+
+        val unchanged = session.applyRobotMove(
+            stale,
             move(pos(2, 1), pos(2, 2)),
         )
 
-        assertEquals(green(DoushouqiAnimal.RAT), afterRobot.lastCapturedPiece)
-    }
+        assertEquals(
+            DoushouqiRoundCaptures(),
+            unchanged.lastCompletedRoundCaptures,
+        )
+        assertEquals(afterPlayer.position.positionKey, unchanged.position.positionKey)
 
-    @Test
-    fun undoRestoresLatestCaptureAndRestartClearsIt() {
-        val session = capturingSession()
-        val captured = session.play(move(pos(4, 0), pos(3, 0)))
-        assertNotNull(captured.lastCapturedPiece)
-
-        assertNull(session.undo().lastCapturedPiece)
-        session.play(move(pos(4, 0), pos(3, 0)))
-        assertNull(session.restart().lastCapturedPiece)
-    }
-
-    @Test
-    fun staleRobotRequestDoesNotChangeLatestCapture() {
-        val session = capturingSession()
-        val afterCapture = session.play(move(pos(4, 0), pos(3, 0)))
-        val request = requireNotNull(afterCapture.robotRequest)
-        val robotMove = DoushouqiRules.legalMoves(request.state).first()
-        val stale = request.copy(sourcePositionKey = request.sourcePositionKey + 1)
-
-        val unchanged = session.applyRobotMove(stale, robotMove)
-
-        assertEquals(red(DoushouqiAnimal.RAT), unchanged.lastCapturedPiece)
-        assertEquals(afterCapture.position.positionKey, unchanged.position.positionKey)
+        val completed = session.applyRobotMove(
+            request,
+            move(pos(2, 1), pos(2, 2)),
+        )
+        assertEquals(
+            DoushouqiRoundCaptures(
+                capturedByGreen = red(DoushouqiAnimal.RAT),
+                capturedByRed = green(DoushouqiAnimal.RAT),
+            ),
+            completed.lastCompletedRoundCaptures,
+        )
     }
 
     @Test
     fun twoPlayerUndoRestoresExactlyOneMove() {
-        val session = DoushouqiSession(DoushouqiMode.TWO_PLAYERS)
+        val session = DoushouqiSession(
+            DoushouqiMode.TWO_PLAYERS,
+            pairedCaptureState(),
+        )
         val initial = session.state()
-        session.play(DoushouqiRules.legalMoves(initial.position).first())
+        session.play(move(pos(4, 0), pos(3, 0)))
 
         val restored = session.undo()
 
         assertEquals(initial.position.positionKey, restored.position.positionKey)
         assertEquals(0, restored.historySize)
+        assertEquals(
+            DoushouqiRoundCaptures(),
+            restored.lastCompletedRoundCaptures,
+        )
+    }
+
+    @Test
+    fun twoPlayerUndoOfRedMoveRestoresPendingGreenHalfRound() {
+        val session = DoushouqiSession(
+            DoushouqiMode.TWO_PLAYERS,
+            pairedCaptureState(),
+        )
+        session.play(move(pos(4, 0), pos(3, 0)))
+        session.play(move(pos(2, 1), pos(2, 2)))
+
+        val afterUndo = session.undo()
+        assertEquals(DoushouqiRoundCaptures(), afterUndo.lastCompletedRoundCaptures)
+
+        val replayed = session.play(move(pos(2, 1), pos(2, 2)))
+        assertEquals(
+            DoushouqiRoundCaptures(
+                capturedByGreen = red(DoushouqiAnimal.RAT),
+                capturedByRed = green(DoushouqiAnimal.RAT),
+            ),
+            replayed.lastCompletedRoundCaptures,
+        )
     }
 
     @Test
@@ -294,13 +438,24 @@ class DoushouqiSessionTest {
             )
         }
 
-    private fun capturingSession(): DoushouqiSession = DoushouqiSession(
+    private fun pairedCaptureSession(): DoushouqiSession = DoushouqiSession(
         DoushouqiMode.SINGLE_PLAYER,
-        stateOf(
-            sideToMove = DoushouqiSide.PINE_GREEN,
-            pos(4, 0) to green(DoushouqiAnimal.CAT),
-            pos(3, 0) to red(DoushouqiAnimal.RAT),
-            pos(1, 5) to red(DoushouqiAnimal.CAT),
-        ),
+        pairedCaptureState(),
     )
+
+    private fun pairedCaptureState(): DoushouqiState = stateOf(
+        sideToMove = DoushouqiSide.PINE_GREEN,
+        pos(4, 0) to green(DoushouqiAnimal.CAT),
+        pos(3, 0) to red(DoushouqiAnimal.RAT),
+        pos(2, 2) to green(DoushouqiAnimal.RAT),
+        pos(2, 1) to red(DoushouqiAnimal.CAT),
+    )
+
+    private fun completePairedCaptureRound(session: DoushouqiSession) {
+        val afterPlayer = session.play(move(pos(4, 0), pos(3, 0)))
+        session.applyRobotMove(
+            requireNotNull(afterPlayer.robotRequest),
+            move(pos(2, 1), pos(2, 2)),
+        )
+    }
 }
