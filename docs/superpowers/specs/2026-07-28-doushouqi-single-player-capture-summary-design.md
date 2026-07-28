@@ -1,6 +1,6 @@
 # Doushouqi Single-Player Capture Summary Design
 
-**Status:** Approved interaction design; implementation pending written-spec review.
+**Status:** Approved, implemented, and verified on Android 36.
 
 ## Goal
 
