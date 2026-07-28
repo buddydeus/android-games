@@ -20,17 +20,38 @@ class DoushouqiPluginTest {
 
     @Test
     fun currentTurnUsesSimpleRedAndGreenSideNames() {
-        assertEquals("绿方", doushouqiTurnSideLabel(DoushouqiSide.PINE_GREEN))
-        assertEquals("红方", doushouqiTurnSideLabel(DoushouqiSide.VERMILION))
+        assertEquals("绿方", doushouqiSinglePlayerSideLabel(DoushouqiSide.PINE_GREEN))
+        assertEquals("红方", doushouqiSinglePlayerSideLabel(DoushouqiSide.VERMILION))
         assertEquals("当前回合：绿方", doushouqiTurnLine(DoushouqiSide.PINE_GREEN))
         assertEquals("当前回合：红方", doushouqiTurnLine(DoushouqiSide.VERMILION))
     }
 
     @Test
-    fun identityAndResultCopyKeepFullFactionMeaning() {
-        assertEquals("玩家执松绿", doushouqiPlayerSideLine(DoushouqiSide.PINE_GREEN))
-        assertEquals("玩家执朱砂", doushouqiPlayerSideLine(DoushouqiSide.VERMILION))
-        assertEquals("松绿方", doushouqiFullSideLabel(DoushouqiSide.PINE_GREEN))
-        assertEquals("朱砂方", doushouqiFullSideLabel(DoushouqiSide.VERMILION))
+    fun capturedPieceCopyUsesOnlyRedAndGreenFactionNames() {
+        assertEquals(
+            "红方鼠",
+            doushouqiCapturedPieceLabel(red(DoushouqiAnimal.RAT)),
+        )
+        assertEquals(
+            "绿方象",
+            doushouqiCapturedPieceLabel(green(DoushouqiAnimal.ELEPHANT)),
+        )
+    }
+
+    @Test
+    fun resultCopyIsModeAware() {
+        val result = DoushouqiResult.Win(
+            DoushouqiSide.VERMILION,
+            DoushouqiWinReason.DEN,
+        )
+
+        assertEquals(
+            "红方进入兽穴",
+            doushouqiResultText(result, DoushouqiMode.SINGLE_PLAYER),
+        )
+        assertEquals(
+            "朱砂方进入兽穴",
+            doushouqiResultText(result, DoushouqiMode.TWO_PLAYERS),
+        )
     }
 }

@@ -538,7 +538,7 @@ private fun DoushouqiStatusRail(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    requireNotNull(resultText(result)),
+                    requireNotNull(doushouqiResultText(result, mode)),
                     color = DoushouqiRedPiece,
                     fontSize = 19.sp,
                     fontWeight = FontWeight.Bold,
@@ -558,7 +558,7 @@ private fun DoushouqiStatusRail(
                         DoushouqiRedPiece
                     }
                     Text(
-                        doushouqiTurnSideLabel(side),
+                        doushouqiSinglePlayerSideLabel(side),
                         modifier = Modifier
                             .background(
                                 sideColor.copy(alpha = 0.10f),
@@ -575,13 +575,6 @@ private fun DoushouqiStatusRail(
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                if (mode == DoushouqiMode.SINGLE_PLAYER) {
-                    Text(
-                        doushouqiPlayerSideLine(session.playerSide),
-                        color = DoushouqiMuted,
-                        fontSize = 15.sp,
-                    )
-                }
                 if (robotThinking) {
                     Text(
                         "智能思考中",
@@ -589,6 +582,51 @@ private fun DoushouqiStatusRail(
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
+                }
+            }
+            if (mode == DoushouqiMode.SINGLE_PLAYER) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        "最近一步吃子",
+                        color = DoushouqiMuted,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    val captured = session.lastCapturedPiece
+                    if (captured == null) {
+                        Text(
+                            "无",
+                            color = DoushouqiMuted,
+                            fontSize = 16.sp,
+                        )
+                    } else {
+                        val capturedColor =
+                            if (captured.side == DoushouqiSide.PINE_GREEN) {
+                                DoushouqiGreenPiece
+                            } else {
+                                DoushouqiRedPiece
+                            }
+                        Text(
+                            doushouqiCapturedPieceLabel(captured),
+                            modifier = Modifier
+                                .background(
+                                    capturedColor.copy(alpha = 0.10f),
+                                    RoundedCornerShape(5.dp),
+                                )
+                                .border(
+                                    1.dp,
+                                    capturedColor.copy(alpha = 0.38f),
+                                    RoundedCornerShape(5.dp),
+                                )
+                                .padding(horizontal = 9.dp, vertical = 4.dp),
+                            color = capturedColor,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                 }
             }
         }
@@ -657,20 +695,29 @@ private fun DoushouqiActionButton(
     }
 }
 
-internal fun doushouqiTurnSideLabel(side: DoushouqiSide): String =
+internal fun doushouqiSinglePlayerSideLabel(side: DoushouqiSide): String =
     if (side == DoushouqiSide.PINE_GREEN) "绿方" else "红方"
 
 internal fun doushouqiFullSideLabel(side: DoushouqiSide): String =
     if (side == DoushouqiSide.PINE_GREEN) "松绿方" else "朱砂方"
 
 internal fun doushouqiTurnLine(side: DoushouqiSide): String =
-    "当前回合：${doushouqiTurnSideLabel(side)}"
+    "当前回合：${doushouqiSinglePlayerSideLabel(side)}"
 
-internal fun doushouqiPlayerSideLine(side: DoushouqiSide): String =
-    "玩家执${if (side == DoushouqiSide.PINE_GREEN) "松绿" else "朱砂"}"
+internal fun doushouqiCapturedPieceLabel(piece: DoushouqiPiece): String =
+    "${doushouqiSinglePlayerSideLabel(piece.side)}${piece.animal.label}"
 
-private fun resultText(result: DoushouqiResult?): String? = when (result) {
-    is DoushouqiResult.Win -> "${doushouqiFullSideLabel(result.winner)}${
+internal fun doushouqiResultText(
+    result: DoushouqiResult?,
+    mode: DoushouqiMode,
+): String? = when (result) {
+    is DoushouqiResult.Win -> "${
+        if (mode == DoushouqiMode.SINGLE_PLAYER) {
+            doushouqiSinglePlayerSideLabel(result.winner)
+        } else {
+            doushouqiFullSideLabel(result.winner)
+        }
+    }${
         when (result.reason) {
             DoushouqiWinReason.DEN -> "进入兽穴"
             DoushouqiWinReason.FINAL_CAPTURE -> "吃光对方"
