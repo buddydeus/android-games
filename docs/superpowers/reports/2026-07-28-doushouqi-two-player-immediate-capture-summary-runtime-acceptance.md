@@ -5,6 +5,7 @@
 
 ## Environment
 
+- AVD `android_games_mvp_pad`
 - Android 36 `google_apis` x86_64 Pad emulator
 - Physical size `2560 x 1800`, density `320`
 - Game center `0.0.5`
@@ -59,7 +60,8 @@ After Red's quiet move, the accessibility projection reports:
 
 截图：`build/runtime-acceptance/doushouqi-two-player-quiet-clears-capture.png`
 
-截图与对应的 UI Automator XML 都保存在本地
+截图与对应的 `doushouqi-two-capture.xml`、
+`doushouqi-two-quiet.xml` UI Automator 语义树都保存在本地
 `build/runtime-acceptance/` 构建证据目录，不纳入版本控制。
 
 ## Verdict
