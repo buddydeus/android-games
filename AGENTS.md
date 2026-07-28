@@ -223,6 +223,7 @@ Emulator logs: `build/logs/emulator-<AVD_NAME>.log`
 | [designs/specs/junqi-ui.md](designs/specs/junqi-ui.md) | Approved and implemented traditional railway Junqi UI SSOT and preview index |
 | [docs/superpowers/specs/2026-07-27-doushouqi-logo-sidebar-design.md](docs/superpowers/specs/2026-07-27-doushouqi-logo-sidebar-design.md) | Approved transparent Doushouqi Logo and Xiangqi-family menu/game rail design |
 | [docs/superpowers/plans/2026-07-27-doushouqi-logo-sidebar.md](docs/superpowers/plans/2026-07-27-doushouqi-logo-sidebar.md) | TDD plan for the transparent Doushouqi Logo, family rails, and simplified turn copy |
+| [docs/superpowers/specs/2026-07-28-doushouqi-single-player-capture-summary-design.md](docs/superpowers/specs/2026-07-28-doushouqi-single-player-capture-summary-design.md) | Approved single-player red/green-only copy and latest-move captured-piece summary |
 | [designs/specs/doushouqi-ui.md](designs/specs/doushouqi-ui.md) | Approved Dou Shou Qi double-river UI SSOT and preview index |
 
 ## Done checklist
