@@ -47,6 +47,7 @@ data class DoushouqiSessionState(
     val historySize: Int,
     val generation: Long,
     val robotRequest: DoushouqiRobotRequest?,
+    val lastCapturedPiece: DoushouqiPiece?,
 ) {
     val intelligenceLevel: DoushouqiAiLevel
         get() = score.intelligenceLevel
@@ -55,6 +56,7 @@ data class DoushouqiSessionState(
 private data class DoushouqiSnapshot(
     val position: DoushouqiState,
     val score: DoushouqiScore,
+    val lastCapturedPiece: DoushouqiPiece?,
 )
 
 class DoushouqiSession internal constructor(
@@ -73,6 +75,7 @@ class DoushouqiSession internal constructor(
     private var score = initialScore
     private var generation = 0L
     private var history = emptyList<DoushouqiSnapshot>()
+    private var lastCapturedPiece: DoushouqiPiece? = null
 
     fun state(): DoushouqiSessionState = projection()
 
@@ -84,9 +87,11 @@ class DoushouqiSession internal constructor(
         ) {
             return projection()
         }
+        val captured = position.pieceAt(move.to)
         val next = DoushouqiRules.apply(position, move) ?: return projection()
-        history = history + DoushouqiSnapshot(position, score)
+        history = history + DoushouqiSnapshot(position, score, lastCapturedPiece)
         position = next
+        lastCapturedPiece = captured
         score = score.record(next.result, mode, playerSide)
         generation++
         return projection()
@@ -106,8 +111,10 @@ class DoushouqiSession internal constructor(
         ) {
             return projection()
         }
+        val captured = position.pieceAt(move.to)
         val next = DoushouqiRules.apply(position, move) ?: return projection()
         position = next
+        lastCapturedPiece = captured
         score = score.record(next.result, mode, playerSide)
         generation++
         return projection()
@@ -117,6 +124,7 @@ class DoushouqiSession internal constructor(
         val snapshot = history.lastOrNull() ?: return projection()
         position = snapshot.position
         score = snapshot.score
+        lastCapturedPiece = snapshot.lastCapturedPiece
         history = history.dropLast(1)
         generation++
         return projection()
@@ -130,6 +138,7 @@ class DoushouqiSession internal constructor(
         }
         position = DoushouqiState.initial()
         history = emptyList()
+        lastCapturedPiece = null
         generation++
         return projection()
     }
@@ -146,6 +155,7 @@ class DoushouqiSession internal constructor(
         historySize = history.size,
         generation = generation,
         robotRequest = robotRequest(),
+        lastCapturedPiece = lastCapturedPiece,
     )
 
     private fun robotRequest(): DoushouqiRobotRequest? {
