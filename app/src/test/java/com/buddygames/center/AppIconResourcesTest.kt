@@ -14,8 +14,8 @@ class AppIconResourcesTest {
     fun gameCenterUsesCurrentIndependentVersion() {
         val buildScript = repositoryRoot().resolve("app/build.gradle.kts").readText()
 
-        assertTrue(buildScript.contains("""versionCode = 5"""))
-        assertTrue(buildScript.contains("""versionName = "0.0.5""""))
+        assertTrue(buildScript.contains("""versionCode = 6"""))
+        assertTrue(buildScript.contains("""versionName = "0.0.6""""))
     }
 
     @Test

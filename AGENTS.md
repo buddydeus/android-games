@@ -25,7 +25,9 @@ Dou Shou Qi version `0.0.7` owns a 1400x1400 transparent-corner bamboo board at 
 Current game behavior:
 
 - The packaged launcher label is `游戏中心`, sourced from `@string/app_name`; keep the APK label and the visible home title aligned.
-- The game-center shell currently uses `versionCode = 5` and `versionName = 0.0.5`; the home top bar displays `BuildConfig.VERSION_NAME`.
+- The game-center shell currently uses `versionCode = 6` and `versionName = 0.0.6`; the home top bar displays `BuildConfig.VERSION_NAME`.
+- Zip installation resolves canonical path segments to reject entries outside the temporary extraction tree and deletes that tree after every install attempt.
+- `DexGamePluginLoader` caches one loader per game only while the manifest entry class and `plugin.apk` SHA-256 remain unchanged; changed package bytes use a fingerprint-specific dex optimization directory.
 - Home game names and logos come only from each installed package's `displayName` and `icon` manifest fields. The shell supports bounded package-local PNG, WebP, JPEG, and compact text icon files and must not branch on known game IDs for presentation.
 - All six built-in packages provide a `1024 x 1024` circular-safe PNG at `assets/icon.png`; Gomoku, Othello, Xiangqi, and International Chess follow `designs/specs/android-game-package-logos.md`, Junqi follows `docs/superpowers/specs/2026-07-21-junqi-game-design.md`, and Dou Shou Qi follows `designs/specs/doushouqi-ui.md`. Package verification requires that entry.
 - The home game order is the descending persisted count of successful plugin loads. Equal counts use package display name and then game ID for deterministic, package-agnostic ordering.

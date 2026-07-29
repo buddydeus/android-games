@@ -77,6 +77,36 @@ class GamePackageRepositoryTest {
         assertTrue(installed.rootDir.path.endsWith("Games/gomoku"))
     }
 
+    @Test
+    fun rejectsZipEntryThatEscapesIntoSiblingWithSharedPathPrefix() {
+        val target = temp.newFolder("package")
+
+        val result = runCatching {
+            resolvePackageEntry(target, "../package-escape/payload.txt")
+        }
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun successfulZipInstallDeletesTemporaryExtractionDirectory() {
+        val filesDir = temp.newFolder("cleanup-files")
+        val repository = GamePackageRepository(filesDir)
+        val zip = temp.newFile("cleanup-gomoku.zip")
+        ZipOutputStream(zip.outputStream()).use { output ->
+            output.putNextEntry(ZipEntry("manifest.json"))
+            output.write(gomokuManifest(versionCode = 1).toByteArray())
+            output.closeEntry()
+            output.putNextEntry(ZipEntry("plugin.apk"))
+            output.write("plugin".toByteArray())
+            output.closeEntry()
+        }
+
+        repository.installFromZip(zip)
+
+        assertTrue(filesDir.resolve(".installing").listFiles().orEmpty().isEmpty())
+    }
+
     private fun packageDir(name: String, versionCode: Int, versionName: String = "$versionCode.0.0") =
         temp.newFolder(name).also {
             it.resolve("manifest.json").writeText(gomokuManifest(versionCode, versionName))

@@ -55,7 +55,7 @@ Built zip contents (produced by Gradle, not hand-edited):
   plugin.apk                          # dex output from game module classes.jar
 ```
 
-Installed on device under: `<filesDir>/Games/<gameId>/` (see `GamePackageRepository`).
+Installed on device under: `<filesDir>/Games/<gameId>/` (see `GamePackageRepository`). Zip extraction resolves canonical path segments and rejects any entry outside its temporary target; the temporary extraction tree is deleted after every install attempt.
 
 The shell discovers every valid installed directory without a per-game registry. Home order is based on the persisted successful-launch count, descending, with `displayName` and `gameId` as deterministic tie breakers. A newly imported game therefore appears automatically and starts with count zero.
 
@@ -82,7 +82,7 @@ From repo root:
 - `./gradlew packageJunqiGame` — build junqi zip only
 - `./gradlew :games:junqi:testDebugUnitTest` — junqi rules, hidden-information AI, session, UI, assets, and manifest-contract tests
 
-Swap `gomoku` for `othello`, `xiangqi`, `chess`, or `junqi`.
+Swap `gomoku` for `othello`, `xiangqi`, `chess`, `junqi`, or `doushouqi`.
 
 ## Adding a new built-in game module (checklist)
 
@@ -98,7 +98,7 @@ This checklist is only for adding game source and bundling its zip into this rep
 
 ## Runtime loading
 
-`DexGamePluginLoader` loads `plugin.apk` via `DexClassLoader`, instantiates `manifest.entryClass`, casts to `GamePlugin`. Failures mean wrong class name, missing no-arg ctor, or dex/API mismatch.
+`DexGamePluginLoader` loads `plugin.apk` via `DexClassLoader`, instantiates `manifest.entryClass`, and casts it to `GamePlugin`. Its per-game cache identity includes the entry class and the APK SHA-256; replacing plugin bytes creates a new loader and a fingerprint-specific dex optimization directory, including same-version development overwrites. Failures mean an unreadable APK, wrong class name, missing no-arg constructor, invalid plugin type, or dex/API mismatch.
 
 ## Do not
 

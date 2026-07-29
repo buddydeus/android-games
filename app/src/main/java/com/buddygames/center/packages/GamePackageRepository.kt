@@ -6,9 +6,11 @@ import com.buddygames.api.GamePackage
 import java.io.File
 import java.util.zip.ZipInputStream
 
+/** Installs, validates, and discovers local game packages under the app's private files directory. */
 class GamePackageRepository(private val filesDir: File) {
     private val gamesDir = filesDir.resolve("Games")
 
+    /** Returns valid installed packages while ignoring incomplete or invalid directories. */
     fun discoverInstalledGames(): List<GamePackage> {
         if (!gamesDir.isDirectory) return emptyList()
         return gamesDir.listFiles()
@@ -18,26 +20,44 @@ class GamePackageRepository(private val filesDir: File) {
             .orEmpty()
     }
 
+    /**
+     * Extracts and installs a game package archive, then removes its temporary extraction tree.
+     *
+     * @throws IllegalArgumentException when an archive entry escapes the extraction directory or
+     * the package manifest is invalid.
+     * @throws java.io.IOException when archive or package files cannot be read or written.
+     */
     fun installFromZip(zipFile: File): GamePackage {
         val target = filesDir.resolve(".installing/${System.currentTimeMillis()}")
         target.deleteRecursively()
         target.mkdirs()
-        ZipInputStream(zipFile.inputStream().buffered()).use { zip ->
-            while (true) {
-                val entry = zip.nextEntry ?: break
-                val outFile = target.resolve(entry.name).canonicalFile
-                require(outFile.path.startsWith(target.canonicalPath)) { "Zip entry escapes package directory" }
-                if (entry.isDirectory) {
-                    outFile.mkdirs()
-                } else {
-                    outFile.parentFile?.mkdirs()
-                    outFile.outputStream().use { output -> zip.copyTo(output) }
+        return try {
+            ZipInputStream(zipFile.inputStream().buffered()).use { zip ->
+                while (true) {
+                    val entry = zip.nextEntry ?: break
+                    val outFile = resolvePackageEntry(target, entry.name)
+                    if (entry.isDirectory) {
+                        outFile.mkdirs()
+                    } else {
+                        outFile.parentFile?.mkdirs()
+                        outFile.outputStream().use { output -> zip.copyTo(output) }
+                    }
                 }
             }
+            installFromDirectory(target)
+        } finally {
+            target.deleteRecursively()
         }
-        return installFromDirectory(target)
     }
 
+    /**
+     * Validates and installs an unpacked game package.
+     *
+     * Same-version packages may replace development builds; lower versions are rejected.
+     *
+     * @throws IllegalArgumentException when the source package is invalid.
+     * @throws IllegalStateException when the package is a downgrade or cannot be installed.
+     */
     fun installFromDirectory(sourceDir: File): GamePackage {
         val candidate = packageFromDir(sourceDir)
         val destination = gamesDir.resolve(candidate.manifest.gameId)
@@ -68,7 +88,24 @@ class GamePackageRepository(private val filesDir: File) {
     }
 }
 
+/**
+ * Resolves one archive entry and enforces that its canonical path remains inside the target tree.
+ *
+ * @throws IllegalArgumentException when [entryName] resolves outside [targetDirectory].
+ * @throws java.io.IOException when either canonical path cannot be resolved.
+ */
+internal fun resolvePackageEntry(targetDirectory: File, entryName: String): File {
+    val canonicalTarget = targetDirectory.canonicalFile
+    val candidate = canonicalTarget.resolve(entryName).canonicalFile
+    require(candidate.toPath().startsWith(canonicalTarget.toPath())) {
+        "Zip entry escapes package directory"
+    }
+    return candidate
+}
+
+/** Minimal JSON codec for the stable local game manifest schema. */
 object GameManifestJson {
+    /** Parses the required game manifest fields and the optional icon path. */
     fun parse(json: String): GameManifest {
         fun string(name: String): String {
             val match = Regex(""""$name"\s*:\s*"([^"]*)"""").find(json)
@@ -94,6 +131,7 @@ object GameManifestJson {
         )
     }
 
+    /** Formats a manifest using the stable schema field order used by local package tooling. */
     fun format(manifest: GameManifest): String = """
         {
           "schemaVersion": ${manifest.schemaVersion},

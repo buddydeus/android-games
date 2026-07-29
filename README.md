@@ -13,7 +13,7 @@
 
 六款游戏均支持“单人模式”“双人对战”“退出游戏”，单人模式由各游戏包自行实现机器人对手。
 
-游戏中心主程序独立维护版本，当前为 `versionCode = 5`、`versionName = 0.0.5`，并在首页标题下显示。修改游戏中心的外壳功能、界面、资源或游戏包加载逻辑时，需要同步递增 [app/build.gradle.kts](app/build.gradle.kts) 中的主版本；仅更新单个游戏包时不调整游戏中心版本。
+游戏中心主程序独立维护版本，当前为 `versionCode = 6`、`versionName = 0.0.6`，并在首页标题下显示。修改游戏中心的外壳功能、界面、资源或游戏包加载逻辑时，需要同步递增 [app/build.gradle.kts](app/build.gradle.kts) 中的主版本；仅更新单个游戏包时不调整游戏中心版本。
 
 ## 架构
 
@@ -56,7 +56,7 @@ files/
         └── assets/
 ```
 
-安装流程会验证清单和 `plugin.apk`，拒绝低版本覆盖，并在 Android 14 及以上系统加载动态代码前将 `plugin.apk` 设为只读。`icon` 可指向包内 PNG、WebP、JPEG 或 UTF-8 文本文件；图标缺失或无法读取时，首页使用 `displayName` 的首字符作为回退。六款内置游戏均将独立的 1024×1024 圆形安全 PNG Logo 放在各自包内的 `assets/icon.png`，可随单个游戏包独立更新。当前 MVP 支持本地文件导入，不包含在线分发、自动更新和游戏包签名验证。
+安装流程会验证清单和 `plugin.apk`，拒绝低版本覆盖，以规范化路径分段拒绝越出临时解压目录的 zip 条目，并在成功或失败后清理本次临时目录；Android 14 及以上系统加载动态代码前，`plugin.apk` 会被设为只读。加载器使用入口类和 `plugin.apk` 的 SHA-256 标识当前代码，包字节变化时替换旧 `DexClassLoader` 并使用独立的 dex 优化目录，因此同版本开发包覆盖也不会继续运行旧代码。`icon` 可指向包内 PNG、WebP、JPEG 或 UTF-8 文本文件；图标缺失或无法读取时，首页使用 `displayName` 的首字符作为回退。六款内置游戏均将独立的 1024×1024 圆形安全 PNG Logo 放在各自包内的 `assets/icon.png`，可随单个游戏包独立更新。当前 MVP 支持本地文件导入，不包含在线分发、自动更新和游戏包签名验证。
 
 每款游戏独立维护版本并从 `0.0.1` 开始；当前斗兽棋为 `0.0.7`，五子棋和黑白棋为 `0.0.6`，国际象棋为 `0.0.10`，军棋和象棋为 `0.0.13`。游戏开始界面会显示该游戏包的 `versionName`。修改某款游戏的规则、机器人、界面或包内资源时，只递增该游戏的 `versionCode` 和语义化 `versionName`，并保持插件代码与 `package/manifest.json` 中的版本一致；仅修改游戏中心外壳不需要调整游戏版本。
 
@@ -135,6 +135,7 @@ build/game-packages/othello.zip
 build/game-packages/xiangqi.zip
 build/game-packages/chess.zip
 build/game-packages/junqi.zip
+build/game-packages/doushouqi.zip
 ```
 
 ## 连接 USB 设备

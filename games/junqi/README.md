@@ -15,7 +15,7 @@
 | 最低外壳 API | `1` |
 | 屏幕方向 | 横屏 |
 
-版本信息同时维护在 `JunqiManifest.kt` 和 `package/manifest.json`。`JunqiManifestTest` 解析包清单并锁定 `gameId`、显示名称、版本、入口类和图标路径与插件清单一致；军棋已纳入五个内置游戏包的构建与 Debug APK 验证门禁。
+版本信息同时维护在 `JunqiManifest.kt` 和 `package/manifest.json`。`JunqiManifestTest` 解析包清单并锁定 `gameId`、显示名称、版本、入口类和图标路径与插件清单一致；军棋已纳入六个内置游戏包的构建与 Debug APK 验证门禁。
 
 ## 包内素材
 
