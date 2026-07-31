@@ -204,6 +204,7 @@ $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
 ## 文档
 
 - [斗兽棋允许进入己方兽穴规则设计](docs/superpowers/specs/2026-07-31-doushouqi-own-den-entry-design.md)
+- [斗兽棋允许进入己方兽穴实施计划](docs/superpowers/plans/2026-07-31-doushouqi-own-den-entry.md)
 - [斗兽棋设计](docs/superpowers/specs/2026-07-26-doushouqi-game-design.md)
 - [斗兽棋实施计划](docs/superpowers/plans/2026-07-26-doushouqi-game.md)
 - [斗兽棋视觉 SSOT](designs/specs/doushouqi-ui.md)
