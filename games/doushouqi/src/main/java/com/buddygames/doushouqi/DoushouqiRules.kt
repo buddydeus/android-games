@@ -102,7 +102,6 @@ object DoushouqiRules {
             adjacent
         } ?: return null
 
-        if (denOwner(destination) == piece.side) return null
         if (
             terrainAt(destination) == DoushouqiTerrain.RIVER &&
             piece.animal != DoushouqiAnimal.RAT

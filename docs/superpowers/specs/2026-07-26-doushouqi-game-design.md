@@ -64,7 +64,7 @@ Pine Green moves first.
 ### Ordinary Movement
 
 - A piece moves one square orthogonally. Diagonal movement is never legal.
-- A piece may not enter its own den.
+- A piece may enter, occupy, and leave its own den; doing so has no terminal effect.
 - Only Rats may enter river squares.
 - A Rat may move between adjacent land and river squares when the destination is empty.
 - Non-Rat pieces may not enter river squares.

@@ -151,7 +151,6 @@ internal class DoushouqiSearchPosition(state: DoushouqiState) {
             adjacent
         } ?: return null
         val side = sideOf(moving)
-        if (denOwner(destination) == side) return null
         if (
             terrainAt(destination) == DoushouqiTerrain.RIVER &&
             animal != DoushouqiAnimal.RAT

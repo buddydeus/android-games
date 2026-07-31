@@ -4,7 +4,7 @@
 
 Allow either side's animals to enter, occupy, and leave their own den while preserving every other implemented Dou Shou Qi rule and terminal-result precedence.
 
-This is an intentional local rule variant. It supersedes only the sentence “A piece may not enter its own den” in `2026-07-26-doushouqi-game-design.md`; all other requirements in that baseline remain authoritative.
+This is an intentional local rule variant incorporated into `2026-07-26-doushouqi-game-design.md`; all other requirements in that baseline remain authoritative.
 
 ## Rule Contract
 
