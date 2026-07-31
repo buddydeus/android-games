@@ -88,7 +88,7 @@ Pine Green moves first.
 - A capture crossing the land/river boundary is illegal. A Rat may cross that boundary only into an empty square.
 - Lion and Tiger jump captures are land-to-land captures and use normal capture rules.
 
-An animal occupying the opponent's trap has effective rank zero while it remains on that trap. Any enemy animal may capture that trapped defender. A trapped animal regains its normal rank when moving out of the trap, so an attack from a trap is evaluated with its normal rank at the destination.
+An animal occupying any trap has effective defensive rank zero while it remains on that trap, regardless of trap ownership. Any enemy animal may capture that trapped defender, including an Elephant capturing a Rat. A trapped animal regains its normal rank when moving out of the trap, so an attack from a trap is evaluated with its normal rank at the destination.
 
 ### Terminal Results
 

@@ -37,6 +37,19 @@ class DoushouqiSearchEngineTest {
     }
 
     @Test
+    fun aiTakesWinningCaptureInDefendersOwnTrap() {
+        val state = stateOf(
+            pos(2, 3) to green(DoushouqiAnimal.CAT),
+            pos(1, 3) to red(DoushouqiAnimal.ELEPHANT),
+        )
+
+        assertEquals(
+            move(pos(2, 3), pos(1, 3)),
+            DoushouqiAi.chooseMove(state, DoushouqiAiLevel.forLevel(3)),
+        )
+    }
+
+    @Test
     fun identicalPositionAndLevelProduceIdenticalSearchMove() {
         val state = DoushouqiState.initial()
         val level = DoushouqiAiLevel.forLevel(2)
@@ -62,4 +75,44 @@ class DoushouqiSearchEngineTest {
         assertEquals(0, result.completedDepth)
         assertEquals(0, result.nodes)
     }
+
+    @Test
+    fun cancelledFallbackDoesNotPreferEnteringOwnTrap() {
+        val result = requireNotNull(
+            DoushouqiSearchEngine.search(
+                state = ownTrapOrderingState(),
+                level = DoushouqiAiLevel(6, 1, 1_000, 1_000, 1, 0, 0),
+                nanoTime = { 0L },
+                shouldStop = { true },
+            ),
+        )
+
+        assertEquals(move(pos(7, 2), pos(6, 2)), result.move)
+        assertEquals(0, result.completedDepth)
+    }
+
+    @Test
+    fun depthOneSearchTreatsOwnTrapAsVulnerable() {
+        val result = requireNotNull(
+            DoushouqiSearchEngine.search(
+                state = ownTrapChoiceState(),
+                level = DoushouqiAiLevel(6, 1, 1_000, 1_000, 1, 0, 0),
+                nanoTime = { 0L },
+            ),
+        )
+
+        assertEquals(move(pos(8, 1), pos(8, 0)), result.move)
+        assertEquals(1, result.completedDepth)
+    }
+
+    private fun ownTrapChoiceState(): DoushouqiState = stateOf(
+        pos(8, 1) to green(DoushouqiAnimal.CAT),
+        pos(7, 1) to red(DoushouqiAnimal.ELEPHANT),
+        pos(4, 6) to red(DoushouqiAnimal.DOG),
+    )
+
+    private fun ownTrapOrderingState(): DoushouqiState = stateOf(
+        pos(7, 2) to green(DoushouqiAnimal.CAT),
+        pos(4, 6) to red(DoushouqiAnimal.DOG),
+    )
 }

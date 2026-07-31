@@ -56,4 +56,19 @@ class DoushouqiSearchPositionTest {
             assertEquals(publicMoves, primitiveMoves)
         }
     }
+
+    @Test
+    fun primitiveAndPublicRulesAllowCaptureInDefendersOwnTrap() {
+        val state = stateOf(
+            pos(2, 3) to green(DoushouqiAnimal.CAT),
+            pos(1, 3) to red(DoushouqiAnimal.ELEPHANT),
+        )
+        val capture = move(pos(2, 3), pos(1, 3))
+        val publicMoves = DoushouqiRules.legalMoves(state)
+        val primitiveMoves = DoushouqiSearchPosition(state).legalMoves()
+
+        assertTrue(capture in publicMoves)
+        assertTrue(capture in primitiveMoves)
+        assertEquals(publicMoves, primitiveMoves)
+    }
 }

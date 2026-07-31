@@ -4,7 +4,7 @@
 
 Treat every occupied trap as a zero-rank defensive square regardless of trap ownership, so any enemy animal may capture a defender standing in any of the six traps.
 
-This is an intentional local rule variant. It replaces only the ownership-qualified trap weakening rule in `2026-07-26-doushouqi-game-design.md`; all other movement, capture, terminal, session, UI, and package requirements remain authoritative.
+This is an intentional local rule variant incorporated into `2026-07-26-doushouqi-game-design.md`; all other movement, capture, terminal, session, UI, and package requirements remain authoritative.
 
 ## Rule Contract
 

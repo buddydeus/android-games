@@ -235,7 +235,6 @@ object DoushouqiSearchEngine {
         }
         val enemyDen = enemyDen(moving.side)
         score += (manhattan(move.from, enemyDen) - manhattan(move.to, enemyDen)) * 100
-        if (trapOwner(move.to) == moving.side) score += 15_000
         history?.let {
             score += it[move.from.index * DoushouqiState.SQUARES + move.to.index]
         }
@@ -289,7 +288,7 @@ object DoushouqiSearchEngine {
             ) {
                 value += 35
             }
-            if (trapOwner(boardPosition) == side.other()) value -= 120
+            if (trapOwner(boardPosition) != null) value -= 120
             if (manhattan(boardPosition, enemyDen(side)) == 1) value += 180
             score += sign * value
         }

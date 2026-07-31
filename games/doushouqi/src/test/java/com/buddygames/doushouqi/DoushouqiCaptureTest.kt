@@ -101,15 +101,40 @@ class DoushouqiCaptureTest {
     }
 
     @Test
-    fun enemyPieceInOwnedTrapHasEffectiveRankZero() {
-        val from = pos(6, 3)
-        val trap = pos(7, 3)
-        val state = stateOf(
-            from to green(DoushouqiAnimal.RAT),
-            trap to red(DoushouqiAnimal.ELEPHANT),
+    fun defenderInEitherSidesTrapHasEffectiveRankZero() {
+        val cases = listOf(
+            Triple(pos(6, 3), pos(7, 3), DoushouqiSide.PINE_GREEN),
+            Triple(pos(2, 3), pos(1, 3), DoushouqiSide.PINE_GREEN),
+            Triple(pos(2, 3), pos(1, 3), DoushouqiSide.VERMILION),
+            Triple(pos(6, 3), pos(7, 3), DoushouqiSide.VERMILION),
         )
+        cases.forEach { (from, trap, attackerSide) ->
+            val state = stateOf(
+                attackerSide,
+                from to DoushouqiPiece(attackerSide, DoushouqiAnimal.CAT),
+                trap to DoushouqiPiece(
+                    attackerSide.other(),
+                    DoushouqiAnimal.ELEPHANT,
+                ),
+            )
 
-        assertTrue(move(from, trap) in legal(state))
+            assertTrue(move(from, trap) in legal(state))
+        }
+    }
+
+    @Test
+    fun elephantMayCaptureEnemyRatInEitherSidesTrap() {
+        listOf(
+            pos(6, 3) to pos(7, 3),
+            pos(2, 3) to pos(1, 3),
+        ).forEach { (from, trap) ->
+            val state = stateOf(
+                from to green(DoushouqiAnimal.ELEPHANT),
+                trap to red(DoushouqiAnimal.RAT),
+            )
+
+            assertTrue(move(from, trap) in legal(state))
+        }
     }
 
     @Test

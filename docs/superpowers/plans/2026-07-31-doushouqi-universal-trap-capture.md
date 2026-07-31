@@ -164,12 +164,12 @@ Add to `DoushouqiSearchEngineTest`:
 @Test
 fun cancelledFallbackDoesNotPreferEnteringOwnTrap() {
     val result = DoushouqiSearchEngine.search(
-        state = ownTrapChoiceState(),
+        state = ownTrapOrderingState(),
         level = DoushouqiAiLevel(6, 1, 1_000, 1_000, 1, 0, 0),
         nanoTime = { 0L },
         shouldStop = { true },
     )
-    assertEquals(move(pos(8, 1), pos(8, 0)), requireNotNull(result).move)
+    assertEquals(move(pos(7, 2), pos(6, 2)), requireNotNull(result).move)
     assertEquals(0, result.completedDepth)
 }
 
@@ -189,9 +189,14 @@ private fun ownTrapChoiceState(): DoushouqiState = stateOf(
     pos(7, 1) to red(DoushouqiAnimal.ELEPHANT),
     pos(4, 6) to red(DoushouqiAnimal.DOG),
 )
+
+private fun ownTrapOrderingState(): DoushouqiState = stateOf(
+    pos(7, 2) to green(DoushouqiAnimal.CAT),
+    pos(4, 6) to red(DoushouqiAnimal.DOG),
+)
 ```
 
-The Elephant blocks the safe forward square. The old `+15_000` own-trap bonus makes the cancelled fallback choose `(8,2)`; without an all-trap evaluation penalty, `(8,2)` also remains positionally better than `(8,0)` at depth one.
+The ordering fixture gives safe `(6,2)` and trapped `(7,3)` destinations equal progress toward the enemy den, so the old `+15_000` bonus alone makes the cancelled fallback choose `(7,3)`. In the evaluation fixture, the Elephant blocks the safe forward square; without an all-trap penalty, `(8,2)` remains positionally better than `(8,0)` at depth one.
 
 - [ ] **Step 2: Run the two tests and verify RED**
 
@@ -201,7 +206,7 @@ The Elephant blocks the safe forward square. The old `+15_000` own-trap bonus ma
   --tests com.buddygames.doushouqi.DoushouqiSearchEngineTest.depthOneSearchTreatsOwnTrapAsVulnerable
 ```
 
-Expected: both tests choose `(8,2)` under the old ordering and evaluation.
+Expected: the fallback test chooses `(7,3)` under the old order bonus, while the depth-one test chooses `(8,2)` under the old evaluation.
 
 - [ ] **Step 3: Remove the bonus and broaden the penalty**
 

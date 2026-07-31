@@ -200,7 +200,7 @@ internal class DoushouqiSearchPosition(state: DoushouqiState) {
         ) {
             return false
         }
-        if (trapOwner(to) == attackerSide) return true
+        if (trapOwner(to) != null) return true
         if (
             attackerAnimal == DoushouqiAnimal.RAT &&
             defenderAnimal == DoushouqiAnimal.ELEPHANT

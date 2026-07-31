@@ -164,7 +164,7 @@ object DoushouqiRules {
         ) {
             return false
         }
-        if (trapOwner(to) == attacker.side) return true
+        if (trapOwner(to) != null) return true
         if (
             attacker.animal == DoushouqiAnimal.RAT &&
             defender.animal == DoushouqiAnimal.ELEPHANT
