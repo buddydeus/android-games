@@ -204,6 +204,7 @@ $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
 ## 文档
 
 - [斗兽棋任意陷阱通用吃子规则设计](docs/superpowers/specs/2026-07-31-doushouqi-universal-trap-capture-design.md)
+- [斗兽棋任意陷阱通用吃子实施计划](docs/superpowers/plans/2026-07-31-doushouqi-universal-trap-capture.md)
 - [斗兽棋允许进入己方兽穴规则设计](docs/superpowers/specs/2026-07-31-doushouqi-own-den-entry-design.md)
 - [斗兽棋允许进入己方兽穴实施计划](docs/superpowers/plans/2026-07-31-doushouqi-own-den-entry.md)
 - [斗兽棋设计](docs/superpowers/specs/2026-07-26-doushouqi-game-design.md)
